@@ -1,0 +1,16 @@
+apiVersion: v2
+name: cellenza-operator
+description: Kubernetes operator for managing ephemeral preview environments tied to pull requests
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - operator
+  - preview-environments
+  - platform-engineering
+home: https://github.com/ihsenalaya/cellenza-operator
+sources:
+  - https://github.com/ihsenalaya/cellenza-operator
+maintainers:
+  - name: Cellenza Team

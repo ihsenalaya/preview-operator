@@ -1,0 +1,23 @@
+cellenza-operator {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
+
+Create a preview environment:
+
+  kubectl apply -f - <<EOF
+  apiVersion: platform.company.io/v1alpha1
+  kind: Cellenza
+  metadata:
+    name: pr-42
+  spec:
+    branch: feature/my-feature
+    prNumber: 42
+    image: myapp:latest
+  EOF
+
+Check status:
+
+  kubectl get cellenza pr-42
+
+{{- if .Values.webhook.enabled }}
+
+Webhooks are enabled. cert-manager must be installed in the cluster.
+{{- end }}

@@ -1,0 +1,172 @@
+package v1alpha1
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// ResourceTier defines the size of the environment
+// +kubebuilder:validation:Enum=small;medium;large
+type ResourceTier string
+
+const (
+	TierSmall  ResourceTier = "small"
+	TierMedium ResourceTier = "medium"
+	TierLarge  ResourceTier = "large"
+)
+
+// EnvironmentPhase describes the lifecycle phase
+type EnvironmentPhase string
+
+const (
+	PhasePending      EnvironmentPhase = "Pending"
+	PhaseProvisioning EnvironmentPhase = "Provisioning"
+	PhaseRunning      EnvironmentPhase = "Running"
+	PhaseTerminating  EnvironmentPhase = "Terminating"
+	PhaseFailed       EnvironmentPhase = "Failed"
+)
+
+// CellenzaSpec defines the desired state
+type CellenzaSpec struct {
+	// Branch is the git branch name for this preview environment
+	// +kubebuilder:validation:MinLength=1
+	Branch string `json:"branch"`
+
+	// PRNumber is the pull request number
+	PRNumber int `json:"prNumber"`
+
+	// Image is the container image to deploy
+	// +kubebuilder:validation:MinLength=1
+	Image string `json:"image"`
+
+	// TTL is the time-to-live duration (e.g. "48h", "24h", "72h")
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m)$`
+	// +kubebuilder:default="48h"
+	TTL string `json:"ttl,omitempty"`
+
+	// ResourceTier controls CPU/Memory quotas
+	// +kubebuilder:default=medium
+	ResourceTier ResourceTier `json:"resourceTier,omitempty"`
+
+	// RequiresApproval blocks provisioning until ApprovedBy is set
+	// +kubebuilder:default=false
+	RequiresApproval bool `json:"requiresApproval,omitempty"`
+
+	// ApprovedBy is the user who approved this environment (required when RequiresApproval=true)
+	// +optional
+	ApprovedBy string `json:"approvedBy,omitempty"`
+
+	// Replicas for the preview deployment
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=5
+	Replicas int32 `json:"replicas,omitempty"`
+}
+
+// CellenzaStatus defines the observed state
+type CellenzaStatus struct {
+	// Phase is the current lifecycle phase
+	Phase EnvironmentPhase `json:"phase,omitempty"`
+
+	// URL is the ingress URL of the preview environment
+	URL string `json:"url,omitempty"`
+
+	// NamespaceName is the dedicated namespace created for this env
+	NamespaceName string `json:"namespaceName,omitempty"`
+
+	// ExpiresAt is when this environment will be auto-deleted
+	ExpiresAt *metav1.Time `json:"expiresAt,omitempty"`
+
+	// Conditions represent the latest available observations
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// ObservedGeneration helps detect spec changes
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}
+
+// Condition types
+const (
+	ConditionReady    = "Ready"
+	ConditionApproved = "Approved"
+	ConditionExpired  = "Expired"
+)
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster,shortName=cz
+//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+//+kubebuilder:printcolumn:name="Branch",type=string,JSONPath=`.spec.branch`
+//+kubebuilder:printcolumn:name="Tier",type=string,JSONPath=`.spec.resourceTier`
+//+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
+//+kubebuilder:printcolumn:name="Expires",type=string,JSONPath=`.status.expiresAt`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Cellenza is the Schema for the preview environment operator
+type Cellenza struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   CellenzaSpec   `json:"spec,omitempty"`
+	Status CellenzaStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// CellenzaList contains a list of Cellenza
+type CellenzaList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Cellenza `json:"items"`
+}
+
+// Hub marks this as the storage version
+func (*Cellenza) Hub() {}
+
+// GetCondition returns a condition by type
+func (c *Cellenza) GetCondition(condType string) *metav1.Condition {
+	for i := range c.Status.Conditions {
+		if c.Status.Conditions[i].Type == condType {
+			return &c.Status.Conditions[i]
+		}
+	}
+	return nil
+}
+
+// SetCondition sets or updates a condition
+func (c *Cellenza) SetCondition(cond metav1.Condition) {
+	cond.ObservedGeneration = c.Generation
+	for i, existing := range c.Status.Conditions {
+		if existing.Type == cond.Type {
+			c.Status.Conditions[i] = cond
+			return
+		}
+	}
+	c.Status.Conditions = append(c.Status.Conditions, cond)
+}
+
+// IsApproved returns true if the env is approved or doesn't require approval
+func (c *Cellenza) IsApproved() bool {
+	if !c.Spec.RequiresApproval {
+		return true
+	}
+	return c.Spec.ApprovedBy != ""
+}
+
+// ResourceLimits returns CPU/Memory based on tier
+func (c *Cellenza) ResourceLimits() (cpuLimit, memLimit, cpuReq, memReq string) {
+	switch c.Spec.ResourceTier {
+	case TierSmall:
+		return "250m", "256Mi", "100m", "128Mi"
+	case TierLarge:
+		return "2000m", "2Gi", "500m", "512Mi"
+	default: // medium
+		return "500m", "512Mi", "200m", "256Mi"
+	}
+}
+
+func init() {
+	SchemeBuilder.Register(&Cellenza{}, &CellenzaList{})
+}
+
+// Needed for controller-runtime status subresource
+var _ corev1.ObjectReference = corev1.ObjectReference{}

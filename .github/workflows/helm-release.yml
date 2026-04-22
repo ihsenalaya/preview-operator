@@ -1,0 +1,43 @@
+name: Release Helm Chart
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+    - uses: azure/setup-helm@v4
+
+    - name: Sync chart version with git tag
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        sed -i "s/^version:.*/version: ${VERSION}/" charts/cellenza-operator/Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/cellenza-operator/Chart.yaml
+
+    - name: Release chart via chart-releaser
+      uses: helm/chart-releaser-action@v1.6.0
+      env:
+        CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        charts_dir: charts
+
+    - name: Push chart to GHCR (OCI)
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        helm package charts/cellenza-operator --version "${VERSION}"
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+        helm push "cellenza-operator-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}/charts"

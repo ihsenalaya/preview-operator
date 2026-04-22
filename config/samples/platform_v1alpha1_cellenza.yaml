@@ -1,0 +1,9 @@
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  labels:
+    app.kubernetes.io/name: cellenza-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: cellenza-sample
+spec:
+  # TODO(user): Add fields here

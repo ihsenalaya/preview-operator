@@ -1,0 +1,18 @@
+namespace: cellenza-operator-system
+
+namePrefix: cellenza-operator-
+
+resources:
+- ../crd
+- ../rbac
+- ../manager
+- ../webhook
+- metrics_service.yaml
+
+patches:
+- path: manager_metrics_patch.yaml
+  target:
+    kind: Deployment
+- path: manager_webhook_patch.yaml
+  target:
+    kind: Deployment

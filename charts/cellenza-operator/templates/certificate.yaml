@@ -1,0 +1,17 @@
+{{- if and .Values.webhook.enabled .Values.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "cellenza-operator.fullname" . }}-webhook-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cellenza-operator.labels" . | nindent 4 }}
+spec:
+  dnsNames:
+  - {{ include "cellenza-operator.webhookServiceName" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "cellenza-operator.webhookServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: {{ include "cellenza-operator.issuerName" . }}
+  secretName: {{ include "cellenza-operator.webhookCertSecret" . }}
+{{- end }}
