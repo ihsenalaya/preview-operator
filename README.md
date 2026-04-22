@@ -390,4 +390,4 @@ A **finalizer** ensures child resources are cleaned up even when the `Cellenza` 
 
 ## License
 
-Copyright 2026 — Licensed under the [Apache License 2.0](LICENSE).
+Copyright 2026 ihsenalaya — Licensed under the [Apache License 2.0](LICENSE).
