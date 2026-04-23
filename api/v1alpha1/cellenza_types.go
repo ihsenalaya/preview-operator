@@ -9,6 +9,23 @@ import (
 // +kubebuilder:validation:Enum=small;medium;large
 type ResourceTier string
 
+// DatabaseSpec configures the ephemeral PostgreSQL sidecar
+type DatabaseSpec struct {
+	// Enabled controls whether a PostgreSQL instance is provisioned alongside the app
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Version is the PostgreSQL major version to use (e.g. "15", "16")
+	// +kubebuilder:default="15"
+	// +optional
+	Version string `json:"version,omitempty"`
+
+	// DatabaseName is the logical database created inside PostgreSQL
+	// +kubebuilder:default="appdb"
+	// +optional
+	DatabaseName string `json:"databaseName,omitempty"`
+}
+
 const (
 	TierSmall  ResourceTier = "small"
 	TierMedium ResourceTier = "medium"
@@ -61,6 +78,10 @@ type CellenzaSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=5
 	Replicas int32 `json:"replicas,omitempty"`
+
+	// Database configures an ephemeral PostgreSQL instance for this environment
+	// +optional
+	Database *DatabaseSpec `json:"database,omitempty"`
 }
 
 // CellenzaStatus defines the observed state
@@ -82,13 +103,18 @@ type CellenzaStatus struct {
 
 	// ObservedGeneration helps detect spec changes
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// DatabaseSecretName is the name of the Secret holding PostgreSQL credentials (when database is enabled)
+	// +optional
+	DatabaseSecretName string `json:"databaseSecretName,omitempty"`
 }
 
 // Condition types
 const (
-	ConditionReady    = "Ready"
-	ConditionApproved = "Approved"
-	ConditionExpired  = "Expired"
+	ConditionReady         = "Ready"
+	ConditionApproved      = "Approved"
+	ConditionExpired       = "Expired"
+	ConditionDatabaseReady = "DatabaseReady"
 )
 
 //+kubebuilder:object:root=true

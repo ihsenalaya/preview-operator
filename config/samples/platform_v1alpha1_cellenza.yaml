@@ -6,4 +6,27 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: cellenza-sample
 spec:
-  # TODO(user): Add fields here
+  branch: feature/my-feature
+  prNumber: 42
+  image: nginx:latest
+  ttl: 48h
+  resourceTier: medium
+  replicas: 1
+  # Enable an ephemeral PostgreSQL sidecar.
+  # The operator generates unique credentials on first creation and never overwrites them.
+  # Credentials are injected into the app as: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DATABASE_URL
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
+---
+# Minimal example without database
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: cellenza-no-db
+spec:
+  branch: hotfix/no-db
+  prNumber: 99
+  image: nginx:alpine
+  resourceTier: small

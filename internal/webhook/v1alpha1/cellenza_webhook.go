@@ -13,6 +13,10 @@ import (
 
 var cellenzalog = logf.Log.WithName("cellenza-webhook")
 
+func SetupCellenzaWebhookWithManager(mgr ctrl.Manager) error {
+	return SetupWebhookWithManager(mgr)
+}
+
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &apiv1alpha1.Cellenza{}).
 		WithDefaulter(&CellenzaCustomDefaulter{}).

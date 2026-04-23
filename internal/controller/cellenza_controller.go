@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -23,9 +25,10 @@ import (
 )
 
 const (
-	cellenzaFinalizer = "platform.company.io/finalizer"
-	labelManagedBy    = "platform.company.io/managed-by"
-	labelCellenzaName = "platform.company.io/cellenza-name"
+	cellenzaFinalizer  = "platform.company.io/finalizer"
+	labelManagedBy     = "platform.company.io/managed-by"
+	labelCellenzaName  = "platform.company.io/cellenza-name"
+	postgresSecretName = "postgres-credentials"
 )
 
 // CellenzaReconciler reconciles Cellenza objects
@@ -41,6 +44,7 @@ type CellenzaReconciler struct {
 //+kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
@@ -133,6 +137,19 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.setFailedStatus(ctx, cellenza, "QuotaFailed", err)
 	}
 
+	// Provision PostgreSQL before the app so credentials exist when the deployment starts
+	if cellenza.Spec.Database != nil && cellenza.Spec.Database.Enabled {
+		if err := r.reconcilePostgresSecret(ctx, cellenza, nsName); err != nil {
+			return r.setFailedStatus(ctx, cellenza, "DatabaseSecretFailed", err)
+		}
+		if err := r.reconcilePostgresService(ctx, cellenza, nsName); err != nil {
+			return r.setFailedStatus(ctx, cellenza, "DatabaseServiceFailed", err)
+		}
+		if err := r.reconcilePostgresDeployment(ctx, cellenza, nsName); err != nil {
+			return r.setFailedStatus(ctx, cellenza, "DatabaseDeploymentFailed", err)
+		}
+	}
+
 	if err := r.reconcileDeployment(ctx, cellenza, nsName); err != nil {
 		return r.setFailedStatus(ctx, cellenza, "DeploymentFailed", err)
 	}
@@ -151,6 +168,21 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	cellenza.Status.URL = previewURL
 	cellenza.Status.NamespaceName = nsName
 	cellenza.Status.ObservedGeneration = cellenza.Generation
+
+	if cellenza.Spec.Database != nil && cellenza.Spec.Database.Enabled {
+		cellenza.Status.DatabaseSecretName = postgresSecretName
+		dbVersion := "15"
+		if cellenza.Spec.Database.Version != "" {
+			dbVersion = cellenza.Spec.Database.Version
+		}
+		cellenza.SetCondition(metav1.Condition{
+			Type:               platformv1alpha1.ConditionDatabaseReady,
+			Status:             metav1.ConditionTrue,
+			Reason:             "PostgreSQLProvisioned",
+			Message:            fmt.Sprintf("PostgreSQL %s running — credentials in secret %s/%s", dbVersion, nsName, postgresSecretName),
+			LastTransitionTime: metav1.Now(),
+		})
+	}
 
 	cellenza.SetCondition(metav1.Condition{
 		Type:               platformv1alpha1.ConditionReady,
@@ -239,9 +271,22 @@ func (r *CellenzaReconciler) reconcileNamespace(ctx context.Context, c *platform
 	return err
 }
 
-// reconcileResourceQuota enforces CPU/Memory limits per tier
+// reconcileResourceQuota enforces CPU/Memory limits per tier, extended when PostgreSQL is enabled
 func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
-	cpuLimit, memLimit, cpuReq, memReq := c.ResourceLimits()
+	cpuLimitStr, memLimitStr, cpuReqStr, memReqStr := c.ResourceLimits()
+
+	cpuLimit := resource.MustParse(cpuLimitStr)
+	memLimit := resource.MustParse(memLimitStr)
+	cpuReq := resource.MustParse(cpuReqStr)
+	memReq := resource.MustParse(memReqStr)
+
+	if c.Spec.Database != nil && c.Spec.Database.Enabled {
+		// Reserve headroom for the PostgreSQL pod (500m CPU / 512Mi RAM limit)
+		cpuLimit.Add(resource.MustParse("500m"))
+		memLimit.Add(resource.MustParse("512Mi"))
+		cpuReq.Add(resource.MustParse("100m"))
+		memReq.Add(resource.MustParse("128Mi"))
+	}
 
 	quota := &corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
@@ -253,10 +298,10 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, quota, func() error {
 		quota.Spec = corev1.ResourceQuotaSpec{
 			Hard: corev1.ResourceList{
-				corev1.ResourceLimitsCPU:      resource.MustParse(cpuLimit),
-				corev1.ResourceLimitsMemory:   resource.MustParse(memLimit),
-				corev1.ResourceRequestsCPU:    resource.MustParse(cpuReq),
-				corev1.ResourceRequestsMemory: resource.MustParse(memReq),
+				corev1.ResourceLimitsCPU:      cpuLimit,
+				corev1.ResourceLimitsMemory:   memLimit,
+				corev1.ResourceRequestsCPU:    cpuReq,
+				corev1.ResourceRequestsMemory: memReq,
 				corev1.ResourcePods:           resource.MustParse("10"),
 			},
 		}
@@ -265,12 +310,58 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 	return err
 }
 
-// reconcileDeployment creates/updates the app deployment
+// reconcileDeployment creates/updates the app deployment, wiring in PostgreSQL when enabled
 func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
-	_, memLimit, cpuReq, memReq := c.ResourceLimits()
-	cpuLimit := "500m"
-	if c.Spec.ResourceTier == platformv1alpha1.TierLarge {
-		cpuLimit = "1000m"
+	cpuLimit, memLimit, cpuReq, memReq := c.ResourceLimits()
+
+	dbEnabled := c.Spec.Database != nil && c.Spec.Database.Enabled
+
+	env := []corev1.EnvVar{
+		{Name: "PREVIEW_BRANCH", Value: c.Spec.Branch},
+		{Name: "PREVIEW_PR", Value: fmt.Sprintf("%d", c.Spec.PRNumber)},
+		{Name: "ENVIRONMENT", Value: "preview"},
+	}
+
+	var initContainers []corev1.Container
+
+	if dbEnabled {
+		// Init container blocks app startup until PostgreSQL accepts connections.
+		// Uses busybox (5MB) instead of the full postgres image just for a TCP check.
+		initContainers = []corev1.Container{
+			{
+				Name:    "wait-for-postgres",
+				Image:   "busybox:1.36",
+				Command: []string{"sh", "-c", "until nc -z postgres 5432; do echo 'waiting for postgres...'; sleep 2; done"},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("10m"),
+						corev1.ResourceMemory: resource.MustParse("32Mi"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("50m"),
+						corev1.ResourceMemory: resource.MustParse("64Mi"),
+					},
+				},
+			},
+		}
+
+		fromSecret := func(key string) corev1.EnvVar {
+			return corev1.EnvVar{
+				Name: key,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName},
+						Key:                  key,
+					},
+				},
+			}
+		}
+		env = append(env,
+			fromSecret("POSTGRES_USER"),
+			fromSecret("POSTGRES_PASSWORD"),
+			fromSecret("POSTGRES_DB"),
+			fromSecret("DATABASE_URL"),
+		)
 	}
 
 	deploy := &appsv1.Deployment{
@@ -301,6 +392,7 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 					},
 				},
 				Spec: corev1.PodSpec{
+					InitContainers: initContainers,
 					Containers: []corev1.Container{
 						{
 							Name:  "app",
@@ -308,11 +400,7 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 							Ports: []corev1.ContainerPort{
 								{ContainerPort: 80, Protocol: corev1.ProtocolTCP},
 							},
-							Env: []corev1.EnvVar{
-								{Name: "PREVIEW_BRANCH", Value: c.Spec.Branch},
-								{Name: "PREVIEW_PR", Value: fmt.Sprintf("%d", c.Spec.PRNumber)},
-								{Name: "ENVIRONMENT", Value: "preview"},
-							},
+							Env: env,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse(cpuReq),
@@ -414,6 +502,201 @@ func (r *CellenzaReconciler) reconcileIngress(ctx context.Context, c *platformv1
 		return nil
 	})
 	return err
+}
+
+// reconcilePostgresSecret creates a Secret with unique credentials the first time only.
+// If the Secret already exists its data is never overwritten, preserving credentials across reconcile loops.
+func (r *CellenzaReconciler) reconcilePostgresSecret(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	existing := &corev1.Secret{}
+	err := r.Get(ctx, types.NamespacedName{Name: postgresSecretName, Namespace: nsName}, existing)
+	if err == nil {
+		return nil // credentials already exist — do not regenerate
+	}
+	if !errors.IsNotFound(err) {
+		return err
+	}
+
+	dbName := "appdb"
+	if c.Spec.Database.DatabaseName != "" {
+		dbName = c.Spec.Database.DatabaseName
+	}
+	username := fmt.Sprintf("preview_%d", c.Spec.PRNumber)
+	password, err := generateSecureToken(32)
+	if err != nil {
+		return fmt.Errorf("generating database password: %w", err)
+	}
+	dbURL := fmt.Sprintf("postgresql://%s:%s@postgres:5432/%s?sslmode=disable", username, password, dbName)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      postgresSecretName,
+			Namespace: nsName,
+			Labels: map[string]string{
+				labelManagedBy:    "cellenza-operator",
+				labelCellenzaName: c.Name,
+			},
+			Annotations: map[string]string{
+				"platform.company.io/managed-by":      "cellenza-operator",
+				"platform.company.io/credentials-for": fmt.Sprintf("pr-%d", c.Spec.PRNumber),
+			},
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"POSTGRES_USER":     username,
+			"POSTGRES_PASSWORD": password,
+			"POSTGRES_DB":       dbName,
+			"DATABASE_URL":      dbURL,
+		},
+	}
+	return r.Create(ctx, secret)
+}
+
+// reconcilePostgresDeployment creates/updates the PostgreSQL Deployment
+func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	version := "15"
+	if c.Spec.Database.Version != "" {
+		version = c.Spec.Database.Version
+	}
+	image := fmt.Sprintf("postgres:%s-alpine", version)
+	one := int32(1)
+
+	deploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "postgres",
+			Namespace: nsName,
+		},
+	}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deploy, func() error {
+		deploy.Labels = map[string]string{
+			labelManagedBy:                "cellenza-operator",
+			labelCellenzaName:             c.Name,
+			"app.kubernetes.io/component": "database",
+		}
+		deploy.Spec = appsv1.DeploymentSpec{
+			Replicas: &one,
+			// Recreate avoids two postgres pods briefly running against the same data directory
+			Strategy: appsv1.DeploymentStrategy{Type: appsv1.RecreateDeploymentStrategyType},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "postgres", labelCellenzaName: c.Name},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app":                         "postgres",
+						labelCellenzaName:             c.Name,
+						labelManagedBy:                "cellenza-operator",
+						"app.kubernetes.io/component": "database",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "postgres",
+							Image: image,
+							Ports: []corev1.ContainerPort{
+								{ContainerPort: 5432, Protocol: corev1.ProtocolTCP},
+							},
+							Env: []corev1.EnvVar{
+								secretKeyRef("POSTGRES_USER", postgresSecretName, "POSTGRES_USER"),
+								secretKeyRef("POSTGRES_PASSWORD", postgresSecretName, "POSTGRES_PASSWORD"),
+								secretKeyRef("POSTGRES_DB", postgresSecretName, "POSTGRES_DB"),
+								// Store data in a sub-directory to avoid "lost+found" issues on emptyDir
+								{Name: "PGDATA", Value: "/var/lib/postgresql/data/pgdata"},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("128Mi"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("500m"),
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"pg_isready"},
+									},
+								},
+								InitialDelaySeconds: 5,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+								FailureThreshold:    6,
+							},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"pg_isready"},
+									},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       30,
+								TimeoutSeconds:      5,
+								FailureThreshold:    3,
+							},
+						},
+					},
+				},
+			},
+		}
+		return nil
+	})
+	return err
+}
+
+// reconcilePostgresService creates/updates the headless ClusterIP service for PostgreSQL
+func (r *CellenzaReconciler) reconcilePostgresService(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "postgres",
+			Namespace: nsName,
+		},
+	}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, func() error {
+		svc.Labels = map[string]string{
+			labelManagedBy:                "cellenza-operator",
+			"app.kubernetes.io/component": "database",
+		}
+		svc.Spec = corev1.ServiceSpec{
+			Selector: map[string]string{"app": "postgres", labelCellenzaName: c.Name},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "postgres",
+					Port:       5432,
+					TargetPort: intstr.FromInt(5432),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+			Type: corev1.ServiceTypeClusterIP,
+		}
+		return nil
+	})
+	return err
+}
+
+// secretKeyRef builds an EnvVar that reads its value from a Secret key
+func secretKeyRef(envName, secretName, key string) corev1.EnvVar {
+	return corev1.EnvVar{
+		Name: envName,
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+				Key:                  key,
+			},
+		},
+	}
+}
+
+// generateSecureToken returns a hex-encoded cryptographically random string of n bytes (2n chars)
+func generateSecureToken(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func (r *CellenzaReconciler) setFailedStatus(ctx context.Context, c *platformv1alpha1.Cellenza, reason string, err error) (ctrl.Result, error) {

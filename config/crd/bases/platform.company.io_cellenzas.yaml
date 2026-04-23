@@ -68,6 +68,26 @@ spec:
                 description: Branch is the git branch name for this preview environment
                 minLength: 1
                 type: string
+              database:
+                description: Database configures an ephemeral PostgreSQL instance
+                  for this environment
+                properties:
+                  databaseName:
+                    default: appdb
+                    description: DatabaseName is the logical database created inside
+                      PostgreSQL
+                    type: string
+                  enabled:
+                    default: false
+                    description: Enabled controls whether a PostgreSQL instance is
+                      provisioned alongside the app
+                    type: boolean
+                  version:
+                    default: "15"
+                    description: Version is the PostgreSQL major version to use (e.g.
+                      "15", "16")
+                    type: string
+                type: object
               image:
                 description: Image is the container image to deploy
                 minLength: 1
@@ -166,6 +186,10 @@ spec:
                   - type
                   type: object
                 type: array
+              databaseSecretName:
+                description: DatabaseSecretName is the name of the Secret holding
+                  PostgreSQL credentials (when database is enabled)
+                type: string
               expiresAt:
                 description: ExpiresAt is when this environment will be auto-deleted
                 format: date-time

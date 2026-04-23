@@ -1,6 +1,6 @@
 # cellenza-operator
 
-A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, and resource quota — and tears it all down automatically when the TTL expires.
+A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, resource quota — and optionally a **PostgreSQL database with auto-generated credentials** — and tears it all down automatically when the TTL expires.
 
 ## How it works
 
@@ -13,11 +13,14 @@ creates a Cellenza resource
       │
       ▼
 Operator creates:
-  • Namespace  pr-42-preview
+  • Namespace      preview-pr-42
   • ResourceQuota  (based on resourceTier)
-  • Deployment  (your container image)
-  • Service
-  • Ingress  →  pr-42.preview.localtest.me
+  • Secret         postgres-credentials  (unique credentials, generated once)
+  • Deployment     postgres              (optional, when database.enabled=true)
+  • Service        postgres
+  • Deployment     app  (waits for postgres via init container)
+  • Service        app
+  • Ingress        →  pr-42.preview.localtest.me
       │
       ▼
 Environment runs until TTL expires
@@ -106,6 +109,48 @@ spec:
   image: myapp:abc1234
 ```
 
+### With PostgreSQL
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-42
+spec:
+  branch: feature/my-feature
+  prNumber: 42
+  image: myapp:abc1234
+  database:
+    enabled: true
+    version: "15"       # PostgreSQL major version
+    databaseName: appdb # logical database name
+```
+
+The operator will:
+1. Generate a unique username (`preview_42`) and a cryptographically random password
+2. Store them in a Secret `postgres-credentials` in the PR namespace
+3. Start a `postgres:15-alpine` deployment
+4. Block the app pod with an init container (`busybox`) until PostgreSQL is ready
+5. Inject the credentials into the app container as environment variables
+
+**Credentials are generated once and never overwritten**, even if the Cellenza is updated.
+
+The app receives these environment variables automatically:
+
+| Variable | Example value |
+|---|---|
+| `POSTGRES_USER` | `preview_42` |
+| `POSTGRES_PASSWORD` | `a3f8c2...` (64-char hex) |
+| `POSTGRES_DB` | `appdb` |
+| `DATABASE_URL` | `postgresql://preview_42:a3f8c2...@postgres:5432/appdb?sslmode=disable` |
+
+Read the credentials at any time:
+
+```bash
+kubectl get secret postgres-credentials -n preview-pr-42 \
+  -o jsonpath='{.data.DATABASE_URL}' | base64 -d
+```
+
 Apply it:
 
 ```bash
@@ -133,14 +178,19 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `replicas` | 1–5 | `1` | Number of pod replicas |
 | `requiresApproval` | bool | `false` | Block provisioning until `approvedBy` is set |
 | `approvedBy` | string | — | Username of the approver (required when `requiresApproval: true`) |
+| `database.enabled` | bool | `false` | Provision an ephemeral PostgreSQL instance |
+| `database.version` | string | `"15"` | PostgreSQL major version |
+| `database.databaseName` | string | `"appdb"` | Logical database name created inside PostgreSQL |
 
 ### Resource tiers
 
+When `database.enabled: true`, the operator automatically adds PostgreSQL headroom (+500m CPU / +512Mi RAM) to the namespace quota.
+
 | Tier | CPU request | CPU limit | Memory request | Memory limit |
 |---|---|---|---|---|
-| `small` | 100m | 200m | 128Mi | 256Mi |
-| `medium` | 250m | 500m | 256Mi | 512Mi |
-| `large` | 500m | 1000m | 512Mi | 1Gi |
+| `small` | 100m | 250m | 128Mi | 256Mi |
+| `medium` | 200m | 500m | 256Mi | 512Mi |
+| `large` | 500m | 2000m | 512Mi | 2Gi |
 
 > `large` always forces `requiresApproval: true` (enforced by the webhook).
 
@@ -190,6 +240,26 @@ spec:
   ttl: 24h
 ```
 
+### Full-stack environment (app + PostgreSQL + approval gate)
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-77
+spec:
+  branch: feature/new-auth
+  prNumber: 77
+  image: myapp:abc1234
+  resourceTier: medium
+  ttl: 48h
+  requiresApproval: true
+  database:
+    enabled: true
+    version: "16"
+    databaseName: myapp
+```
+
 ---
 
 ## Lifecycle
@@ -225,7 +295,8 @@ kubectl describe cellenza pr-42
 | `status.url` | Ingress URL of the preview environment |
 | `status.expiresAt` | Timestamp when the environment will be auto-deleted |
 | `status.namespaceName` | Dedicated namespace created by the operator |
-| `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired` |
+| `status.databaseSecretName` | Name of the Secret holding PostgreSQL credentials (when database is enabled) |
+| `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady` |
 
 ---
 
@@ -378,13 +449,16 @@ cellenza-operator/
 
 The controller watches `Cellenza` resources cluster-wide and reconciles the following child resources in the PR-specific namespace:
 
-- `Namespace` — isolated per PR (`pr-<number>-preview`)
-- `ResourceQuota` — enforces the `resourceTier` limits
-- `Deployment` — runs the specified image
-- `Service` — ClusterIP service for the deployment
+- `Namespace` — isolated per PR (`preview-pr-<number>`)
+- `ResourceQuota` — enforces the `resourceTier` limits (extended automatically when PostgreSQL is enabled)
+- `Secret` `postgres-credentials` — unique credentials generated with `crypto/rand`, **created once and never overwritten**
+- `Deployment` `postgres` — PostgreSQL sidecar (only when `database.enabled: true`)
+- `Service` `postgres` — ClusterIP on port 5432, DNS name `postgres` within the namespace
+- `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready
+- `Service` `app` — ClusterIP service for the app
 - `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`
 
-A **finalizer** ensures child resources are cleaned up even when the `Cellenza` is force-deleted.
+A **finalizer** ensures all child resources (including the PostgreSQL deployment and credentials secret) are cleaned up even when the `Cellenza` is force-deleted.
 
 ---
 

@@ -6,7 +6,7 @@ metadata:
     {{- include "cellenza-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups: [""]
-  resources: [configmaps, namespaces, resourcequotas, services]
+  resources: [configmaps, namespaces, resourcequotas, secrets, services]
   verbs: [create, delete, get, list, patch, update, watch]
 - apiGroups: [apps]
   resources: [deployments]
