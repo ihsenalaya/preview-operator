@@ -119,7 +119,7 @@ def render(pg_version, rows, db_ok, error=""):
     </div>
 
     <div class="card">
-      <h2>Livre d'or</h2>
+      <h2>Test Cellenza Operator</h2>
       <form method="POST" action="/add">
         <input type="text" name="author" placeholder="Votre nom" maxlength="50" required>
         <input type="text" name="text"   placeholder="Votre message..." maxlength="200" required>
