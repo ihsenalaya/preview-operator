@@ -1,0 +1,14 @@
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: demo
+spec:
+  branch: demo
+  prNumber: 1
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  resourceTier: small
+  ttl: 72h
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
