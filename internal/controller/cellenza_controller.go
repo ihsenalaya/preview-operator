@@ -617,7 +617,7 @@ func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c 
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"pg_isready"},
+										Command: []string{"sh", "-c", "pg_isready -U $POSTGRES_USER"},
 									},
 								},
 								InitialDelaySeconds: 5,
@@ -628,7 +628,7 @@ func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c 
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"pg_isready"},
+										Command: []string{"sh", "-c", "pg_isready -U $POSTGRES_USER"},
 									},
 								},
 								InitialDelaySeconds: 30,

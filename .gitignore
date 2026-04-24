@@ -31,3 +31,9 @@ go.work
 
 # Claude Code local settings
 .claude/
+
+# AI assistant files
+.codex
+
+# Helm packaged archives
+*.tgz
