@@ -215,7 +215,10 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, nil
 }
 
-// handleDeletion cleans up all child resources
+// handleDeletion cleans up all child resources.
+// It requests namespace deletion then requeues until the namespace is fully gone
+// before removing the finalizer — avoiding stuck Terminating objects if the
+// controller restarts between the Delete call and the Update call.
 func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platformv1alpha1.Cellenza) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -223,20 +226,26 @@ func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platf
 		return ctrl.Result{}, nil
 	}
 
-	logger.Info("Running cleanup finalizer", "name", cellenza.Name)
 	cellenza.Status.Phase = platformv1alpha1.PhaseTerminating
 	_ = r.Status().Update(ctx, cellenza)
 
 	nsName := r.namespaceName(cellenza)
 	ns := &corev1.Namespace{}
 	if err := r.Get(ctx, types.NamespacedName{Name: nsName}, ns); err == nil {
-		logger.Info("Deleting namespace", "namespace", nsName)
-		if err := r.Delete(ctx, ns); err != nil && !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to delete namespace %s: %w", nsName, err)
+		// Namespace still exists: request deletion if not already requested.
+		if ns.DeletionTimestamp.IsZero() {
+			logger.Info("Deleting namespace", "namespace", nsName)
+			if err := r.Delete(ctx, ns); err != nil && !errors.IsNotFound(err) {
+				return ctrl.Result{}, fmt.Errorf("failed to delete namespace %s: %w", nsName, err)
+			}
+		} else {
+			logger.Info("Waiting for namespace termination", "namespace", nsName)
 		}
+		// Requeue until the namespace is fully gone.
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	// Remove finalizer to allow garbage collection
+	// Namespace is gone — safe to remove the finalizer.
 	controllerutil.RemoveFinalizer(cellenza, cellenzaFinalizer)
 	if err := r.Update(ctx, cellenza); err != nil {
 		return ctrl.Result{}, err
