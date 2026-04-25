@@ -64,6 +64,7 @@ func (r *CellenzaReconciler) syncGitHub(ctx context.Context, c *platformv1alpha1
 		logger.Error(err, "Failed to update GitHub Deployment", "name", c.Name)
 		return
 	}
+	r.recordGitHubSuccess(ctx, c, state, environmentURL, 0)
 
 	var commentID int64
 	if commentOnReady {
@@ -173,6 +174,9 @@ func (r *CellenzaReconciler) createGitHubReadyComment(ctx context.Context, c *pl
 	if err := r.githubPost(ctx, token, path, payload, &response); err != nil {
 		return 0, err
 	}
+	if response.ID == 0 {
+		return -1, nil
+	}
 	return response.ID, nil
 }
 
@@ -216,7 +220,7 @@ func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string,
 	if readErr != nil {
 		return readErr
 	}
-	if response != nil && len(respBody) > 0 {
+	if response != nil && len(strings.TrimSpace(string(respBody))) > 0 {
 		if err := json.Unmarshal(respBody, response); err != nil {
 			return err
 		}
