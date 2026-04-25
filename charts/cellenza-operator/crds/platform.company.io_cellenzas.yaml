@@ -88,6 +88,54 @@ spec:
                       "15", "16")
                     type: string
                 type: object
+              github:
+                description: GitHub configures optional GitHub Deployment and pull
+                  request updates.
+                properties:
+                  commentOnReady:
+                    default: false
+                    description: CommentOnReady controls whether the controller comments
+                      on the PR when the preview is ready.
+                    type: boolean
+                  deploymentId:
+                    description: DeploymentID is the GitHub Deployment id to update.
+                    format: int64
+                    type: integer
+                  enabled:
+                    default: false
+                    description: Enabled controls whether the controller sends updates
+                      to GitHub.
+                    type: boolean
+                  environment:
+                    description: Environment is the GitHub Deployment environment
+                      name (for example "pr-42").
+                    type: string
+                  owner:
+                    description: Owner is the GitHub repository owner or organization.
+                    type: string
+                  repo:
+                    description: Repo is the GitHub repository name.
+                    type: string
+                  tokenSecretRef:
+                    description: TokenSecretRef points to a Secret containing a GitHub
+                      token.
+                    properties:
+                      key:
+                        description: Key is the Secret data key containing the token.
+                          Defaults to "token".
+                        type: string
+                      name:
+                        description: Name is the Secret name.
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: Namespace is the Secret namespace. When empty,
+                          the controller namespace is used.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                type: object
               image:
                 description: Image is the container image to deploy
                 minLength: 1
@@ -244,6 +292,35 @@ spec:
                 description: ExpiresAt is when this environment will be auto-deleted
                 format: date-time
                 type: string
+              github:
+                description: GitHub describes the latest GitHub Deployment or PR notification.
+                properties:
+                  commentId:
+                    description: CommentID is the GitHub issue comment id created
+                      for the PR.
+                    format: int64
+                    type: integer
+                  deploymentState:
+                    description: DeploymentState is the last GitHub Deployment state
+                      sent by the controller.
+                    type: string
+                  lastEnvironmentUrl:
+                    description: LastEnvironmentURL is the URL sent to GitHub.
+                    type: string
+                  lastError:
+                    description: LastError stores the latest non-blocking GitHub notification
+                      error.
+                    type: string
+                  lastNotifiedAt:
+                    description: LastNotifiedAt is when the latest GitHub notification
+                      was sent.
+                    format: date-time
+                    type: string
+                  lastNotifiedPhase:
+                    description: LastNotifiedPhase is the Cellenza phase corresponding
+                      to the last notification.
+                    type: string
+                type: object
               namespaceName:
                 description: NamespaceName is the dedicated namespace created for
                   this env

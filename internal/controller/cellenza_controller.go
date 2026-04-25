@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -35,7 +36,9 @@ const (
 // CellenzaReconciler reconciles Cellenza objects
 type CellenzaReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme           *runtime.Scheme
+	GitHubAPIBaseURL string
+	GitHubHTTPClient *http.Client
 }
 
 // +kubebuilder:rbac:groups=platform.company.io,resources=cellenzas,verbs=get;list;watch;create;update;patch;delete
@@ -104,6 +107,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Status().Update(ctx, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
+		syncGitHubAfterStatus(ctx, r, cellenza, cellenza.Status.URL)
 		// Requeue every 30s to check if approval was granted
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
@@ -190,6 +194,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.Status().Update(ctx, cellenza); err != nil {
 		return ctrl.Result{}, err
 	}
+	syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 
 	// Requeue before expiry to handle TTL cleanup
 	if cellenza.Status.ExpiresAt != nil {
@@ -243,6 +248,7 @@ func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platf
 
 	cellenza.Status.Phase = platformv1alpha1.PhaseTerminating
 	_ = r.Status().Update(ctx, cellenza)
+	syncGitHubAfterStatus(ctx, r, cellenza, cellenza.Status.URL)
 
 	nsName := r.namespaceName(cellenza)
 	if err := r.deleteKnownChildren(ctx, nsName); err != nil {
@@ -845,6 +851,7 @@ func (r *CellenzaReconciler) setFailedStatus(ctx context.Context, c *platformv1a
 		LastTransitionTime: metav1.Now(),
 	})
 	_ = r.Status().Update(ctx, c)
+	syncGitHubAfterStatus(ctx, r, c, c.Status.URL)
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 }
 

@@ -86,6 +86,54 @@ type TelemetrySpec struct {
 	AutoInstrumentation *AutoInstrumentationSpec `json:"autoInstrumentation,omitempty"`
 }
 
+// GitHubTokenSecretRef points to a Secret containing a GitHub token.
+type GitHubTokenSecretRef struct {
+	// Name is the Secret name.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Namespace is the Secret namespace. When empty, the controller namespace is used.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// Key is the Secret data key containing the token. Defaults to "token".
+	// +optional
+	Key string `json:"key,omitempty"`
+}
+
+// GitHubIntegrationSpec configures GitHub Deployment and pull request updates
+// emitted by the controller once it observes the preview environment state.
+type GitHubIntegrationSpec struct {
+	// Enabled controls whether the controller sends updates to GitHub.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Owner is the GitHub repository owner or organization.
+	// +optional
+	Owner string `json:"owner,omitempty"`
+
+	// Repo is the GitHub repository name.
+	// +optional
+	Repo string `json:"repo,omitempty"`
+
+	// DeploymentID is the GitHub Deployment id to update.
+	// +optional
+	DeploymentID int64 `json:"deploymentId,omitempty"`
+
+	// Environment is the GitHub Deployment environment name (for example "pr-42").
+	// +optional
+	Environment string `json:"environment,omitempty"`
+
+	// TokenSecretRef points to a Secret containing a GitHub token.
+	// +optional
+	TokenSecretRef *GitHubTokenSecretRef `json:"tokenSecretRef,omitempty"`
+
+	// CommentOnReady controls whether the controller comments on the PR when the preview is ready.
+	// +kubebuilder:default=false
+	// +optional
+	CommentOnReady bool `json:"commentOnReady,omitempty"`
+}
+
 // EnvironmentPhase describes the lifecycle phase
 type EnvironmentPhase string
 
@@ -140,6 +188,37 @@ type CellenzaSpec struct {
 	// Telemetry configures application observability integration.
 	// +optional
 	Telemetry *TelemetrySpec `json:"telemetry,omitempty"`
+
+	// GitHub configures optional GitHub Deployment and pull request updates.
+	// +optional
+	GitHub *GitHubIntegrationSpec `json:"github,omitempty"`
+}
+
+// GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.
+type GitHubIntegrationStatus struct {
+	// DeploymentState is the last GitHub Deployment state sent by the controller.
+	// +optional
+	DeploymentState string `json:"deploymentState,omitempty"`
+
+	// LastNotifiedPhase is the Cellenza phase corresponding to the last notification.
+	// +optional
+	LastNotifiedPhase EnvironmentPhase `json:"lastNotifiedPhase,omitempty"`
+
+	// LastEnvironmentURL is the URL sent to GitHub.
+	// +optional
+	LastEnvironmentURL string `json:"lastEnvironmentUrl,omitempty"`
+
+	// CommentID is the GitHub issue comment id created for the PR.
+	// +optional
+	CommentID int64 `json:"commentId,omitempty"`
+
+	// LastError stores the latest non-blocking GitHub notification error.
+	// +optional
+	LastError string `json:"lastError,omitempty"`
+
+	// LastNotifiedAt is when the latest GitHub notification was sent.
+	// +optional
+	LastNotifiedAt *metav1.Time `json:"lastNotifiedAt,omitempty"`
 }
 
 // CellenzaStatus defines the observed state
@@ -165,6 +244,10 @@ type CellenzaStatus struct {
 	// DatabaseSecretName is the name of the Secret holding PostgreSQL credentials (when database is enabled)
 	// +optional
 	DatabaseSecretName string `json:"databaseSecretName,omitempty"`
+
+	// GitHub describes the latest GitHub Deployment or PR notification.
+	// +optional
+	GitHub *GitHubIntegrationStatus `json:"github,omitempty"`
 }
 
 // Condition types

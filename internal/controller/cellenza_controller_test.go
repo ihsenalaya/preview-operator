@@ -140,4 +140,32 @@ var _ = Describe("Cellenza Controller", func() {
 			))
 		})
 	})
+
+	Context("When GitHub integration is enabled", func() {
+		It("should map Cellenza phases to GitHub deployment states", func() {
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhasePending)).To(Equal("pending"))
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseProvisioning)).To(Equal("pending"))
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseRunning)).To(Equal("success"))
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseFailed)).To(Equal("failure"))
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseTerminating)).To(Equal("inactive"))
+		})
+
+		It("should detect already delivered GitHub notifications", func() {
+			cellenza := &platformv1alpha1.Cellenza{
+				Status: platformv1alpha1.CellenzaStatus{
+					Phase: platformv1alpha1.PhaseRunning,
+					GitHub: &platformv1alpha1.GitHubIntegrationStatus{
+						DeploymentState:    "success",
+						LastNotifiedPhase:  platformv1alpha1.PhaseRunning,
+						LastEnvironmentURL: "http://pr-7.preview.localtest.me:8080",
+						CommentID:          123,
+					},
+				},
+			}
+
+			Expect(githubAlreadyNotified(cellenza, "success", "http://pr-7.preview.localtest.me:8080", true)).To(BeTrue())
+			Expect(githubAlreadyNotified(cellenza, "success", "http://pr-7.preview.localtest.me:8080", false)).To(BeTrue())
+			Expect(githubAlreadyNotified(cellenza, "pending", "http://pr-7.preview.localtest.me:8080", false)).To(BeFalse())
+		})
+	})
 })

@@ -43,11 +43,21 @@ func main() {
 	var enableWebhooks bool
 	var secureMetrics bool
 
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metrics endpoint binds to. Use :8080 for HTTP.")
+	flag.StringVar(
+		&metricsAddr,
+		"metrics-bind-address",
+		":8443",
+		"The address the metrics endpoint binds to. Use :8080 for HTTP.",
+	)
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election.")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable admission webhooks (disable for local dev).")
-	flag.BoolVar(&secureMetrics, "metrics-secure", true, "Serve metrics over HTTPS with authn/authz. Set false for plain HTTP.")
+	flag.BoolVar(
+		&secureMetrics,
+		"metrics-secure",
+		true,
+		"Serve metrics over HTTPS with authn/authz. Set false for plain HTTP.",
+	)
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()

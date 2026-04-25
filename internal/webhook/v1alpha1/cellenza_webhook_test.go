@@ -123,6 +123,35 @@ var _ = Describe("Cellenza Webhook", func() {
 			Expect(err).To(MatchError(ContainSubstring("pythonPlatform is only valid for Python")))
 		})
 
+		It("Should admit valid GitHub integration", func() {
+			obj = validCellenza()
+			obj.Spec.GitHub = &platformv1alpha1.GitHubIntegrationSpec{
+				Enabled:      true,
+				Owner:        "ihsenalaya",
+				Repo:         "idp-testing",
+				DeploymentID: 123,
+				TokenSecretRef: &platformv1alpha1.GitHubTokenSecretRef{
+					Name: "github-token-pr-1",
+				},
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Should deny enabled GitHub integration without token secret", func() {
+			obj = validCellenza()
+			obj.Spec.GitHub = &platformv1alpha1.GitHubIntegrationSpec{
+				Enabled:      true,
+				Owner:        "ihsenalaya",
+				Repo:         "idp-testing",
+				DeploymentID: 123,
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).To(MatchError(ContainSubstring("spec.github.tokenSecretRef.name is required")))
+		})
+
 		// TODO (user): Add logic for validating webhooks
 		// Example:
 		// It("Should deny creation if a required field is missing", func() {

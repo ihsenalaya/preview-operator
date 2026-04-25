@@ -27,6 +27,19 @@ spec:
     autoInstrumentation:
       language: python
       instrumentationRef: observability/python
+  # Optional: let the controller update a GitHub Deployment and comment on the PR.
+  # The referenced Secret must contain a GitHub token under the "token" key.
+  github:
+    enabled: false
+    owner: ihsenalaya
+    repo: idp-testing
+    deploymentId: 123456789
+    environment: pr-42
+    commentOnReady: true
+    tokenSecretRef:
+      name: github-token-pr-42
+      namespace: cellenza-operator-system
+      key: token
 ---
 # Minimal example without database
 apiVersion: platform.company.io/v1alpha1

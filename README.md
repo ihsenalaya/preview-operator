@@ -1,6 +1,6 @@
 # cellenza-operator
 
-A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, resource quota — and optionally a **PostgreSQL database with auto-generated credentials** and **OpenTelemetry auto-instrumentation** — and tears it all down automatically when the TTL expires.
+A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, resource quota — and optionally a **PostgreSQL database with auto-generated credentials**, **OpenTelemetry auto-instrumentation**, and **GitHub Deployment/PR status updates** — and tears it all down automatically when the TTL expires.
 
 ## How it works
 
@@ -24,6 +24,10 @@ Operator creates:
   • OTEL annotations/env vars (optional, when telemetry.enabled=true)
       │
       ▼
+Operator updates GitHub Deployment / PR comment
+when github.enabled=true
+      │
+      ▼
 Environment runs until TTL expires
 or until the Cellenza is deleted
 ```
@@ -40,6 +44,7 @@ An **approval gate** is available for sensitive environments: set `requiresAppro
 | cert-manager | 1.13+ (required for webhooks) |
 | nginx ingress controller | any recent version |
 | OpenTelemetry Operator | optional, required for app auto-instrumentation |
+| GitHub token Secret | optional, required for `github.enabled=true` |
 | Helm | 3.12+ |
 
 ---
@@ -75,7 +80,11 @@ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   --create-namespace
 ```
 
-For Kind/local clusters, map the ingress controller ports when creating the cluster, or use your existing local ingress setup.
+For Kind/local clusters, map the ingress controller ports when creating the cluster, or use a local port-forward while testing:
+
+```bash
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+```
 
 ### 4. Install OpenTelemetry Operator (optional)
 
@@ -155,7 +164,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.5.1 \
+  --version 0.6.0 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -289,6 +298,46 @@ kubectl port-forward -n observability svc/jaeger 16686:16686
 
 For the Flask demo app, Python auto-instrumentation produces HTTP spans for `GET /` and database spans for the PostgreSQL queries.
 
+### With GitHub Deployment automation
+
+CI creates the GitHub Deployment and a short-lived token Secret, then the controller publishes the observed Kubernetes state back to GitHub.
+
+Create the token Secret in the operator namespace:
+
+```bash
+kubectl create secret generic github-token-pr-42 \
+  --namespace=cellenza-operator-system \
+  --from-literal=token="$GITHUB_TOKEN"
+```
+
+Reference it from the `Cellenza` resource:
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-42
+spec:
+  branch: feature/my-feature
+  prNumber: 42
+  image: ghcr.io/acme/myapp:abc1234
+  resourceTier: medium
+  ttl: 48h
+  github:
+    enabled: true
+    owner: acme
+    repo: myapp
+    deploymentId: 123456789
+    environment: pr-42
+    commentOnReady: true
+    tokenSecretRef:
+      name: github-token-pr-42
+      namespace: cellenza-operator-system
+      key: token
+```
+
+When the preview reaches `Running`, the controller sends a GitHub Deployment `success` status with `status.url` as the environment URL and creates one PR comment when `commentOnReady` is true. When the resource is deleted, the finalizer sends an `inactive` status before cleanup completes.
+
 Read the credentials at any time:
 
 ```bash
@@ -332,6 +381,15 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `telemetry.autoInstrumentation.instrumentationRef` | string | `"true"` | `Instrumentation` reference: `true`, `name`, or `namespace/name` |
 | `telemetry.autoInstrumentation.pythonPlatform` | `glibc` \| `musl` | — | Python auto-instrumentation platform override |
 | `telemetry.autoInstrumentation.goTargetExecutable` | string | — | Required executable path for Go auto-instrumentation |
+| `github.enabled` | bool | `false` | Let the controller update a GitHub Deployment and optionally comment on the PR |
+| `github.owner` | string | — | GitHub repository owner or organization |
+| `github.repo` | string | — | GitHub repository name |
+| `github.deploymentId` | int | — | GitHub Deployment id created by CI |
+| `github.environment` | string | `pr-<number>` | GitHub environment name |
+| `github.commentOnReady` | bool | `false` | Create one PR comment when the preview reaches `Running` |
+| `github.tokenSecretRef.name` | string | — | Secret containing a GitHub token |
+| `github.tokenSecretRef.namespace` | string | `cellenza-operator-system` | Secret namespace |
+| `github.tokenSecretRef.key` | string | `token` | Secret data key |
 
 ### Resource tiers
 
@@ -472,6 +530,10 @@ kubectl describe cellenza pr-42
 | `status.expiresAt` | Timestamp when the environment will be auto-deleted |
 | `status.namespaceName` | Dedicated namespace created by the operator |
 | `status.databaseSecretName` | Name of the Secret holding PostgreSQL credentials (when database is enabled) |
+| `status.github.deploymentState` | Last GitHub Deployment state emitted by the controller |
+| `status.github.lastEnvironmentUrl` | Last URL sent to GitHub |
+| `status.github.commentId` | PR comment id created by the controller |
+| `status.github.lastError` | Latest non-blocking GitHub notification error |
 | `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady` |
 
 ---
@@ -550,7 +612,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://github.com/ihsenalaya/cellenza-operator/releases/latest/download/crds.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.6.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
