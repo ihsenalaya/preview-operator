@@ -61,6 +61,68 @@ var _ = Describe("Cellenza Webhook", func() {
 	})
 
 	Context("When creating or updating Cellenza under Validating Webhook", func() {
+		validCellenza := func() *platformv1alpha1.Cellenza {
+			return &platformv1alpha1.Cellenza{
+				Spec: platformv1alpha1.CellenzaSpec{
+					Branch:       "demo",
+					PRNumber:     1,
+					Image:        "ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0",
+					ResourceTier: platformv1alpha1.TierSmall,
+					Replicas:     1,
+				},
+			}
+		}
+
+		It("Should admit valid Python auto-instrumentation", func() {
+			obj = validCellenza()
+			obj.Spec.Telemetry = &platformv1alpha1.TelemetrySpec{
+				Enabled:     true,
+				ServiceName: "cellenza-demo",
+				AutoInstrumentation: &platformv1alpha1.AutoInstrumentationSpec{
+					Language:           platformv1alpha1.TelemetryLanguagePython,
+					InstrumentationRef: "observability/python",
+				},
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Should deny enabled telemetry without auto-instrumentation", func() {
+			obj = validCellenza()
+			obj.Spec.Telemetry = &platformv1alpha1.TelemetrySpec{Enabled: true}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).To(MatchError(ContainSubstring("spec.telemetry.autoInstrumentation is required")))
+		})
+
+		It("Should require a target executable for Go auto-instrumentation", func() {
+			obj = validCellenza()
+			obj.Spec.Telemetry = &platformv1alpha1.TelemetrySpec{
+				Enabled: true,
+				AutoInstrumentation: &platformv1alpha1.AutoInstrumentationSpec{
+					Language: platformv1alpha1.TelemetryLanguageGo,
+				},
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).To(MatchError(ContainSubstring("goTargetExecutable is required")))
+		})
+
+		It("Should reject Python platform on non-Python auto-instrumentation", func() {
+			obj = validCellenza()
+			obj.Spec.Telemetry = &platformv1alpha1.TelemetrySpec{
+				Enabled: true,
+				AutoInstrumentation: &platformv1alpha1.AutoInstrumentationSpec{
+					Language:       platformv1alpha1.TelemetryLanguageJava,
+					PythonPlatform: "glibc",
+				},
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).To(MatchError(ContainSubstring("pythonPlatform is only valid for Python")))
+		})
+
 		// TODO (user): Add logic for validating webhooks
 		// Example:
 		// It("Should deny creation if a required field is missing", func() {

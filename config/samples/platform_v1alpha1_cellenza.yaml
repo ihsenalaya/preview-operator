@@ -19,6 +19,14 @@ spec:
     enabled: true
     version: "15"
     databaseName: appdb
+  # Enable OpenTelemetry Operator auto-instrumentation for the app Pod.
+  # instrumentationRef can be "true", a name in the preview namespace, or "namespace/name".
+  telemetry:
+    enabled: true
+    serviceName: cellenza-sample
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python
 ---
 # Minimal example without database
 apiVersion: platform.company.io/v1alpha1

@@ -115,6 +115,56 @@ spec:
                 - medium
                 - large
                 type: string
+              telemetry:
+                description: Telemetry configures application observability integration.
+                properties:
+                  autoInstrumentation:
+                    description: AutoInstrumentation configures OpenTelemetry Operator
+                      auto-instrumentation.
+                    properties:
+                      goTargetExecutable:
+                        description: |-
+                          GoTargetExecutable is required by OpenTelemetry Go auto-instrumentation.
+                          It must point to the executable inside the application container.
+                        type: string
+                      instrumentationRef:
+                        description: |-
+                          InstrumentationRef is the Instrumentation resource used by the OpenTelemetry Operator.
+                          It can be "true", a name in the app namespace, or "namespace/name".
+                          When empty, the controller uses "true".
+                        type: string
+                      language:
+                        description: Language is the runtime to auto-instrument.
+                        enum:
+                        - python
+                        - java
+                        - nodejs
+                        - dotnet
+                        - go
+                        - sdk
+                        type: string
+                      pythonPlatform:
+                        description: |-
+                          PythonPlatform selects the Python auto-instrumentation platform.
+                          Use "musl" for Alpine-based Python images when supported by the OpenTelemetry Operator.
+                        enum:
+                        - glibc
+                        - musl
+                        type: string
+                    required:
+                    - language
+                    type: object
+                  enabled:
+                    default: false
+                    description: Enabled controls whether telemetry settings are added
+                      to the app Pod template.
+                    type: boolean
+                  serviceName:
+                    description: |-
+                      ServiceName sets OTEL_SERVICE_NAME for the application.
+                      When empty, the controller uses "cellenza-<resource-name>".
+                    type: string
+                type: object
               ttl:
                 default: 48h
                 description: TTL is the time-to-live duration (e.g. "48h", "24h",

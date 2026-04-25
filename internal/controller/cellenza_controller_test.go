@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -86,6 +87,57 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
 			// Example: If you expect a certain status condition after reconciliation, verify it here.
+		})
+	})
+
+	Context("When telemetry is enabled", func() {
+		It("should build OpenTelemetry pod annotations and environment variables", func() {
+			cellenza := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: "demo"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					Branch:   "feature/demo",
+					PRNumber: 2,
+					Telemetry: &platformv1alpha1.TelemetrySpec{
+						Enabled:     true,
+						ServiceName: "cellenza-demo",
+						AutoInstrumentation: &platformv1alpha1.AutoInstrumentationSpec{
+							Language:           platformv1alpha1.TelemetryLanguagePython,
+							InstrumentationRef: "observability/python",
+						},
+					},
+				},
+			}
+
+			Expect(telemetryPodAnnotations(cellenza)).To(Equal(map[string]string{
+				"instrumentation.opentelemetry.io/inject-python": "observability/python",
+			}))
+			Expect(telemetryEnv(cellenza, "preview-pr-2")).To(ContainElements(
+				corev1.EnvVar{Name: "OTEL_SERVICE_NAME", Value: "cellenza-demo"},
+				corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: "cellenza.name=demo,cellenza.pr_number=2,cellenza.branch=feature/demo,k8s.namespace.name=preview-pr-2"},
+			))
+		})
+
+		It("should use OpenTelemetry defaults when optional fields are omitted", func() {
+			cellenza := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: "demo"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					Branch:   "demo",
+					PRNumber: 7,
+					Telemetry: &platformv1alpha1.TelemetrySpec{
+						Enabled: true,
+						AutoInstrumentation: &platformv1alpha1.AutoInstrumentationSpec{
+							Language: platformv1alpha1.TelemetryLanguageNodeJS,
+						},
+					},
+				},
+			}
+
+			Expect(telemetryPodAnnotations(cellenza)).To(Equal(map[string]string{
+				"instrumentation.opentelemetry.io/inject-nodejs": "true",
+			}))
+			Expect(telemetryEnv(cellenza, "preview-pr-7")).To(ContainElement(
+				corev1.EnvVar{Name: "OTEL_SERVICE_NAME", Value: "cellenza-demo"},
+			))
 		})
 	})
 })

@@ -72,6 +72,9 @@ func validateCellenza(r *apiv1alpha1.Cellenza) (admission.Warnings, error) {
 	if r.Spec.Image == "latest" || len(r.Spec.Image) < 3 {
 		return nil, fmt.Errorf("spec.image must be a fully qualified image reference")
 	}
+	if err := validateTelemetry(r); err != nil {
+		return nil, err
+	}
 	var warnings admission.Warnings
 	if r.Spec.Replicas > 3 {
 		warnings = append(warnings, fmt.Sprintf(
@@ -79,4 +82,38 @@ func validateCellenza(r *apiv1alpha1.Cellenza) (admission.Warnings, error) {
 		))
 	}
 	return warnings, nil
+}
+
+func validateTelemetry(r *apiv1alpha1.Cellenza) error {
+	if r.Spec.Telemetry == nil || !r.Spec.Telemetry.Enabled {
+		return nil
+	}
+
+	if r.Spec.Telemetry.AutoInstrumentation == nil {
+		return fmt.Errorf("spec.telemetry.autoInstrumentation is required when spec.telemetry.enabled is true")
+	}
+
+	auto := r.Spec.Telemetry.AutoInstrumentation
+	switch auto.Language {
+	case apiv1alpha1.TelemetryLanguagePython,
+		apiv1alpha1.TelemetryLanguageJava,
+		apiv1alpha1.TelemetryLanguageNodeJS,
+		apiv1alpha1.TelemetryLanguageDotNet,
+		apiv1alpha1.TelemetryLanguageGo,
+		apiv1alpha1.TelemetryLanguageSDK:
+	default:
+		return fmt.Errorf("spec.telemetry.autoInstrumentation.language must be one of python, java, nodejs, dotnet, go, sdk")
+	}
+
+	if auto.Language == apiv1alpha1.TelemetryLanguageGo && auto.GoTargetExecutable == "" {
+		return fmt.Errorf("spec.telemetry.autoInstrumentation.goTargetExecutable is required for Go auto-instrumentation")
+	}
+	if auto.Language != apiv1alpha1.TelemetryLanguageGo && auto.GoTargetExecutable != "" {
+		return fmt.Errorf("spec.telemetry.autoInstrumentation.goTargetExecutable is only valid for Go auto-instrumentation")
+	}
+	if auto.Language != apiv1alpha1.TelemetryLanguagePython && auto.PythonPlatform != "" {
+		return fmt.Errorf("spec.telemetry.autoInstrumentation.pythonPlatform is only valid for Python auto-instrumentation")
+	}
+
+	return nil
 }

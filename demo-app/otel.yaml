@@ -1,4 +1,9 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+---
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
@@ -28,10 +33,6 @@ spec:
     service:
       pipelines:
         traces:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [otlp/jaeger]
-        metrics:
           receivers: [otlp]
           processors: [batch]
           exporters: [otlp/jaeger]

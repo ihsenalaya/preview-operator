@@ -5,10 +5,16 @@ metadata:
 spec:
   branch: demo
   prNumber: 1
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0
   resourceTier: small
   ttl: 72h
   database:
     enabled: true
     version: "15"
     databaseName: appdb
+  telemetry:
+    enabled: true
+    serviceName: cellenza-demo-app
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python

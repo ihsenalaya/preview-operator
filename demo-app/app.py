@@ -143,7 +143,7 @@ def render(pg_version, rows, db_ok, error=""):
     </div>
 
   </div>
-  <footer>Cellenza Operator — demo-app v0.2.0</footer>
+  <footer>Cellenza Operator — demo-app v0.5.0</footer>
 </body>
 </html>"""
 

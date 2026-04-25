@@ -3,6 +3,7 @@ cellenza-operator {{ .Chart.AppVersion }} installed in namespace {{ .Release.Nam
 Prerequisites:
   - cert-manager is required when webhooks are enabled.
   - An ingress controller is required before preview URLs can route traffic.
+  - OpenTelemetry Operator is optional and required only for app auto-instrumentation.
 
 Create a preview environment:
 
@@ -20,6 +21,15 @@ Create a preview environment:
 Check status:
 
   kubectl get cellenza pr-42
+
+Enable app auto-instrumentation by adding spec.telemetry to a Cellenza resource:
+
+  telemetry:
+    enabled: true
+    serviceName: my-preview-app
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python
 
 {{- if .Values.webhook.enabled }}
 

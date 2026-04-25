@@ -246,7 +246,7 @@ metadata:
 spec:
   branch: demo
   prNumber: 2
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0
   resourceTier: small
   ttl: 72h
   database:
@@ -421,7 +421,7 @@ metadata:
 spec:
   branch: demo
   prNumber: 2
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0
   resourceTier: small
   ttl: 72h
   database:
@@ -597,6 +597,7 @@ The demo app image is built automatically by GitHub Actions when files under `de
 
 ```text
 ghcr.io/ihsenalaya/cellenza-demo-app:latest
+ghcr.io/ihsenalaya/cellenza-demo-app:<version>
 ```
 
 To build it locally for a Kind cluster:
@@ -617,8 +618,8 @@ make test
 ### Release a new version
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 GitHub Actions will:

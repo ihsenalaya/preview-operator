@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -215,10 +216,8 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, nil
 }
 
-// handleDeletion cleans up all child resources.
-// It requests namespace deletion then requeues until the namespace is fully gone
-// before removing the finalizer — avoiding stuck Terminating objects if the
-// controller restarts between the Delete call and the Update call.
+// handleDeletion requests deletion for all known child resources and the
+// preview namespace before removing the finalizer.
 func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platformv1alpha1.Cellenza) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -230,22 +229,24 @@ func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platf
 	_ = r.Status().Update(ctx, cellenza)
 
 	nsName := r.namespaceName(cellenza)
+	if err := r.deleteKnownChildren(ctx, nsName); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	ns := &corev1.Namespace{}
 	if err := r.Get(ctx, types.NamespacedName{Name: nsName}, ns); err == nil {
-		// Namespace still exists: request deletion if not already requested.
 		if ns.DeletionTimestamp.IsZero() {
-			logger.Info("Deleting namespace", "namespace", nsName)
+			logger.Info("Deleting Namespace", "namespace", nsName)
 			if err := r.Delete(ctx, ns); err != nil && !errors.IsNotFound(err) {
 				return ctrl.Result{}, fmt.Errorf("failed to delete namespace %s: %w", nsName, err)
 			}
 		} else {
-			logger.Info("Waiting for namespace termination", "namespace", nsName)
+			logger.Info("Namespace deletion already requested", "namespace", nsName)
 		}
-		// Requeue until the namespace is fully gone.
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	} else if !errors.IsNotFound(err) {
+		return ctrl.Result{}, fmt.Errorf("failed to get namespace %s: %w", nsName, err)
 	}
 
-	// Namespace is gone — safe to remove the finalizer.
 	controllerutil.RemoveFinalizer(cellenza, cellenzaFinalizer)
 	if err := r.Update(ctx, cellenza); err != nil {
 		return ctrl.Result{}, err
@@ -253,6 +254,33 @@ func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platf
 
 	logger.Info("Cleanup complete", "name", cellenza.Name)
 	return ctrl.Result{}, nil
+}
+
+func (r *CellenzaReconciler) deleteKnownChildren(ctx context.Context, nsName string) error {
+	children := []client.Object{
+		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
+		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "postgres", Namespace: nsName}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "postgres", Namespace: nsName}},
+		&networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
+		&corev1.ResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: "cellenza-quota", Namespace: nsName}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: postgresSecretName, Namespace: nsName}},
+	}
+
+	for _, child := range children {
+		if err := r.Delete(ctx, child); err != nil && !errors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete %T %s/%s: %w", child, nsName, child.GetName(), err)
+		}
+	}
+	return nil
+}
+
+func (r *CellenzaReconciler) ensureControllerReference(ctx context.Context, owner *platformv1alpha1.Cellenza, obj client.Object) error {
+	before := obj.DeepCopyObject().(client.Object)
+	if err := controllerutil.SetControllerReference(owner, obj, r.Scheme); err != nil {
+		return err
+	}
+	return r.Patch(ctx, obj, client.MergeFrom(before))
 }
 
 // reconcileNamespace ensures the dedicated namespace exists
@@ -275,7 +303,13 @@ func (r *CellenzaReconciler) reconcileNamespace(ctx context.Context, c *platform
 				},
 			},
 		}
+		if err := controllerutil.SetControllerReference(c, ns, r.Scheme); err != nil {
+			return err
+		}
 		return r.Create(ctx, ns)
+	}
+	if err == nil {
+		return r.ensureControllerReference(ctx, c, ns)
 	}
 	return err
 }
@@ -305,6 +339,9 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, quota, func() error {
+		if err := controllerutil.SetControllerReference(c, quota, r.Scheme); err != nil {
+			return err
+		}
 		quota.Spec = corev1.ResourceQuotaSpec{
 			Hard: corev1.ResourceList{
 				corev1.ResourceLimitsCPU:      cpuLimit,
@@ -372,6 +409,8 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 			fromSecret("DATABASE_URL"),
 		)
 	}
+	env = append(env, telemetryEnv(c, nsName)...)
+	podAnnotations := telemetryPodAnnotations(c)
 
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -382,6 +421,9 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deploy, func() error {
 		replicas := c.Spec.Replicas
+		if err := controllerutil.SetControllerReference(c, deploy, r.Scheme); err != nil {
+			return err
+		}
 		deploy.Labels = map[string]string{
 			labelManagedBy:    "cellenza-operator",
 			labelCellenzaName: c.Name,
@@ -399,6 +441,7 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 						"pr":           fmt.Sprintf("%d", c.Spec.PRNumber),
 						labelManagedBy: "cellenza-operator",
 					},
+					Annotations: podAnnotations,
 				},
 				Spec: corev1.PodSpec{
 					InitContainers: initContainers,
@@ -440,6 +483,59 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 	return err
 }
 
+func telemetryPodAnnotations(c *platformv1alpha1.Cellenza) map[string]string {
+	if c.Spec.Telemetry == nil || !c.Spec.Telemetry.Enabled || c.Spec.Telemetry.AutoInstrumentation == nil {
+		return nil
+	}
+
+	auto := c.Spec.Telemetry.AutoInstrumentation
+	if auto.Language == "" {
+		return nil
+	}
+
+	value := auto.InstrumentationRef
+	if value == "" {
+		value = "true"
+	}
+
+	annotations := map[string]string{
+		fmt.Sprintf("instrumentation.opentelemetry.io/inject-%s", auto.Language): value,
+	}
+
+	if auto.Language == platformv1alpha1.TelemetryLanguagePython && auto.PythonPlatform != "" {
+		annotations["instrumentation.opentelemetry.io/otel-python-platform"] = auto.PythonPlatform
+	}
+	if auto.Language == platformv1alpha1.TelemetryLanguageGo && auto.GoTargetExecutable != "" {
+		annotations["instrumentation.opentelemetry.io/otel-go-auto-target-exe"] = auto.GoTargetExecutable
+	}
+
+	return annotations
+}
+
+func telemetryEnv(c *platformv1alpha1.Cellenza, nsName string) []corev1.EnvVar {
+	if c.Spec.Telemetry == nil || !c.Spec.Telemetry.Enabled {
+		return nil
+	}
+
+	serviceName := c.Spec.Telemetry.ServiceName
+	if serviceName == "" {
+		serviceName = fmt.Sprintf("cellenza-%s", c.Name)
+	}
+
+	resourceAttributes := fmt.Sprintf(
+		"cellenza.name=%s,cellenza.pr_number=%d,cellenza.branch=%s,k8s.namespace.name=%s",
+		sanitizeOTelResourceValue(c.Name),
+		c.Spec.PRNumber,
+		sanitizeOTelResourceValue(c.Spec.Branch),
+		sanitizeOTelResourceValue(nsName),
+	)
+
+	return []corev1.EnvVar{
+		{Name: "OTEL_SERVICE_NAME", Value: serviceName},
+		{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: resourceAttributes},
+	}
+}
+
 // reconcileService creates/updates the ClusterIP service
 func (r *CellenzaReconciler) reconcileService(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
 	svc := &corev1.Service{
@@ -450,6 +546,9 @@ func (r *CellenzaReconciler) reconcileService(ctx context.Context, c *platformv1
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, func() error {
+		if err := controllerutil.SetControllerReference(c, svc, r.Scheme); err != nil {
+			return err
+		}
 		svc.Labels = map[string]string{labelManagedBy: "cellenza-operator"}
 		svc.Spec = corev1.ServiceSpec{
 			Selector: map[string]string{"app": "cellenza-preview"},
@@ -480,6 +579,9 @@ func (r *CellenzaReconciler) reconcileIngress(ctx context.Context, c *platformv1
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, ing, func() error {
+		if err := controllerutil.SetControllerReference(c, ing, r.Scheme); err != nil {
+			return err
+		}
 		ing.Labels = map[string]string{labelManagedBy: "cellenza-operator"}
 		ing.Annotations = map[string]string{
 			"nginx.ingress.kubernetes.io/rewrite-target": "/",
@@ -519,7 +621,7 @@ func (r *CellenzaReconciler) reconcilePostgresSecret(ctx context.Context, c *pla
 	existing := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{Name: postgresSecretName, Namespace: nsName}, existing)
 	if err == nil {
-		return nil // credentials already exist — do not regenerate
+		return r.ensureControllerReference(ctx, c, existing) // credentials already exist — do not regenerate
 	}
 	if !errors.IsNotFound(err) {
 		return err
@@ -557,6 +659,9 @@ func (r *CellenzaReconciler) reconcilePostgresSecret(ctx context.Context, c *pla
 			"DATABASE_URL":      dbURL,
 		},
 	}
+	if err := controllerutil.SetControllerReference(c, secret, r.Scheme); err != nil {
+		return err
+	}
 	return r.Create(ctx, secret)
 }
 
@@ -577,6 +682,9 @@ func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c 
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deploy, func() error {
+		if err := controllerutil.SetControllerReference(c, deploy, r.Scheme); err != nil {
+			return err
+		}
 		deploy.Labels = map[string]string{
 			labelManagedBy:                "cellenza-operator",
 			labelCellenzaName:             c.Name,
@@ -626,7 +734,7 @@ func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c 
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"sh", "-c", "pg_isready -U $POSTGRES_USER"},
+										Command: []string{"sh", "-c", `pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"`},
 									},
 								},
 								InitialDelaySeconds: 5,
@@ -637,7 +745,7 @@ func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c 
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"sh", "-c", "pg_isready -U $POSTGRES_USER"},
+										Command: []string{"sh", "-c", `pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"`},
 									},
 								},
 								InitialDelaySeconds: 30,
@@ -665,6 +773,9 @@ func (r *CellenzaReconciler) reconcilePostgresService(ctx context.Context, c *pl
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, func() error {
+		if err := controllerutil.SetControllerReference(c, svc, r.Scheme); err != nil {
+			return err
+		}
 		svc.Labels = map[string]string{
 			labelManagedBy:                "cellenza-operator",
 			"app.kubernetes.io/component": "database",
@@ -741,12 +852,19 @@ func sanitizeLabel(s string) string {
 	return string(result)
 }
 
+func sanitizeOTelResourceValue(s string) string {
+	return strings.NewReplacer(",", "_", "\n", "_", "\r", "_").Replace(s)
+}
+
 func strPtr(s string) *string { return &s }
 
 // SetupWithManager registers the controller
 func (r *CellenzaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Cellenza{}).
+		Owns(&corev1.Namespace{}).
+		Owns(&corev1.ResourceQuota{}).
+		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&networkingv1.Ingress{}).
