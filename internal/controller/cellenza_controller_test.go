@@ -51,7 +51,14 @@ var _ = Describe("Cellenza Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: platformv1alpha1.CellenzaSpec{
+						Branch:       "feature-test",
+						PRNumber:     42,
+						Image:        "nginx:1.27-alpine",
+						TTL:          "48h",
+						ResourceTier: platformv1alpha1.TierSmall,
+						Replicas:     1,
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
