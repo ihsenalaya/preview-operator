@@ -220,9 +220,10 @@ func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string,
 	if readErr != nil {
 		return readErr
 	}
-	if response != nil && len(strings.TrimSpace(string(respBody))) > 0 {
+	trimmedBody := bytes.TrimSpace(respBody)
+	if response != nil && len(trimmedBody) > 0 && (trimmedBody[0] == '{' || trimmedBody[0] == '[') {
 		if err := json.Unmarshal(respBody, response); err != nil {
-			return err
+			return nil
 		}
 	}
 	return nil
