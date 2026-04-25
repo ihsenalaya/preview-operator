@@ -1,4 +1,14 @@
-# This patch adds the args to allow exposing the metrics endpoint using HTTPS
+# Secure metrics are enabled by default in main.go (--metrics-bind-address=:8443 --metrics-secure=true).
+# This patch mounts the cert-manager-issued TLS certificate for the metrics server.
 - op: add
-  path: /spec/template/spec/containers/0/args/0
-  value: --metrics-bind-address=:8443
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    mountPath: /tmp/k8s-metrics-server/serving-certs
+    name: metrics-certs
+    readOnly: true
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: metrics-certs
+    secret:
+      secretName: metrics-server-cert
