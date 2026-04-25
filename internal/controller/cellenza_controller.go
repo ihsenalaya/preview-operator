@@ -38,16 +38,16 @@ type CellenzaReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=platform.company.io,resources=cellenzas,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=platform.company.io,resources=cellenzas/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=platform.company.io,resources=cellenzas/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=platform.company.io,resources=cellenzas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=platform.company.io,resources=cellenzas/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=platform.company.io,resources=cellenzas/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
 func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -138,17 +138,8 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.setFailedStatus(ctx, cellenza, "QuotaFailed", err)
 	}
 
-	// Provision PostgreSQL before the app so credentials exist when the deployment starts
-	if cellenza.Spec.Database != nil && cellenza.Spec.Database.Enabled {
-		if err := r.reconcilePostgresSecret(ctx, cellenza, nsName); err != nil {
-			return r.setFailedStatus(ctx, cellenza, "DatabaseSecretFailed", err)
-		}
-		if err := r.reconcilePostgresService(ctx, cellenza, nsName); err != nil {
-			return r.setFailedStatus(ctx, cellenza, "DatabaseServiceFailed", err)
-		}
-		if err := r.reconcilePostgresDeployment(ctx, cellenza, nsName); err != nil {
-			return r.setFailedStatus(ctx, cellenza, "DatabaseDeploymentFailed", err)
-		}
+	if reason, err := r.reconcileDatabase(ctx, cellenza, nsName); err != nil {
+		return r.setFailedStatus(ctx, cellenza, reason, err)
 	}
 
 	if err := r.reconcileDeployment(ctx, cellenza, nsName); err != nil {
@@ -170,17 +161,13 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	cellenza.Status.NamespaceName = nsName
 	cellenza.Status.ObservedGeneration = cellenza.Generation
 
-	if cellenza.Spec.Database != nil && cellenza.Spec.Database.Enabled {
+	if databaseEnabled(cellenza) {
 		cellenza.Status.DatabaseSecretName = postgresSecretName
-		dbVersion := "15"
-		if cellenza.Spec.Database.Version != "" {
-			dbVersion = cellenza.Spec.Database.Version
-		}
 		cellenza.SetCondition(metav1.Condition{
 			Type:               platformv1alpha1.ConditionDatabaseReady,
 			Status:             metav1.ConditionTrue,
 			Reason:             "PostgreSQLProvisioned",
-			Message:            fmt.Sprintf("PostgreSQL %s running — credentials in secret %s/%s", dbVersion, nsName, postgresSecretName),
+			Message:            fmt.Sprintf("PostgreSQL %s running — credentials in secret %s/%s", databaseVersion(cellenza), nsName, postgresSecretName),
 			LastTransitionTime: metav1.Now(),
 		})
 	}
@@ -214,6 +201,35 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *CellenzaReconciler) reconcileDatabase(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (string, error) {
+	if !databaseEnabled(cellenza) {
+		return "", nil
+	}
+
+	if err := r.reconcilePostgresSecret(ctx, cellenza, nsName); err != nil {
+		return "DatabaseSecretFailed", err
+	}
+	if err := r.reconcilePostgresService(ctx, cellenza, nsName); err != nil {
+		return "DatabaseServiceFailed", err
+	}
+	if err := r.reconcilePostgresDeployment(ctx, cellenza, nsName); err != nil {
+		return "DatabaseDeploymentFailed", err
+	}
+
+	return "", nil
+}
+
+func databaseEnabled(cellenza *platformv1alpha1.Cellenza) bool {
+	return cellenza.Spec.Database != nil && cellenza.Spec.Database.Enabled
+}
+
+func databaseVersion(cellenza *platformv1alpha1.Cellenza) string {
+	if cellenza.Spec.Database == nil || cellenza.Spec.Database.Version == "" {
+		return "15"
+	}
+	return cellenza.Spec.Database.Version
 }
 
 // handleDeletion requests deletion for all known child resources and the

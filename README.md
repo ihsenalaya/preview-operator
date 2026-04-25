@@ -155,7 +155,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.5.0 \
+  --version 0.5.1 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -246,7 +246,7 @@ metadata:
 spec:
   branch: demo
   prNumber: 2
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1
   resourceTier: small
   ttl: 72h
   database:
@@ -421,7 +421,7 @@ metadata:
 spec:
   branch: demo
   prNumber: 2
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1
   resourceTier: small
   ttl: 72h
   database:
@@ -618,8 +618,8 @@ make test
 ### Release a new version
 
 ```bash
-git tag v0.5.0
-git push origin v0.5.0
+git tag v0.5.1
+git push origin v0.5.1
 ```
 
 GitHub Actions will:

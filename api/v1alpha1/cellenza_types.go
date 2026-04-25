@@ -175,15 +175,15 @@ const (
 	ConditionDatabaseReady = "DatabaseReady"
 )
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster,shortName=cz
-//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-//+kubebuilder:printcolumn:name="Branch",type=string,JSONPath=`.spec.branch`
-//+kubebuilder:printcolumn:name="Tier",type=string,JSONPath=`.spec.resourceTier`
-//+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
-//+kubebuilder:printcolumn:name="Expires",type=string,JSONPath=`.status.expiresAt`
-//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,shortName=cz
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Branch",type=string,JSONPath=`.spec.branch`
+// +kubebuilder:printcolumn:name="Tier",type=string,JSONPath=`.spec.resourceTier`
+// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
+// +kubebuilder:printcolumn:name="Expires",type=string,JSONPath=`.status.expiresAt`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Cellenza is the Schema for the preview environment operator
 type Cellenza struct {
@@ -194,7 +194,7 @@ type Cellenza struct {
 	Status CellenzaStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CellenzaList contains a list of Cellenza
 type CellenzaList struct {

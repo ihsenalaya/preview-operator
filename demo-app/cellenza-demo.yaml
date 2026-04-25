@@ -5,7 +5,7 @@ metadata:
 spec:
   branch: demo
   prNumber: 1
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1
   resourceTier: small
   ttl: 72h
   database:

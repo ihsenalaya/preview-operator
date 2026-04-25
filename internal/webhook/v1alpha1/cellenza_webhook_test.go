@@ -66,7 +66,7 @@ var _ = Describe("Cellenza Webhook", func() {
 				Spec: platformv1alpha1.CellenzaSpec{
 					Branch:       "demo",
 					PRNumber:     1,
-					Image:        "ghcr.io/ihsenalaya/cellenza-demo-app:0.5.0",
+					Image:        "ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1",
 					ResourceTier: platformv1alpha1.TierSmall,
 					Replicas:     1,
 				},
