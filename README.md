@@ -1,6 +1,6 @@
 # cellenza-operator
 
-A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, resource quota — and optionally a **PostgreSQL database with auto-generated credentials** — and tears it all down automatically when the TTL expires.
+A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, resource quota — and optionally a **PostgreSQL database with auto-generated credentials** and **OpenTelemetry auto-instrumentation** — and tears it all down automatically when the TTL expires.
 
 ## How it works
 
@@ -21,6 +21,7 @@ Operator creates:
   • Deployment     app  (waits for postgres via init container)
   • Service        app
   • Ingress        →  pr-42.preview.localtest.me
+  • OTEL annotations/env vars (optional, when telemetry.enabled=true)
       │
       ▼
 Environment runs until TTL expires
@@ -38,6 +39,7 @@ An **approval gate** is available for sensitive environments: set `requiresAppro
 | Kubernetes | 1.25+ |
 | cert-manager | 1.13+ (required for webhooks) |
 | nginx ingress controller | any recent version |
+| OpenTelemetry Operator | optional, required for app auto-instrumentation |
 | Helm | 3.12+ |
 
 ---
@@ -75,7 +77,59 @@ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
 
 For Kind/local clusters, map the ingress controller ports when creating the cluster, or use your existing local ingress setup.
 
-### 4. Install the operator
+### 4. Install OpenTelemetry Operator (optional)
+
+Required only when using `telemetry.autoInstrumentation` in your `Cellenza` resources.
+
+```bash
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+helm install opentelemetry-operator open-telemetry/opentelemetry-operator \
+  --namespace opentelemetry-operator-system \
+  --create-namespace \
+  --set "manager.collectorImage.repository=otel/opentelemetry-collector-contrib" \
+  --set admissionWebhooks.certManager.enabled=true \
+  --wait
+```
+
+> cert-manager (step 2) must be installed before the OTel Operator.
+
+### 5. Install Jaeger (optional)
+
+A simple all-in-one Jaeger instance to receive and visualize traces. Skip this step if you already have a tracing backend.
+
+```bash
+helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+helm repo update
+helm install jaeger jaegertracing/jaeger \
+  --namespace observability \
+  --create-namespace \
+  --set allInOne.enabled=true \
+  --set provisionDataStore.cassandra=false \
+  --set provisionDataStore.elasticsearch=false \
+  --set storage.type=memory \
+  --set agent.enabled=false \
+  --set collector.enabled=false \
+  --set query.enabled=false \
+  --set allInOne.extraEnv[0].name=COLLECTOR_OTLP_ENABLED \
+  --set allInOne.extraEnv[0].value="true" \
+  --wait
+```
+
+Then deploy the OTel Collector and the `Instrumentation` CR into the `observability` namespace:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/main/demo-app/otel.yaml
+```
+
+Access the Jaeger UI:
+
+```bash
+kubectl port-forward -n observability svc/jaeger 16686:16686
+# open http://localhost:16686
+```
+
+### 6. Install the operator
 
 ```bash
 helm install cellenza-operator cellenza/cellenza-operator \
@@ -101,7 +155,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.4.1 \
+  --version 0.5.0 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -173,6 +227,68 @@ Watch those logs with:
 kubectl logs -n preview-pr-42 deployment/app -c app -f
 ```
 
+### With OpenTelemetry auto-instrumentation
+
+When the OpenTelemetry Operator and Jaeger are installed (steps 4–5), the controller can opt the application Pod into zero-code auto-instrumentation via a single annotation.
+
+The `demo-app/otel.yaml` file shipped in this repo creates two resources in the `observability` namespace:
+
+- an `OpenTelemetryCollector` that receives OTLP from instrumented pods and forwards traces to Jaeger
+- an `Instrumentation` CR for Python that the OTel Operator injects into annotated pods
+
+Reference the `Instrumentation` from your `Cellenza` resource using `namespace/name`:
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: demo
+spec:
+  branch: demo
+  prNumber: 2
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  resourceTier: small
+  ttl: 72h
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
+  telemetry:
+    enabled: true
+    serviceName: cellenza-demo
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python
+```
+
+The controller injects these settings into the generated app `Deployment` automatically:
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: observability/python
+    spec:
+      containers:
+      - name: app
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: cellenza-demo
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: cellenza.name=demo,cellenza.pr_number=2,cellenza.branch=demo,k8s.namespace.name=preview-pr-2
+```
+
+Generate traffic and open Jaeger to see the traces:
+
+```bash
+curl http://pr-2.preview.localtest.me:8080
+kubectl port-forward -n observability svc/jaeger 16686:16686
+# open http://localhost:16686 → search for service "cellenza-demo"
+```
+
+For the Flask demo app, Python auto-instrumentation produces HTTP spans for `GET /` and database spans for the PostgreSQL queries.
+
 Read the credentials at any time:
 
 ```bash
@@ -210,6 +326,12 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `database.enabled` | bool | `false` | Provision an ephemeral PostgreSQL instance |
 | `database.version` | string | `"15"` | PostgreSQL major version |
 | `database.databaseName` | string | `"appdb"` | Logical database name created inside PostgreSQL |
+| `telemetry.enabled` | bool | `false` | Add OpenTelemetry settings to the app Pod template |
+| `telemetry.serviceName` | string | `cellenza-<name>` | Value for `OTEL_SERVICE_NAME` |
+| `telemetry.autoInstrumentation.language` | `python` \| `java` \| `nodejs` \| `dotnet` \| `go` \| `sdk` | — | Auto-instrumentation annotation language |
+| `telemetry.autoInstrumentation.instrumentationRef` | string | `"true"` | `Instrumentation` reference: `true`, `name`, or `namespace/name` |
+| `telemetry.autoInstrumentation.pythonPlatform` | `glibc` \| `musl` | — | Python auto-instrumentation platform override |
+| `telemetry.autoInstrumentation.goTargetExecutable` | string | — | Required executable path for Go auto-instrumentation |
 
 ### Resource tiers
 
@@ -287,6 +409,31 @@ spec:
     enabled: true
     version: "16"
     databaseName: myapp
+```
+
+### Full-stack environment with OpenTelemetry traces
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: demo
+spec:
+  branch: demo
+  prNumber: 2
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  resourceTier: small
+  ttl: 72h
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
+  telemetry:
+    enabled: true
+    serviceName: cellenza-demo
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python
 ```
 
 ---
@@ -500,7 +647,7 @@ The controller watches `Cellenza` resources cluster-wide and reconciles the foll
 - `Secret` `postgres-credentials` — unique credentials generated with `crypto/rand`, **created once and never overwritten**
 - `Deployment` `postgres` — PostgreSQL sidecar (only when `database.enabled: true`)
 - `Service` `postgres` — ClusterIP on port 5432, DNS name `postgres` within the namespace
-- `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready
+- `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready and optional OpenTelemetry auto-instrumentation annotations
 - `Service` `app` — ClusterIP service for the app
 - `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`
 
