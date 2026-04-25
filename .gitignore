@@ -37,3 +37,7 @@ go.work
 
 # Helm packaged archives
 *.tgz
+
+# Python cache files from the demo application
+__pycache__/
+*.py[cod]

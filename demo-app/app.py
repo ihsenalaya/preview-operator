@@ -5,9 +5,17 @@ from flask import Flask, request, redirect
 app = Flask(__name__)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
+POSTGRES_DB = os.environ.get("POSTGRES_DB", "")
+POSTGRES_USER = os.environ.get("POSTGRES_USER", "")
+
+
+def log(message, **fields):
+    details = " ".join(f"{key}={value}" for key, value in fields.items() if value)
+    print(f"[db] {message}" + (f" {details}" if details else ""), flush=True)
 
 
 def get_conn():
+    log("Opening PostgreSQL connection", database=POSTGRES_DB, user=POSTGRES_USER)
     return psycopg2.connect(DATABASE_URL)
 
 
@@ -25,6 +33,7 @@ def init_db():
     conn.commit()
     cur.close()
     conn.close()
+    log("Initialized PostgreSQL schema", table="messages")
 
 
 def render(pg_version, rows, db_ok, error=""):
@@ -150,8 +159,10 @@ def index():
         rows = cur.fetchall()
         cur.close()
         conn.close()
+        log("Read messages from PostgreSQL", rows=len(rows))
         return render(pg_version, rows, db_ok=True)
     except Exception as e:
+        log("PostgreSQL query failed", error=str(e))
         return render("n/a", [], db_ok=False, error=str(e)), 500
 
 
@@ -166,6 +177,7 @@ def add():
         conn.commit()
         cur.close()
         conn.close()
+        log("Inserted message into PostgreSQL", author=author)
     return redirect("/")
 
 

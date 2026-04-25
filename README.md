@@ -61,7 +61,21 @@ helm install cert-manager jetstack/cert-manager \
   --set crds.enabled=true
 ```
 
-### 3. Install the operator
+### 3. Install ingress-nginx (if not already present)
+
+Preview environments are exposed through Kubernetes `Ingress` resources. Install an ingress controller before creating `Cellenza` resources:
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace
+```
+
+For Kind/local clusters, map the ingress controller ports when creating the cluster, or use your existing local ingress setup.
+
+### 4. Install the operator
 
 ```bash
 helm install cellenza-operator cellenza/cellenza-operator \
@@ -87,7 +101,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.1.0 \
+  --version 0.4.1 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -143,6 +157,21 @@ The app receives these environment variables automatically:
 | `POSTGRES_PASSWORD` | `a3f8c2...` (64-char hex) |
 | `POSTGRES_DB` | `appdb` |
 | `DATABASE_URL` | `postgresql://preview_42:a3f8c2...@postgres:5432/appdb?sslmode=disable` |
+
+The demo image `ghcr.io/ihsenalaya/cellenza-demo-app:latest` logs database activity with a `[db]` prefix, for example:
+
+```text
+[db] Opening PostgreSQL connection database=appdb user=preview_42
+[db] Initialized PostgreSQL schema table=messages
+[db] Read messages from PostgreSQL rows=1
+[db] Inserted message into PostgreSQL author=ihsen
+```
+
+Watch those logs with:
+
+```bash
+kubectl logs -n preview-pr-42 deployment/app -c app -f
+```
 
 Read the credentials at any time:
 
@@ -413,6 +442,23 @@ make run
 
 ```bash
 make docker-build docker-push IMG=ghcr.io/ihsenalaya/cellenza-operator:dev
+```
+
+### Build and publish the demo app image
+
+The demo app image is built automatically by GitHub Actions when files under `demo-app/` are pushed to `main`:
+
+```text
+ghcr.io/ihsenalaya/cellenza-demo-app:latest
+```
+
+To build it locally for a Kind cluster:
+
+```bash
+docker build -t cellenza-demo-app:db-logs demo-app
+kind load docker-image cellenza-demo-app:db-logs --name cellenza-test
+kubectl patch cellenza demo --type merge \
+  -p '{"spec":{"image":"cellenza-demo-app:db-logs"}}'
 ```
 
 ### Run tests

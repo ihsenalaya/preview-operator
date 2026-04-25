@@ -1,5 +1,9 @@
 cellenza-operator {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
 
+Prerequisites:
+  - cert-manager is required when webhooks are enabled.
+  - An ingress controller is required before preview URLs can route traffic.
+
 Create a preview environment:
 
   kubectl apply -f - <<EOF
@@ -21,3 +25,10 @@ Check status:
 
 Webhooks are enabled. cert-manager must be installed in the cluster.
 {{- end }}
+
+Install ingress-nginx with Helm if your cluster does not already have an ingress controller:
+
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  helm repo update
+  helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+    --namespace ingress-nginx --create-namespace
