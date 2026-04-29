@@ -840,4 +840,3 @@ A **finalizer** ensures all child resources (including the PostgreSQL deployment
 ## License
 
 Copyright 2026 ihsenalaya — Licensed under the [Apache License 2.0](LICENSE).
-# test
