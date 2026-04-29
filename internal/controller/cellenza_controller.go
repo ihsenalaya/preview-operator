@@ -10,6 +10,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +32,9 @@ const (
 	labelManagedBy     = "platform.company.io/managed-by"
 	labelCellenzaName  = "platform.company.io/cellenza-name"
 	postgresSecretName = "postgres-credentials"
+	postgresHost       = "postgres"
+	migrationJobName   = "postgres-migrate"
+	seedJobName        = "postgres-seed"
 )
 
 // CellenzaReconciler reconciles Cellenza objects
@@ -50,6 +54,7 @@ type CellenzaReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
 func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -143,8 +148,22 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.setFailedStatus(ctx, cellenza, "QuotaFailed", err)
 	}
 
-	if reason, err := r.reconcileDatabase(ctx, cellenza, nsName); err != nil {
+	databaseReady, reason, err := r.reconcileDatabase(ctx, cellenza, nsName)
+	if err != nil {
 		return r.setFailedStatus(ctx, cellenza, reason, err)
+	}
+	if !databaseReady {
+		cellenza.Status.Phase = platformv1alpha1.PhaseProvisioning
+		cellenza.Status.NamespaceName = nsName
+		cellenza.Status.ObservedGeneration = cellenza.Generation
+		if databaseEnabled(cellenza) {
+			r.setDatabaseStatus(cellenza, false)
+		}
+		if err := r.Status().Update(ctx, cellenza); err != nil {
+			return ctrl.Result{}, err
+		}
+		syncGitHubAfterStatus(ctx, r, cellenza, "")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	if err := r.reconcileDeployment(ctx, cellenza, nsName); err != nil {
@@ -167,7 +186,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	cellenza.Status.ObservedGeneration = cellenza.Generation
 
 	if databaseEnabled(cellenza) {
-		cellenza.Status.DatabaseSecretName = postgresSecretName
+		r.setDatabaseStatus(cellenza, true)
 		cellenza.SetCondition(metav1.Condition{
 			Type:               platformv1alpha1.ConditionDatabaseReady,
 			Status:             metav1.ConditionTrue,
@@ -209,22 +228,32 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, nil
 }
 
-func (r *CellenzaReconciler) reconcileDatabase(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (string, error) {
+func (r *CellenzaReconciler) reconcileDatabase(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (bool, string, error) {
 	if !databaseEnabled(cellenza) {
-		return "", nil
+		return true, "", nil
 	}
 
 	if err := r.reconcilePostgresSecret(ctx, cellenza, nsName); err != nil {
-		return "DatabaseSecretFailed", err
+		return false, "DatabaseSecretFailed", err
 	}
 	if err := r.reconcilePostgresService(ctx, cellenza, nsName); err != nil {
-		return "DatabaseServiceFailed", err
+		return false, "DatabaseServiceFailed", err
 	}
 	if err := r.reconcilePostgresDeployment(ctx, cellenza, nsName); err != nil {
-		return "DatabaseDeploymentFailed", err
+		return false, "DatabaseDeploymentFailed", err
+	}
+	if ready, err := r.reconcileDatabaseTask(ctx, cellenza, nsName, "migration", migrationJobName, cellenza.Spec.Database.Migration); err != nil {
+		return false, "DatabaseMigrationFailed", err
+	} else if !ready {
+		return false, "", nil
+	}
+	if ready, err := r.reconcileDatabaseTask(ctx, cellenza, nsName, "seed", seedJobName, cellenza.Spec.Database.Seed); err != nil {
+		return false, "DatabaseSeedFailed", err
+	} else if !ready {
+		return false, "", nil
 	}
 
-	return "", nil
+	return true, "", nil
 }
 
 func databaseEnabled(cellenza *platformv1alpha1.Cellenza) bool {
@@ -236,6 +265,24 @@ func databaseVersion(cellenza *platformv1alpha1.Cellenza) string {
 		return "15"
 	}
 	return cellenza.Spec.Database.Version
+}
+
+func databaseName(cellenza *platformv1alpha1.Cellenza) string {
+	if cellenza.Spec.Database == nil || cellenza.Spec.Database.DatabaseName == "" {
+		return "appdb"
+	}
+	return cellenza.Spec.Database.DatabaseName
+}
+
+func (r *CellenzaReconciler) setDatabaseStatus(cellenza *platformv1alpha1.Cellenza, ready bool) {
+	if cellenza.Status.Database == nil {
+		cellenza.Status.Database = &platformv1alpha1.DatabaseStatus{}
+	}
+	cellenza.Status.DatabaseSecretName = postgresSecretName
+	cellenza.Status.Database.Ready = ready
+	cellenza.Status.Database.Host = postgresHost
+	cellenza.Status.Database.DatabaseName = databaseName(cellenza)
+	cellenza.Status.Database.SecretName = postgresSecretName
 }
 
 // handleDeletion requests deletion for all known child resources and the
@@ -283,6 +330,8 @@ func (r *CellenzaReconciler) deleteKnownChildren(ctx context.Context, nsName str
 	children := []client.Object{
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "postgres", Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: migrationJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: seedJobName, Namespace: nsName}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "postgres", Namespace: nsName}},
 		&networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
@@ -820,6 +869,186 @@ func (r *CellenzaReconciler) reconcilePostgresService(ctx context.Context, c *pl
 	return err
 }
 
+func (r *CellenzaReconciler) reconcileDatabaseTask(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, taskName, jobName string, task *platformv1alpha1.DatabaseTaskSpec) (bool, error) {
+	conditionType := platformv1alpha1.ConditionMigrationReady
+	if taskName == "seed" {
+		conditionType = platformv1alpha1.ConditionSeedReady
+	}
+
+	if task == nil || !task.Enabled {
+		r.setDatabaseTaskStatus(c, taskName, "Skipped")
+		c.SetCondition(metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionTrue,
+			Reason:             "TaskDisabled",
+			Message:            fmt.Sprintf("Database %s task is disabled", taskName),
+			LastTransitionTime: metav1.Now(),
+		})
+		return true, nil
+	}
+	if r.databaseTaskStatus(c, taskName) == "Succeeded" {
+		c.SetCondition(metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionTrue,
+			Reason:             "JobAlreadySucceeded",
+			Message:            fmt.Sprintf("Database %s job already completed", taskName),
+			LastTransitionTime: metav1.Now(),
+		})
+		return true, nil
+	}
+
+	job := &batchv1.Job{}
+	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: nsName}, job)
+	if errors.IsNotFound(err) {
+		newJob := r.databaseTaskJob(c, nsName, taskName, jobName, task)
+		if err := controllerutil.SetControllerReference(c, newJob, r.Scheme); err != nil {
+			return false, err
+		}
+		if err := r.Create(ctx, newJob); err != nil {
+			return false, err
+		}
+		r.markDatabaseTaskRunning(c, taskName, conditionType, jobName)
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := r.ensureControllerReference(ctx, c, job); err != nil {
+		return false, err
+	}
+
+	if job.Status.Succeeded > 0 {
+		r.setDatabaseTaskStatus(c, taskName, "Succeeded")
+		c.SetCondition(metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionTrue,
+			Reason:             "JobSucceeded",
+			Message:            fmt.Sprintf("Database %s job %s/%s completed", taskName, nsName, jobName),
+			LastTransitionTime: metav1.Now(),
+		})
+		return true, nil
+	}
+
+	for _, cond := range job.Status.Conditions {
+		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
+			r.setDatabaseTaskStatus(c, taskName, "Failed")
+			return false, fmt.Errorf("database %s job %s/%s failed: %s", taskName, nsName, jobName, cond.Message)
+		}
+	}
+
+	r.markDatabaseTaskRunning(c, taskName, conditionType, jobName)
+	return false, nil
+}
+
+func (r *CellenzaReconciler) databaseTaskJob(c *platformv1alpha1.Cellenza, nsName, taskName, jobName string, task *platformv1alpha1.DatabaseTaskSpec) *batchv1.Job {
+	image := task.Image
+	if image == "" {
+		image = c.Spec.Image
+	}
+	backoffLimit := int32(1)
+	ttlSecondsAfterFinished := int32(600)
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: nsName,
+			Labels: map[string]string{
+				labelManagedBy:                "cellenza-operator",
+				labelCellenzaName:             c.Name,
+				"app.kubernetes.io/component": "database-task",
+				"platform.company.io/task":    taskName,
+			},
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						labelManagedBy:             "cellenza-operator",
+						labelCellenzaName:          c.Name,
+						"platform.company.io/task": taskName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					InitContainers: []corev1.Container{
+						{
+							Name:    "wait-for-postgres",
+							Image:   "busybox:1.36",
+							Command: []string{"sh", "-c", "until nc -z postgres 5432; do echo 'waiting for postgres...'; sleep 2; done"},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10m"),
+									corev1.ResourceMemory: resource.MustParse("32Mi"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("50m"),
+									corev1.ResourceMemory: resource.MustParse("64Mi"),
+								},
+							},
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:    taskName,
+							Image:   image,
+							Command: task.Command,
+							Args:    task.Args,
+							Env: []corev1.EnvVar{
+								secretKeyRef("POSTGRES_USER", postgresSecretName, "POSTGRES_USER"),
+								secretKeyRef("POSTGRES_PASSWORD", postgresSecretName, "POSTGRES_PASSWORD"),
+								secretKeyRef("POSTGRES_DB", postgresSecretName, "POSTGRES_DB"),
+								secretKeyRef("DATABASE_URL", postgresSecretName, "DATABASE_URL"),
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("128Mi"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("500m"),
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (r *CellenzaReconciler) markDatabaseTaskRunning(c *platformv1alpha1.Cellenza, taskName, conditionType, jobName string) {
+	r.setDatabaseTaskStatus(c, taskName, "Running")
+	c.SetCondition(metav1.Condition{
+		Type:               conditionType,
+		Status:             metav1.ConditionFalse,
+		Reason:             "JobRunning",
+		Message:            fmt.Sprintf("Database %s job %s is running", taskName, jobName),
+		LastTransitionTime: metav1.Now(),
+	})
+}
+
+func (r *CellenzaReconciler) setDatabaseTaskStatus(c *platformv1alpha1.Cellenza, taskName, status string) {
+	r.setDatabaseStatus(c, false)
+	if taskName == "seed" {
+		c.Status.Database.Seed = status
+		return
+	}
+	c.Status.Database.Migration = status
+}
+
+func (r *CellenzaReconciler) databaseTaskStatus(c *platformv1alpha1.Cellenza, taskName string) string {
+	if c.Status.Database == nil {
+		return ""
+	}
+	if taskName == "seed" {
+		return c.Status.Database.Seed
+	}
+	return c.Status.Database.Migration
+}
+
 // secretKeyRef builds an EnvVar that reads its value from a Secret key
 func secretKeyRef(envName, secretName, key string) corev1.EnvVar {
 	return corev1.EnvVar{
@@ -890,6 +1119,7 @@ func (r *CellenzaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ResourceQuota{}).
 		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&batchv1.Job{}).
 		Owns(&corev1.Service{}).
 		Owns(&networkingv1.Ingress{}).
 		Complete(r)

@@ -19,6 +19,12 @@ spec:
     enabled: true
     version: "15"
     databaseName: appdb
+    migration:
+      enabled: true
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+    seed:
+      enabled: true
+      command: ["python", "seed.py"]
   # Enable OpenTelemetry Operator auto-instrumentation for the app Pod.
   # instrumentationRef can be "true", a name in the preview namespace, or "namespace/name".
   telemetry:

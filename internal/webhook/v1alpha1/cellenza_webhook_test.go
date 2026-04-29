@@ -96,6 +96,37 @@ var _ = Describe("Cellenza Webhook", func() {
 			Expect(err).To(MatchError(ContainSubstring("spec.telemetry.autoInstrumentation is required")))
 		})
 
+		It("Should admit database migration and seed tasks with commands", func() {
+			obj = validCellenza()
+			obj.Spec.Database = &platformv1alpha1.DatabaseSpec{
+				Enabled: true,
+				Migration: &platformv1alpha1.DatabaseTaskSpec{
+					Enabled: true,
+					Command: []string{"python", "-m", "alembic", "upgrade", "head"},
+				},
+				Seed: &platformv1alpha1.DatabaseTaskSpec{
+					Enabled: true,
+					Command: []string{"python", "seed.py"},
+				},
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Should deny enabled database migration without a command", func() {
+			obj = validCellenza()
+			obj.Spec.Database = &platformv1alpha1.DatabaseSpec{
+				Enabled: true,
+				Migration: &platformv1alpha1.DatabaseTaskSpec{
+					Enabled: true,
+				},
+			}
+
+			_, err := validator.ValidateCreate(ctx, obj)
+			Expect(err).To(MatchError(ContainSubstring("spec.database.migration.command is required")))
+		})
+
 		It("Should require a target executable for Go auto-instrumentation", func() {
 			obj = validCellenza()
 			obj.Spec.Telemetry = &platformv1alpha1.TelemetrySpec{

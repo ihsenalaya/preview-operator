@@ -82,6 +82,56 @@ spec:
                     description: Enabled controls whether a PostgreSQL instance is
                       provisioned alongside the app
                     type: boolean
+                  migration:
+                    description: |-
+                      Migration configures an optional one-shot Job that runs before the app is deployed.
+                      The operator injects POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB and DATABASE_URL.
+                    properties:
+                      args:
+                        description: Args are optional arguments passed to the command.
+                        items:
+                          type: string
+                        type: array
+                      command:
+                        description: Command is the entrypoint command for the task.
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: false
+                        description: Enabled controls whether this database task is
+                          executed.
+                        type: boolean
+                      image:
+                        description: Image is the container image used to run the
+                          task. When empty, spec.image is used.
+                        type: string
+                    type: object
+                  seed:
+                    description: |-
+                      Seed configures an optional one-shot Job that runs after migration and before the app is deployed.
+                      The operator injects POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB and DATABASE_URL.
+                    properties:
+                      args:
+                        description: Args are optional arguments passed to the command.
+                        items:
+                          type: string
+                        type: array
+                      command:
+                        description: Command is the entrypoint command for the task.
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: false
+                        description: Enabled controls whether this database task is
+                          executed.
+                        type: boolean
+                      image:
+                        description: Image is the container image used to run the
+                          task. When empty, spec.image is used.
+                        type: string
+                    type: object
                   version:
                     default: "15"
                     description: Version is the PostgreSQL major version to use (e.g.
@@ -284,6 +334,30 @@ spec:
                   - type
                   type: object
                 type: array
+              database:
+                description: Database describes the observed PostgreSQL and database
+                  task state.
+                properties:
+                  databaseName:
+                    description: DatabaseName is the logical PostgreSQL database name.
+                    type: string
+                  host:
+                    description: Host is the in-cluster PostgreSQL service hostname.
+                    type: string
+                  migration:
+                    description: Migration is the latest observed migration task state.
+                    type: string
+                  ready:
+                    description: Ready is true when the database resources and configured
+                      tasks are complete.
+                    type: boolean
+                  secretName:
+                    description: SecretName is the Secret containing database credentials.
+                    type: string
+                  seed:
+                    description: Seed is the latest observed seed task state.
+                    type: string
+                type: object
               databaseSecretName:
                 description: DatabaseSecretName is the name of the Secret holding
                   PostgreSQL credentials (when database is enabled)

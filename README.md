@@ -164,7 +164,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.6.2 \
+  --version 0.7.1 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -201,14 +201,22 @@ spec:
     enabled: true
     version: "15"       # PostgreSQL major version
     databaseName: appdb # logical database name
+    migration:
+      enabled: true
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+    seed:
+      enabled: true
+      command: ["python", "seed.py"]
 ```
 
 The operator will:
 1. Generate a unique username (`preview_42`) and a cryptographically random password
 2. Store them in a Secret `postgres-credentials` in the PR namespace
 3. Start a `postgres:15-alpine` deployment
-4. Block the app pod with an init container (`busybox`) until PostgreSQL is ready
-5. Inject the credentials into the app container as environment variables
+4. Run optional migration and seed Jobs with the database credentials injected
+5. Block the app deployment until those Jobs succeed
+6. Block the app pod with an init container (`busybox`) until PostgreSQL is ready
+7. Inject the credentials into the app container as environment variables
 
 **Credentials are generated once and never overwritten**, even if the Cellenza is updated.
 
@@ -375,6 +383,14 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `database.enabled` | bool | `false` | Provision an ephemeral PostgreSQL instance |
 | `database.version` | string | `"15"` | PostgreSQL major version |
 | `database.databaseName` | string | `"appdb"` | Logical database name created inside PostgreSQL |
+| `database.migration.enabled` | bool | `false` | Run a migration Job before the app is deployed |
+| `database.migration.image` | string | `spec.image` | Optional image for the migration Job |
+| `database.migration.command` | string array | — | Required when migration is enabled |
+| `database.migration.args` | string array | — | Optional migration command arguments |
+| `database.seed.enabled` | bool | `false` | Run a seed Job after migration and before the app is deployed |
+| `database.seed.image` | string | `spec.image` | Optional image for the seed Job |
+| `database.seed.command` | string array | — | Required when seed is enabled |
+| `database.seed.args` | string array | — | Optional seed command arguments |
 | `telemetry.enabled` | bool | `false` | Add OpenTelemetry settings to the app Pod template |
 | `telemetry.serviceName` | string | `cellenza-<name>` | Value for `OTEL_SERVICE_NAME` |
 | `telemetry.autoInstrumentation.language` | `python` \| `java` \| `nodejs` \| `dotnet` \| `go` \| `sdk` | — | Auto-instrumentation annotation language |
@@ -530,11 +546,14 @@ kubectl describe cellenza pr-42
 | `status.expiresAt` | Timestamp when the environment will be auto-deleted |
 | `status.namespaceName` | Dedicated namespace created by the operator |
 | `status.databaseSecretName` | Name of the Secret holding PostgreSQL credentials (when database is enabled) |
+| `status.database.ready` | Whether PostgreSQL plus configured migration/seed jobs are complete |
+| `status.database.migration` | Migration job state: `Skipped`, `Running`, `Succeeded`, or `Failed` |
+| `status.database.seed` | Seed job state: `Skipped`, `Running`, `Succeeded`, or `Failed` |
 | `status.github.deploymentState` | Last GitHub Deployment state emitted by the controller |
 | `status.github.lastEnvironmentUrl` | Last URL sent to GitHub |
 | `status.github.commentId` | PR comment id created by the controller |
 | `status.github.lastError` | Latest non-blocking GitHub notification error |
-| `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady` |
+| `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady`, `MigrationReady`, `SeedReady` |
 
 ---
 
@@ -612,7 +631,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.6.2/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.7.1/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -710,6 +729,7 @@ The controller watches `Cellenza` resources cluster-wide and reconciles the foll
 - `Secret` `postgres-credentials` — unique credentials generated with `crypto/rand`, **created once and never overwritten**
 - `Deployment` `postgres` — PostgreSQL sidecar (only when `database.enabled: true`)
 - `Service` `postgres` — ClusterIP on port 5432, DNS name `postgres` within the namespace
+- `Job` `postgres-migrate` / `postgres-seed` — optional one-shot database tasks before app rollout
 - `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready and optional OpenTelemetry auto-instrumentation annotations
 - `Service` `app` — ClusterIP service for the app
 - `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`

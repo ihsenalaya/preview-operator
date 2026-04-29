@@ -24,6 +24,36 @@ type DatabaseSpec struct {
 	// +kubebuilder:default="appdb"
 	// +optional
 	DatabaseName string `json:"databaseName,omitempty"`
+
+	// Migration configures an optional one-shot Job that runs before the app is deployed.
+	// The operator injects POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB and DATABASE_URL.
+	// +optional
+	Migration *DatabaseTaskSpec `json:"migration,omitempty"`
+
+	// Seed configures an optional one-shot Job that runs after migration and before the app is deployed.
+	// The operator injects POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB and DATABASE_URL.
+	// +optional
+	Seed *DatabaseTaskSpec `json:"seed,omitempty"`
+}
+
+// DatabaseTaskSpec configures a one-shot database task.
+type DatabaseTaskSpec struct {
+	// Enabled controls whether this database task is executed.
+	// +kubebuilder:default=false
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Image is the container image used to run the task. When empty, spec.image is used.
+	// +optional
+	Image string `json:"image,omitempty"`
+
+	// Command is the entrypoint command for the task.
+	// +optional
+	Command []string `json:"command,omitempty"`
+
+	// Args are optional arguments passed to the command.
+	// +optional
+	Args []string `json:"args,omitempty"`
 }
 
 // TelemetryLanguage defines the OpenTelemetry auto-instrumentation language.
@@ -245,6 +275,10 @@ type CellenzaStatus struct {
 	// +optional
 	DatabaseSecretName string `json:"databaseSecretName,omitempty"`
 
+	// Database describes the observed PostgreSQL and database task state.
+	// +optional
+	Database *DatabaseStatus `json:"database,omitempty"`
+
 	// GitHub describes the latest GitHub Deployment or PR notification.
 	// +optional
 	GitHub *GitHubIntegrationStatus `json:"github,omitempty"`
@@ -252,11 +286,40 @@ type CellenzaStatus struct {
 
 // Condition types
 const (
-	ConditionReady         = "Ready"
-	ConditionApproved      = "Approved"
-	ConditionExpired       = "Expired"
-	ConditionDatabaseReady = "DatabaseReady"
+	ConditionReady          = "Ready"
+	ConditionApproved       = "Approved"
+	ConditionExpired        = "Expired"
+	ConditionDatabaseReady  = "DatabaseReady"
+	ConditionMigrationReady = "MigrationReady"
+	ConditionSeedReady      = "SeedReady"
 )
+
+// DatabaseStatus describes the observed database state for the preview environment.
+type DatabaseStatus struct {
+	// Ready is true when the database resources and configured tasks are complete.
+	// +optional
+	Ready bool `json:"ready,omitempty"`
+
+	// Host is the in-cluster PostgreSQL service hostname.
+	// +optional
+	Host string `json:"host,omitempty"`
+
+	// DatabaseName is the logical PostgreSQL database name.
+	// +optional
+	DatabaseName string `json:"databaseName,omitempty"`
+
+	// SecretName is the Secret containing database credentials.
+	// +optional
+	SecretName string `json:"secretName,omitempty"`
+
+	// Migration is the latest observed migration task state.
+	// +optional
+	Migration string `json:"migration,omitempty"`
+
+	// Seed is the latest observed seed task state.
+	// +optional
+	Seed string `json:"seed,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

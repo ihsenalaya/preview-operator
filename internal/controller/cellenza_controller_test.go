@@ -141,6 +141,40 @@ var _ = Describe("Cellenza Controller", func() {
 		})
 	})
 
+	Context("When database tasks are enabled", func() {
+		It("should build migration jobs with database credentials injected", func() {
+			cellenza := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: "demo"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					Branch:   "feature/db",
+					PRNumber: 12,
+					Image:    "ghcr.io/example/app:sha",
+					Database: &platformv1alpha1.DatabaseSpec{
+						Enabled: true,
+						Migration: &platformv1alpha1.DatabaseTaskSpec{
+							Enabled: true,
+							Command: []string{"python", "-m", "alembic", "upgrade", "head"},
+						},
+					},
+				},
+			}
+
+			reconciler := &CellenzaReconciler{}
+			job := reconciler.databaseTaskJob(cellenza, "preview-pr-12", "migration", migrationJobName, cellenza.Spec.Database.Migration)
+
+			Expect(job.Name).To(Equal(migrationJobName))
+			Expect(job.Namespace).To(Equal("preview-pr-12"))
+			Expect(job.Spec.Template.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyNever))
+			Expect(job.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal("ghcr.io/example/app:sha"))
+			Expect(job.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "alembic", "upgrade", "head"}))
+			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(
+				secretKeyRef("DATABASE_URL", postgresSecretName, "DATABASE_URL"),
+			))
+		})
+	})
+
 	Context("When GitHub integration is enabled", func() {
 		It("should map Cellenza phases to GitHub deployment states", func() {
 			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhasePending)).To(Equal("queued"))
