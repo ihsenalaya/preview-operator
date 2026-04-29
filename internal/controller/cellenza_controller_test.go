@@ -143,8 +143,8 @@ var _ = Describe("Cellenza Controller", func() {
 
 	Context("When GitHub integration is enabled", func() {
 		It("should map Cellenza phases to GitHub deployment states", func() {
-			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhasePending)).To(Equal("pending"))
-			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseProvisioning)).To(Equal("pending"))
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhasePending)).To(Equal("queued"))
+			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseProvisioning)).To(Equal("in_progress"))
 			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseRunning)).To(Equal("success"))
 			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseFailed)).To(Equal("failure"))
 			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhaseTerminating)).To(Equal("inactive"))
