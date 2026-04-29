@@ -164,7 +164,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.7.1 \
+  --version 0.7.2 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -410,7 +410,35 @@ spec:
       key: token
 ```
 
-When the preview reaches `Running`, the controller sends a GitHub Deployment `success` status with `status.url` as the environment URL and creates one PR comment when `commentOnReady` is true. When the resource is deleted, the finalizer sends an `inactive` status before cleanup completes.
+When the preview reaches `Running`, the controller sends a GitHub Deployment `success` status with `status.url` as the environment URL and creates one PR comment when `commentOnReady` is true. That comment includes preview evidence such as app readiness, PostgreSQL readiness, migration status, seed status, telemetry state, namespace, URL, and expiry.
+
+When reconciliation fails, the controller collects automatic diagnostics from the preview namespace and comments on the PR with:
+
+- the failing component (`app`, `database`, `migration`, `seed`, `ingress`, etc.)
+- the operator reason and error message
+- recent Kubernetes warning events
+- useful `kubectl` debug commands
+
+Example failure comment:
+
+```text
+Cellenza Preview Failed
+
+Environment: pr-42
+Namespace: preview-pr-42
+
+Diagnosis:
+- Reason: DatabaseMigrationFailed
+- Component: migration
+- Message: Job postgres-migrate failed: BackoffLimitExceeded
+
+Debug Commands:
+kubectl describe cellenza pr-42
+kubectl get pods -n preview-pr-42
+kubectl logs -n preview-pr-42 job/postgres-migrate
+```
+
+When the resource is deleted, the finalizer sends an `inactive` status before cleanup completes.
 
 Read the credentials at any time:
 
@@ -615,6 +643,11 @@ kubectl describe cellenza pr-42
 | `status.database.ready` | Whether PostgreSQL plus configured migration/seed jobs are complete |
 | `status.database.migration` | Migration job state: `Skipped`, `Running`, `Succeeded`, or `Failed` |
 | `status.database.seed` | Seed job state: `Skipped`, `Running`, `Succeeded`, or `Failed` |
+| `status.diagnostics.reason` | Latest operator diagnostic reason when the preview fails |
+| `status.diagnostics.component` | Component most likely responsible for the failure |
+| `status.diagnostics.message` | Human-readable diagnostic summary |
+| `status.diagnostics.lastEvents` | Recent warning events from the preview namespace |
+| `status.diagnostics.debugCommands` | Useful `kubectl` commands to troubleshoot the preview |
 | `status.github.deploymentState` | Last GitHub Deployment state emitted by the controller |
 | `status.github.lastEnvironmentUrl` | Last URL sent to GitHub |
 | `status.github.commentId` | PR comment id created by the controller |
@@ -697,7 +730,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.7.1/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.7.2/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling

@@ -279,6 +279,10 @@ type CellenzaStatus struct {
 	// +optional
 	Database *DatabaseStatus `json:"database,omitempty"`
 
+	// Diagnostics describes the latest operator-generated troubleshooting summary.
+	// +optional
+	Diagnostics *DiagnosticsStatus `json:"diagnostics,omitempty"`
+
 	// GitHub describes the latest GitHub Deployment or PR notification.
 	// +optional
 	GitHub *GitHubIntegrationStatus `json:"github,omitempty"`
@@ -319,6 +323,29 @@ type DatabaseStatus struct {
 	// Seed is the latest observed seed task state.
 	// +optional
 	Seed string `json:"seed,omitempty"`
+}
+
+// DiagnosticsStatus describes the latest human-readable preview diagnostics.
+type DiagnosticsStatus struct {
+	// Reason is a short machine-readable reason.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+
+	// Component identifies the component most likely responsible for the issue.
+	// +optional
+	Component string `json:"component,omitempty"`
+
+	// Message is a concise human-readable summary.
+	// +optional
+	Message string `json:"message,omitempty"`
+
+	// LastEvents contains recent warning events related to the preview namespace.
+	// +optional
+	LastEvents []string `json:"lastEvents,omitempty"`
+
+	// DebugCommands contains useful kubectl commands for troubleshooting.
+	// +optional
+	DebugCommands []string `json:"debugCommands,omitempty"`
 }
 
 // +kubebuilder:object:root=true

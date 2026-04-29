@@ -94,9 +94,9 @@ func (r *CellenzaReconciler) postGitHubPhaseComment(ctx context.Context, c *plat
 	var body string
 	switch c.Status.Phase {
 	case platformv1alpha1.PhaseProvisioning:
-		body = "🔄 **Provisioning** — création du namespace, PostgreSQL et des ressources Kubernetes en cours..."
+		body = fmt.Sprintf("**Cellenza Preview Provisioning**\n\nEnvironment: `%s`\n\nCreating namespace, PostgreSQL, database tasks, and Kubernetes resources.", githubEnvironment(c))
 	case platformv1alpha1.PhaseFailed:
-		body = fmt.Sprintf("❌ **Failed** — une erreur s'est produite lors du provisionnement de `pr-%d`. Consultez `kubectl describe cellenza pr-%d` pour les détails.", c.Spec.PRNumber, c.Spec.PRNumber)
+		body = githubFailedCommentBody(c)
 	default:
 		return nil
 	}
@@ -189,11 +189,7 @@ func (r *CellenzaReconciler) createGitHubReadyComment(ctx context.Context, c *pl
 		return 0, fmt.Errorf("spec.github.owner and spec.github.repo are required")
 	}
 
-	body := fmt.Sprintf(
-		"## Preview Environment Ready\n\n**URL:** %s\n\nEnvironment: `%s`\n\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)",
-		environmentURL,
-		githubEnvironment(c),
-	)
+	body := githubReadyCommentBody(c, environmentURL)
 	payload := githubIssueCommentRequest{Body: body}
 	var response githubIssueCommentResponse
 	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
@@ -208,6 +204,87 @@ func (r *CellenzaReconciler) createGitHubReadyComment(ctx context.Context, c *pl
 		return -1, nil
 	}
 	return response.ID, nil
+}
+
+func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string) string {
+	var b strings.Builder
+	b.WriteString("## Cellenza Preview Ready\n\n")
+	b.WriteString(fmt.Sprintf("**URL:** %s\n\n", environmentURL))
+	b.WriteString(fmt.Sprintf("Environment: `%s`\n", githubEnvironment(c)))
+	b.WriteString(fmt.Sprintf("Namespace: `%s`\n", c.Status.NamespaceName))
+	if c.Status.ExpiresAt != nil {
+		b.WriteString(fmt.Sprintf("Expires at: `%s`\n", c.Status.ExpiresAt.Time.Format(time.RFC3339)))
+	}
+
+	b.WriteString("\n### Evidence\n\n")
+	b.WriteString("- App: ready\n")
+	if databaseEnabled(c) && c.Status.Database != nil {
+		b.WriteString(fmt.Sprintf("- PostgreSQL: %s\n", readyLabel(c.Status.Database.Ready)))
+		b.WriteString(fmt.Sprintf("- Migration: %s\n", defaultStatus(c.Status.Database.Migration)))
+		b.WriteString(fmt.Sprintf("- Seed: %s\n", defaultStatus(c.Status.Database.Seed)))
+	} else {
+		b.WriteString("- PostgreSQL: disabled\n")
+	}
+	if c.Spec.Telemetry != nil && c.Spec.Telemetry.Enabled {
+		b.WriteString("- Telemetry: enabled\n")
+	} else {
+		b.WriteString("- Telemetry: disabled\n")
+	}
+
+	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
+	return b.String()
+}
+
+func githubFailedCommentBody(c *platformv1alpha1.Cellenza) string {
+	var b strings.Builder
+	b.WriteString("## Cellenza Preview Failed\n\n")
+	b.WriteString(fmt.Sprintf("Environment: `%s`\n", githubEnvironment(c)))
+	if c.Status.NamespaceName != "" {
+		b.WriteString(fmt.Sprintf("Namespace: `%s`\n", c.Status.NamespaceName))
+	}
+
+	if c.Status.Diagnostics != nil {
+		diag := c.Status.Diagnostics
+		b.WriteString("\n### Diagnosis\n\n")
+		b.WriteString(fmt.Sprintf("- Reason: `%s`\n", defaultStatus(diag.Reason)))
+		b.WriteString(fmt.Sprintf("- Component: `%s`\n", defaultStatus(diag.Component)))
+		if diag.Message != "" {
+			b.WriteString(fmt.Sprintf("- Message: %s\n", diag.Message))
+		}
+		if len(diag.LastEvents) > 0 {
+			b.WriteString("\n### Recent Warning Events\n\n")
+			for _, event := range diag.LastEvents {
+				b.WriteString(fmt.Sprintf("- %s\n", event))
+			}
+		}
+		if len(diag.DebugCommands) > 0 {
+			b.WriteString("\n### Debug Commands\n\n```bash\n")
+			for _, command := range diag.DebugCommands {
+				b.WriteString(command)
+				b.WriteByte('\n')
+			}
+			b.WriteString("```\n")
+		}
+	} else {
+		b.WriteString(fmt.Sprintf("\nReason: `%s`\n", githubDescriptionForPhase(c)))
+		b.WriteString(fmt.Sprintf("\nRun `kubectl describe cellenza %s` for details.\n", c.Name))
+	}
+
+	return b.String()
+}
+
+func readyLabel(ready bool) string {
+	if ready {
+		return "ready"
+	}
+	return "not ready"
+}
+
+func defaultStatus(value string) string {
+	if value == "" {
+		return "unknown"
+	}
+	return value
 }
 
 func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string, payload any, response any) error {

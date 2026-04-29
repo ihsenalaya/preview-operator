@@ -53,6 +53,8 @@ type CellenzaReconciler struct {
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
@@ -195,6 +197,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			LastTransitionTime: metav1.Now(),
 		})
 	}
+	cellenza.Status.Diagnostics = nil
 
 	cellenza.SetCondition(metav1.Condition{
 		Type:               platformv1alpha1.ConditionReady,
@@ -1073,6 +1076,7 @@ func generateSecureToken(n int) (string, error) {
 
 func (r *CellenzaReconciler) setFailedStatus(ctx context.Context, c *platformv1alpha1.Cellenza, reason string, err error) (ctrl.Result, error) {
 	c.Status.Phase = platformv1alpha1.PhaseFailed
+	c.Status.Diagnostics = r.collectDiagnostics(ctx, c, reason, err)
 	c.SetCondition(metav1.Condition{
 		Type:               platformv1alpha1.ConditionReady,
 		Status:             metav1.ConditionFalse,

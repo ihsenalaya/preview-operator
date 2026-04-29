@@ -362,6 +362,33 @@ spec:
                 description: DatabaseSecretName is the name of the Secret holding
                   PostgreSQL credentials (when database is enabled)
                 type: string
+              diagnostics:
+                description: Diagnostics describes the latest operator-generated troubleshooting
+                  summary.
+                properties:
+                  component:
+                    description: Component identifies the component most likely responsible
+                      for the issue.
+                    type: string
+                  debugCommands:
+                    description: DebugCommands contains useful kubectl commands for
+                      troubleshooting.
+                    items:
+                      type: string
+                    type: array
+                  lastEvents:
+                    description: LastEvents contains recent warning events related
+                      to the preview namespace.
+                    items:
+                      type: string
+                    type: array
+                  message:
+                    description: Message is a concise human-readable summary.
+                    type: string
+                  reason:
+                    description: Reason is a short machine-readable reason.
+                    type: string
+                type: object
               expiresAt:
                 description: ExpiresAt is when this environment will be auto-deleted
                 format: date-time

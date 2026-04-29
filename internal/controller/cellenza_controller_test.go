@@ -201,5 +201,72 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(githubAlreadyNotified(cellenza, "success", "http://pr-7.preview.localtest.me:8080", false)).To(BeTrue())
 			Expect(githubAlreadyNotified(cellenza, "pending", "http://pr-7.preview.localtest.me:8080", false)).To(BeFalse())
 		})
+
+		It("should build a ready comment with database evidence", func() {
+			expiry := metav1.Now()
+			cellenza := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: "pr-7"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					PRNumber: 7,
+					Database: &platformv1alpha1.DatabaseSpec{
+						Enabled: true,
+					},
+					Telemetry: &platformv1alpha1.TelemetrySpec{
+						Enabled: true,
+					},
+					GitHub: &platformv1alpha1.GitHubIntegrationSpec{
+						Environment: "pr-7",
+					},
+				},
+				Status: platformv1alpha1.CellenzaStatus{
+					NamespaceName: "preview-pr-7",
+					ExpiresAt:     &expiry,
+					Database: &platformv1alpha1.DatabaseStatus{
+						Ready:     true,
+						Migration: "Succeeded",
+						Seed:      "Skipped",
+					},
+				},
+			}
+
+			body := githubReadyCommentBody(cellenza, "http://pr-7.preview.localtest.me:8080")
+
+			Expect(body).To(ContainSubstring("Cellenza Preview Ready"))
+			Expect(body).To(ContainSubstring("PostgreSQL: ready"))
+			Expect(body).To(ContainSubstring("Migration: Succeeded"))
+			Expect(body).To(ContainSubstring("Seed: Skipped"))
+			Expect(body).To(ContainSubstring("Telemetry: enabled"))
+		})
+
+		It("should build a failed comment with diagnostics", func() {
+			cellenza := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: "pr-9"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					PRNumber: 9,
+				},
+				Status: platformv1alpha1.CellenzaStatus{
+					NamespaceName: "preview-pr-9",
+					Diagnostics: &platformv1alpha1.DiagnosticsStatus{
+						Reason:    "DatabaseMigrationFailed",
+						Component: "migration",
+						Message:   "Job postgres-migrate failed: relation messages already exists",
+						LastEvents: []string{
+							"Pod/postgres-migrate: BackoffLimitExceeded",
+						},
+						DebugCommands: []string{
+							"kubectl logs -n preview-pr-9 job/postgres-migrate",
+						},
+					},
+				},
+			}
+
+			body := githubFailedCommentBody(cellenza)
+
+			Expect(body).To(ContainSubstring("Cellenza Preview Failed"))
+			Expect(body).To(ContainSubstring("DatabaseMigrationFailed"))
+			Expect(body).To(ContainSubstring("migration"))
+			Expect(body).To(ContainSubstring("relation messages already exists"))
+			Expect(body).To(ContainSubstring("kubectl logs -n preview-pr-9 job/postgres-migrate"))
+		})
 	})
 })
