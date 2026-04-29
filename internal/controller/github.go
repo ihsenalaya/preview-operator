@@ -64,10 +64,16 @@ func (r *CellenzaReconciler) syncGitHub(ctx context.Context, c *platformv1alpha1
 		logger.Error(err, "Failed to update GitHub Deployment", "name", c.Name)
 		return
 	}
-	r.recordGitHubSuccess(ctx, c, state, environmentURL, 0)
+
+	if err := r.postGitHubPhaseComment(ctx, c, token); err != nil {
+		r.recordGitHubError(ctx, c, err)
+		logger.Error(err, "Failed to post phase comment", "name", c.Name)
+		return
+	}
 
 	var commentID int64
 	if commentOnReady {
+		var err error
 		commentID, err = r.createGitHubReadyComment(ctx, c, token, environmentURL)
 		if err != nil {
 			r.recordGitHubError(ctx, c, err)
@@ -77,6 +83,30 @@ func (r *CellenzaReconciler) syncGitHub(ctx context.Context, c *platformv1alpha1
 	}
 
 	r.recordGitHubSuccess(ctx, c, state, environmentURL, commentID)
+}
+
+func (r *CellenzaReconciler) postGitHubPhaseComment(ctx context.Context, c *platformv1alpha1.Cellenza, token string) error {
+	spec := c.Spec.GitHub
+	if spec == nil || spec.Owner == "" || spec.Repo == "" {
+		return nil
+	}
+
+	var body string
+	switch c.Status.Phase {
+	case platformv1alpha1.PhaseProvisioning:
+		body = "🔄 **Provisioning** — création du namespace, PostgreSQL et des ressources Kubernetes en cours..."
+	case platformv1alpha1.PhaseFailed:
+		body = fmt.Sprintf("❌ **Failed** — une erreur s'est produite lors du provisionnement de `pr-%d`. Consultez `kubectl describe cellenza pr-%d` pour les détails.", c.Spec.PRNumber, c.Spec.PRNumber)
+	default:
+		return nil
+	}
+
+	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
+		url.PathEscape(spec.Owner),
+		url.PathEscape(spec.Repo),
+		c.Spec.PRNumber,
+	)
+	return r.githubPost(ctx, token, path, githubIssueCommentRequest{Body: body}, nil)
 }
 
 func githubEnabled(c *platformv1alpha1.Cellenza) bool {
@@ -266,6 +296,10 @@ func githubEnvironment(c *platformv1alpha1.Cellenza) string {
 
 func githubDeploymentStateForPhase(phase platformv1alpha1.EnvironmentPhase) string {
 	switch phase {
+	case platformv1alpha1.PhasePending:
+		return "queued"
+	case platformv1alpha1.PhaseProvisioning:
+		return "in_progress"
 	case platformv1alpha1.PhaseRunning:
 		return "success"
 	case platformv1alpha1.PhaseFailed:
@@ -273,12 +307,16 @@ func githubDeploymentStateForPhase(phase platformv1alpha1.EnvironmentPhase) stri
 	case platformv1alpha1.PhaseTerminating:
 		return "inactive"
 	default:
-		return "pending"
+		return "queued"
 	}
 }
 
 func githubDescriptionForPhase(c *platformv1alpha1.Cellenza) string {
 	switch c.Status.Phase {
+	case platformv1alpha1.PhasePending:
+		return "Preview environment is waiting for approval"
+	case platformv1alpha1.PhaseProvisioning:
+		return "Preview environment is being provisioned"
 	case platformv1alpha1.PhaseRunning:
 		return "Preview environment is ready"
 	case platformv1alpha1.PhaseFailed:
@@ -286,7 +324,7 @@ func githubDescriptionForPhase(c *platformv1alpha1.Cellenza) string {
 	case platformv1alpha1.PhaseTerminating:
 		return "Preview environment is being deleted"
 	default:
-		return "Preview environment is provisioning"
+		return "Preview environment is pending"
 	}
 }
 

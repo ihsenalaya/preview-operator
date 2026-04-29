@@ -129,6 +129,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Status().Update(ctx, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
+		syncGitHubAfterStatus(ctx, r, cellenza, "")
 	}
 
 	// 8. Reconcile all child resources
