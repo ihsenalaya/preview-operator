@@ -244,6 +244,72 @@ Watch those logs with:
 kubectl logs -n preview-pr-42 deployment/app -c app -f
 ```
 
+### Running database migrations and seed data
+
+Migration and seed tasks are optional one-shot Kubernetes Jobs. They run after PostgreSQL is created and before the app Deployment is reconciled. By default, each task uses `spec.image`, so the commands must exist inside your application image. You can override that with `image` per task.
+
+The operator injects the same database environment variables into each task:
+
+- `DATABASE_URL`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+
+Example with an app image that contains Alembic and a seed script:
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-42
+spec:
+  branch: feature/database-change
+  prNumber: 42
+  image: ghcr.io/example/myapp:sha-abc123
+  database:
+    enabled: true
+    databaseName: appdb
+    migration:
+      enabled: true
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+    seed:
+      enabled: true
+      command: ["python", "scripts/seed_preview.py"]
+```
+
+Example with a dedicated migration image:
+
+```yaml
+database:
+  enabled: true
+  databaseName: appdb
+  migration:
+    enabled: true
+    image: ghcr.io/example/myapp-migrations:sha-abc123
+    command: ["sh", "-c", "alembic upgrade head"]
+  seed:
+    enabled: true
+    image: ghcr.io/example/myapp-migrations:sha-abc123
+    command: ["sh", "-c", "python scripts/seed_preview.py"]
+```
+
+Both commands should be idempotent: migrations should tolerate already-applied schema changes, and seed scripts should use upserts or `ON CONFLICT DO NOTHING` for demo rows.
+
+Check progress from the Cellenza status:
+
+```bash
+kubectl get cellenza pr-42 \
+  -o jsonpath='{.status.database.migration}{"\n"}{.status.database.seed}{"\n"}'
+```
+
+Inspect task logs if a preview stays in `Provisioning` or moves to `Failed`:
+
+```bash
+kubectl logs -n preview-pr-42 job/postgres-migrate
+kubectl logs -n preview-pr-42 job/postgres-seed
+kubectl describe cellenza pr-42
+```
+
 ### With OpenTelemetry auto-instrumentation
 
 When the OpenTelemetry Operator and Jaeger are installed (steps 4–5), the controller can opt the application Pod into zero-code auto-instrumentation via a single annotation.
