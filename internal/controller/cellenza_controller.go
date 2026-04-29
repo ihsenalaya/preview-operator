@@ -245,12 +245,12 @@ func (r *CellenzaReconciler) reconcileDatabase(ctx context.Context, cellenza *pl
 	if err := r.reconcilePostgresDeployment(ctx, cellenza, nsName); err != nil {
 		return false, "DatabaseDeploymentFailed", err
 	}
-	if ready, err := r.reconcileDatabaseTask(ctx, cellenza, nsName, "migration", migrationJobName, cellenza.Spec.Database.Migration); err != nil {
+	if ready, err := r.reconcileDatabaseTask(ctx, cellenza, nsName, componentMigration, migrationJobName, cellenza.Spec.Database.Migration); err != nil {
 		return false, "DatabaseMigrationFailed", err
 	} else if !ready {
 		return false, "", nil
 	}
-	if ready, err := r.reconcileDatabaseTask(ctx, cellenza, nsName, "seed", seedJobName, cellenza.Spec.Database.Seed); err != nil {
+	if ready, err := r.reconcileDatabaseTask(ctx, cellenza, nsName, componentSeed, seedJobName, cellenza.Spec.Database.Seed); err != nil {
 		return false, "DatabaseSeedFailed", err
 	} else if !ready {
 		return false, "", nil
@@ -790,9 +790,9 @@ func (r *CellenzaReconciler) reconcilePostgresDeployment(ctx context.Context, c 
 								{ContainerPort: 5432, Protocol: corev1.ProtocolTCP},
 							},
 							Env: []corev1.EnvVar{
-								secretKeyRef("POSTGRES_USER", postgresSecretName, "POSTGRES_USER"),
-								secretKeyRef("POSTGRES_PASSWORD", postgresSecretName, "POSTGRES_PASSWORD"),
-								secretKeyRef("POSTGRES_DB", postgresSecretName, "POSTGRES_DB"),
+								secretKeyRef("POSTGRES_USER", "POSTGRES_USER"),
+								secretKeyRef("POSTGRES_PASSWORD", "POSTGRES_PASSWORD"),
+								secretKeyRef("POSTGRES_DB", "POSTGRES_DB"),
 								// Store data in a sub-directory to avoid "lost+found" issues on emptyDir
 								{Name: "PGDATA", Value: "/var/lib/postgresql/data/pgdata"},
 							},
@@ -874,7 +874,7 @@ func (r *CellenzaReconciler) reconcilePostgresService(ctx context.Context, c *pl
 
 func (r *CellenzaReconciler) reconcileDatabaseTask(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, taskName, jobName string, task *platformv1alpha1.DatabaseTaskSpec) (bool, error) {
 	conditionType := platformv1alpha1.ConditionMigrationReady
-	if taskName == "seed" {
+	if taskName == componentSeed {
 		conditionType = platformv1alpha1.ConditionSeedReady
 	}
 
@@ -999,10 +999,10 @@ func (r *CellenzaReconciler) databaseTaskJob(c *platformv1alpha1.Cellenza, nsNam
 							Command: task.Command,
 							Args:    task.Args,
 							Env: []corev1.EnvVar{
-								secretKeyRef("POSTGRES_USER", postgresSecretName, "POSTGRES_USER"),
-								secretKeyRef("POSTGRES_PASSWORD", postgresSecretName, "POSTGRES_PASSWORD"),
-								secretKeyRef("POSTGRES_DB", postgresSecretName, "POSTGRES_DB"),
-								secretKeyRef("DATABASE_URL", postgresSecretName, "DATABASE_URL"),
+								secretKeyRef("POSTGRES_USER", "POSTGRES_USER"),
+								secretKeyRef("POSTGRES_PASSWORD", "POSTGRES_PASSWORD"),
+								secretKeyRef("POSTGRES_DB", "POSTGRES_DB"),
+								secretKeyRef("DATABASE_URL", "DATABASE_URL"),
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -1035,7 +1035,7 @@ func (r *CellenzaReconciler) markDatabaseTaskRunning(c *platformv1alpha1.Cellenz
 
 func (r *CellenzaReconciler) setDatabaseTaskStatus(c *platformv1alpha1.Cellenza, taskName, status string) {
 	r.setDatabaseStatus(c, false)
-	if taskName == "seed" {
+	if taskName == componentSeed {
 		c.Status.Database.Seed = status
 		return
 	}
@@ -1046,19 +1046,19 @@ func (r *CellenzaReconciler) databaseTaskStatus(c *platformv1alpha1.Cellenza, ta
 	if c.Status.Database == nil {
 		return ""
 	}
-	if taskName == "seed" {
+	if taskName == componentSeed {
 		return c.Status.Database.Seed
 	}
 	return c.Status.Database.Migration
 }
 
 // secretKeyRef builds an EnvVar that reads its value from a Secret key
-func secretKeyRef(envName, secretName, key string) corev1.EnvVar {
+func secretKeyRef(envName, key string) corev1.EnvVar {
 	return corev1.EnvVar{
 		Name: envName,
 		ValueFrom: &corev1.EnvVarSource{
 			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+				LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName},
 				Key:                  key,
 			},
 		},

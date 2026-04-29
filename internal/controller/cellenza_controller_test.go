@@ -170,7 +170,7 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal("ghcr.io/example/app:sha"))
 			Expect(job.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "alembic", "upgrade", "head"}))
 			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(
-				secretKeyRef("DATABASE_URL", postgresSecretName, "DATABASE_URL"),
+				secretKeyRef("DATABASE_URL", "DATABASE_URL"),
 			))
 		})
 	})

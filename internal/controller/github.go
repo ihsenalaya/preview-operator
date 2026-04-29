@@ -213,7 +213,7 @@ func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string)
 	b.WriteString(fmt.Sprintf("Environment: `%s`\n", githubEnvironment(c)))
 	b.WriteString(fmt.Sprintf("Namespace: `%s`\n", c.Status.NamespaceName))
 	if c.Status.ExpiresAt != nil {
-		b.WriteString(fmt.Sprintf("Expires at: `%s`\n", c.Status.ExpiresAt.Time.Format(time.RFC3339)))
+		b.WriteString(fmt.Sprintf("Expires at: `%s`\n", c.Status.ExpiresAt.Format(time.RFC3339)))
 	}
 
 	b.WriteString("\n### Evidence\n\n")

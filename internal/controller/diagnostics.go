@@ -16,6 +16,18 @@ import (
 	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
 )
 
+const (
+	componentApp       = "app"
+	componentDatabase  = "database"
+	componentIngress   = "ingress"
+	componentMigration = "migration"
+	componentNamespace = "namespace"
+	componentPreview   = "preview"
+	componentQuota     = "quota"
+	componentSeed      = "seed"
+	componentService   = "service"
+)
+
 func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platformv1alpha1.Cellenza, reason string, reconcileErr error) *platformv1alpha1.DiagnosticsStatus {
 	nsName := c.Status.NamespaceName
 	if nsName == "" {
@@ -34,19 +46,19 @@ func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platform
 	}
 
 	if message := r.databaseJobDiagnostic(ctx, nsName, migrationJobName); message != "" {
-		diag.Component = "migration"
+		diag.Component = componentMigration
 		diag.Message = message
 		diag.DebugCommands = append(diag.DebugCommands, fmt.Sprintf("kubectl logs -n %s job/%s", nsName, migrationJobName))
 	} else if message := r.databaseJobDiagnostic(ctx, nsName, seedJobName); message != "" {
-		diag.Component = "seed"
+		diag.Component = componentSeed
 		diag.Message = message
 		diag.DebugCommands = append(diag.DebugCommands, fmt.Sprintf("kubectl logs -n %s job/%s", nsName, seedJobName))
-	} else if message := r.deploymentDiagnostic(ctx, nsName, "app"); message != "" {
-		diag.Component = "app"
+	} else if message := r.deploymentDiagnostic(ctx, nsName, componentApp); message != "" {
+		diag.Component = componentApp
 		diag.Message = message
 		diag.DebugCommands = append(diag.DebugCommands, fmt.Sprintf("kubectl describe deployment app -n %s", nsName))
 	} else if message := r.deploymentDiagnostic(ctx, nsName, "postgres"); message != "" {
-		diag.Component = "database"
+		diag.Component = componentDatabase
 		diag.Message = message
 		diag.DebugCommands = append(diag.DebugCommands, fmt.Sprintf("kubectl describe deployment postgres -n %s", nsName))
 	}
@@ -58,23 +70,23 @@ func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platform
 func diagnosticComponent(reason string) string {
 	switch {
 	case strings.Contains(reason, "Migration"):
-		return "migration"
+		return componentMigration
 	case strings.Contains(reason, "Seed"):
-		return "seed"
+		return componentSeed
 	case strings.Contains(reason, "Database"):
-		return "database"
+		return componentDatabase
 	case strings.Contains(reason, "Deployment"):
-		return "app"
+		return componentApp
 	case strings.Contains(reason, "Ingress"):
-		return "ingress"
+		return componentIngress
 	case strings.Contains(reason, "Service"):
-		return "service"
+		return componentService
 	case strings.Contains(reason, "Quota"):
-		return "quota"
+		return componentQuota
 	case strings.Contains(reason, "Namespace"):
-		return "namespace"
+		return componentNamespace
 	default:
-		return "preview"
+		return componentPreview
 	}
 }
 
@@ -128,7 +140,7 @@ func (r *CellenzaReconciler) deploymentDiagnostic(ctx context.Context, nsName, n
 
 func podMatchesDeployment(pod corev1.Pod, deploymentName string) bool {
 	app := pod.Labels["app"]
-	if deploymentName == "app" {
+	if deploymentName == componentApp {
 		return app == "cellenza-preview"
 	}
 	return app == deploymentName
@@ -166,7 +178,7 @@ func (r *CellenzaReconciler) warningEvents(ctx context.Context, nsName string, l
 	}
 
 	sort.Slice(events.Items, func(i, j int) bool {
-		return events.Items[i].LastTimestamp.Time.After(events.Items[j].LastTimestamp.Time)
+		return events.Items[i].LastTimestamp.After(events.Items[j].LastTimestamp.Time)
 	})
 
 	var messages []string
