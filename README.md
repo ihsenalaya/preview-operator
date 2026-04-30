@@ -374,9 +374,24 @@ For the Flask demo app, Python auto-instrumentation produces HTTP spans for `GET
 
 ### With GitHub Deployment automation
 
-CI creates the GitHub Deployment and a short-lived token Secret, then the controller publishes the observed Kubernetes state back to GitHub.
+CI (or a human) creates the GitHub Deployment and a token Secret, then the controller publishes the observed Kubernetes state back to GitHub.
 
-Create the token Secret in the operator namespace:
+#### 1. Create the GitHub Deployment
+
+```bash
+gh api repos/OWNER/REPO/deployments \
+  --method POST \
+  --field ref="<commit-sha-or-branch>" \
+  --field environment="pr-42" \
+  --field description="Preview environment for PR 42" \
+  --field auto_merge=false \
+  --jq '{id, environment}'
+# → {"id": 4536974429, "environment": "pr-42"}
+```
+
+Use the returned `id` as `spec.github.deploymentId` in the Cellenza resource.
+
+#### 2. Create the token Secret
 
 ```bash
 kubectl create secret generic github-token-pr-42 \
@@ -384,7 +399,16 @@ kubectl create secret generic github-token-pr-42 \
   --from-literal=token="$GITHUB_TOKEN"
 ```
 
-Reference it from the `Cellenza` resource:
+> **Token expiry** — GitHub Apps issue short-lived tokens. If the controller logs `401 Unauthorized`, regenerate the token and replace the Secret:
+> ```bash
+> kubectl create secret generic github-token-pr-42 \
+>   --namespace=cellenza-operator-system \
+>   --from-literal=token="$NEW_TOKEN" \
+>   --dry-run=client -o yaml | kubectl apply -f -
+> ```
+> The controller retries GitHub calls on the next reconcile loop automatically.
+
+#### 3. Reference the Secret from the Cellenza resource
 
 ```yaml
 apiVersion: platform.company.io/v1alpha1
@@ -422,36 +446,87 @@ When reconciliation fails, the controller collects automatic diagnostics from th
 - recent Kubernetes warning events
 - useful `kubectl` debug commands
 
-Example failure comment:
+Example failure comment — image pull error:
+
+~~~markdown
+## Cellenza Preview Failed
+
+Environment: `pr-42`
+Namespace: `preview-pr-42`
+
+### Diagnosis
+
+- Reason: `DeploymentFailed`
+- Component: `app`
+- Message: Deployment app is unavailable: Deployment does not have minimum availability.
+- Probable cause: **Container image cannot be pulled**
+- Confidence: `high`
+
+### Recommendations
+
+1. Verify that image `ghcr.io/acme/myapp:does-not-exist` exists and is accessible from the cluster.
+2. Check the image tag produced by CI for this pull request.
+3. Confirm the namespace has the required imagePullSecrets if the registry is private.
+
+### Recent Warning Events
+
+- Pod/app-xyz: Error: ImagePullBackOff
+- Pod/app-xyz: Failed to pull image "ghcr.io/acme/myapp:does-not-exist": not found
+- Pod/app-xyz: Error: ErrImagePull
+
+### Debug Commands
+
+```bash
+kubectl describe cellenza pr-42
+kubectl get pods -n preview-pr-42
+kubectl get events -n preview-pr-42 --sort-by=.lastTimestamp
+kubectl describe deployment app -n preview-pr-42
+```
+~~~
+
+Example failure comment — database migration error:
+
+~~~markdown
+## Cellenza Preview Failed
+
+Environment: `pr-42`
+Namespace: `preview-pr-42`
+
+### Diagnosis
+
+- Reason: `DatabaseMigrationFailed`
+- Component: `migration`
+- Message: Job postgres-migrate failed: BackoffLimitExceeded
+- Probable cause: **Database migration failed**
+- Confidence: `high`
+
+### Significant Logs
+
+**migration** — `pod/postgres-migrate-abc container/migration`
 
 ```text
-Cellenza Preview Failed
-
-Environment: pr-42
-Namespace: preview-pr-42
-
-Diagnosis:
-- Reason: DatabaseMigrationFailed
-- Component: migration
-- Message: Job postgres-migrate failed: BackoffLimitExceeded
-- Probable cause: Database migration failed
-- Confidence: high
-
-Significant Logs:
-migration — pod/postgres-migrate-abc container/migration
 ERROR relation messages already exists
 migration failed at 003_create_messages.sql
+```
 
-Recommendations:
+### Recommendations
+
 1. Check that the migration is idempotent and can run on a fresh preview database.
 2. Look for duplicate table/index creation or schema ordering issues in the highlighted logs.
-3. Request a DB reset after fixing the migration.
+3. After fixing the migration, request a DB reset with `kubectl patch cellenza pr-42 --type=merge -p '{"spec":{"database":{"resetRequested":true}}}'`.
 
-Debug Commands:
+### Recent Warning Events
+
+- Pod/postgres-migrate-abc: BackoffLimitExceeded
+
+### Debug Commands
+
+```bash
 kubectl describe cellenza pr-42
 kubectl get pods -n preview-pr-42
 kubectl logs -n preview-pr-42 job/postgres-migrate
 ```
+~~~
 
 When the resource is deleted, the finalizer sends an `inactive` status before cleanup completes.
 
@@ -745,6 +820,98 @@ The extension patches `spec.database.resetRequested: true`. The controller detec
 ```
 
 If the pod is running, the extension streams the last 40 live lines. If the environment is in `Failed` phase, it falls back to `status.diagnostics.podLogs` (last 30 lines captured by the controller at failure time).
+
+### Full example — diagnosing a crash from Copilot Chat
+
+A developer notices their preview is stuck. They open Copilot Chat and type:
+
+```
+@cellenza status pr-42
+```
+
+The extension responds with the current phase, diagnostics, and actionable next steps:
+
+```
+pr-42 is Failed (since 14:08 UTC)
+
+Diagnosis: Container image cannot be pulled (confidence: high)
+  Image: ghcr.io/acme/myapp:does-not-exist
+  Component: app
+
+Recommendations:
+  1. Verify the image tag exists in GHCR for this PR's CI build.
+  2. Check imagePullSecrets if the registry is private.
+
+Debug:
+  kubectl get pods -n preview-pr-42
+  kubectl describe deployment app -n preview-pr-42
+```
+
+They can then request the raw logs:
+
+```
+@cellenza logs pr-42
+```
+
+Or trigger a database reset after fixing a migration:
+
+```
+@cellenza reset-db pr-42
+```
+
+The controller patches `spec.database.resetRequested: true`, deletes the failed Jobs, and re-runs migration and seed on the next reconcile cycle.
+
+### Testing crash scenarios locally
+
+To validate the diagnostics and GitHub comment flow against a real PR:
+
+```bash
+# 1. Create a GitHub Deployment for the target PR
+DEPLOY_ID=$(gh api repos/OWNER/REPO/deployments \
+  --method POST \
+  --field ref="<branch-or-sha>" \
+  --field environment="pr-<N>-crash-test" \
+  --field auto_merge=false \
+  --jq '.id')
+
+# 2. Create a token Secret
+kubectl create secret generic github-token-crash-test \
+  --namespace=cellenza-operator-system \
+  --from-literal=token="$GITHUB_TOKEN"
+
+# 3. Apply a Cellenza with a non-existent image to trigger ImagePullBackOff
+kubectl apply -f - <<EOF
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-<N>-crash
+spec:
+  branch: <branch>
+  prNumber: <N>
+  image: ghcr.io/acme/myapp:does-not-exist
+  resourceTier: small
+  ttl: 1h
+  github:
+    enabled: true
+    owner: OWNER
+    repo: REPO
+    deploymentId: $DEPLOY_ID
+    environment: pr-<N>-crash-test
+    commentOnReady: true
+    tokenSecretRef:
+      name: github-token-crash-test
+      namespace: cellenza-operator-system
+      key: token
+EOF
+
+# 4. Watch the phase move to Failed and the comment appear on the PR
+kubectl get cellenza pr-<N>-crash --watch
+
+# 5. Clean up
+kubectl delete cellenza pr-<N>-crash
+```
+
+Within ~30 seconds the controller detects `ErrImagePull`, collects diagnostics, posts a `failure` GitHub Deployment status, and comments on the PR with the root cause and recommendations.
 
 ---
 
