@@ -60,6 +60,65 @@ spec:
           spec:
             description: CellenzaSpec defines the desired state
             properties:
+              aiEnrichment:
+                description: AIEnrichment configures AI-powered seed data and test
+                  generation after deployment.
+                properties:
+                  apiSecretRef:
+                    description: 'APISecretRef points to a Secret containing the AI
+                      provider API key (key: "api-key").'
+                    properties:
+                      key:
+                        description: Key is the Secret data key. Defaults to "api-key".
+                        type: string
+                      name:
+                        description: Name is the Secret name.
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: Namespace is the Secret namespace. Defaults to
+                          cellenza-operator-system.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  enabled:
+                    default: false
+                    description: Enabled controls whether AI enrichment runs after
+                      the environment is ready.
+                    type: boolean
+                  model:
+                    default: gpt-4o-mini
+                    description: Model is the AI model to use (e.g. "gpt-4o-mini",
+                      "gpt-4o").
+                    type: string
+                  seed:
+                    description: Seed configures AI seed data generation and execution.
+                    properties:
+                      enabled:
+                        default: false
+                        description: Enabled controls whether this task runs.
+                        type: boolean
+                      image:
+                        description: |-
+                          Image is the container image used to run the task.
+                          Defaults to "postgres:15-alpine" for seed, "python:3.12-slim" for tests.
+                        type: string
+                    type: object
+                  tests:
+                    description: Tests configures AI test generation and execution.
+                    properties:
+                      enabled:
+                        default: false
+                        description: Enabled controls whether this task runs.
+                        type: boolean
+                      image:
+                        description: |-
+                          Image is the container image used to run the task.
+                          Defaults to "postgres:15-alpine" for seed, "python:3.12-slim" for tests.
+                        type: string
+                    type: object
+                type: object
               approvedBy:
                 description: ApprovedBy is the user who approved this environment
                   (required when RequiresApproval=true)
@@ -282,6 +341,36 @@ spec:
           status:
             description: CellenzaStatus defines the observed state
             properties:
+              aiEnrichment:
+                description: AIEnrichment describes the observed AI enrichment state.
+                properties:
+                  completedAt:
+                    description: CompletedAt is when the enrichment completed.
+                    format: date-time
+                    type: string
+                  error:
+                    description: Error stores the latest enrichment error message.
+                    type: string
+                  phase:
+                    description: 'Phase: Pending | Generating | Running | Succeeded
+                      | Failed'
+                    type: string
+                  seedStatus:
+                    description: 'SeedStatus: Skipped | Running | Succeeded | Failed'
+                    type: string
+                  summary:
+                    description: Summary is a human-readable enrichment summary for
+                      the PR comment.
+                    type: string
+                  testResults:
+                    description: TestResults contains stdout lines from the test job.
+                    items:
+                      type: string
+                    type: array
+                  testsStatus:
+                    description: 'TestsStatus: Skipped | Running | Succeeded | Failed'
+                    type: string
+                type: object
               conditions:
                 description: Conditions represent the latest available observations
                 items:
