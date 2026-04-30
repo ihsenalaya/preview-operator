@@ -164,7 +164,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.7.3 \
+  --version 0.9.0 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -410,12 +410,15 @@ spec:
       key: token
 ```
 
-When the preview reaches `Running`, the controller sends a GitHub Deployment `success` status with `status.url` as the environment URL and creates one PR comment when `commentOnReady` is true. That comment includes preview evidence such as app readiness, PostgreSQL readiness, migration status, seed status, telemetry state, namespace, URL, and expiry.
+When the preview reaches `Running`, the controller sends a GitHub Deployment `success` status with `status.url` as the environment URL and creates one PR comment when `commentOnReady` is true. That comment includes preview evidence such as app readiness, PostgreSQL readiness, migration status, seed status, telemetry state, namespace, URL, expiry, and an AI-assisted health summary.
 
 When reconciliation fails, the controller collects automatic diagnostics from the preview namespace and comments on the PR with:
 
 - the failing component (`app`, `database`, `migration`, `seed`, `ingress`, etc.)
 - the operator reason and error message
+- the probable root cause and confidence level
+- significant log lines selected from app, PostgreSQL, migration, and seed components
+- recommended next actions for the developer
 - recent Kubernetes warning events
 - useful `kubectl` debug commands
 
@@ -431,6 +434,18 @@ Diagnosis:
 - Reason: DatabaseMigrationFailed
 - Component: migration
 - Message: Job postgres-migrate failed: BackoffLimitExceeded
+- Probable cause: Database migration failed
+- Confidence: high
+
+Significant Logs:
+migration — pod/postgres-migrate-abc container/migration
+ERROR relation messages already exists
+migration failed at 003_create_messages.sql
+
+Recommendations:
+1. Check that the migration is idempotent and can run on a fresh preview database.
+2. Look for duplicate table/index creation or schema ordering issues in the highlighted logs.
+3. Request a DB reset after fixing the migration.
 
 Debug Commands:
 kubectl describe cellenza pr-42
@@ -648,6 +663,10 @@ kubectl describe cellenza pr-42
 | `status.diagnostics.reason` | Latest operator diagnostic reason when the preview fails |
 | `status.diagnostics.component` | Component most likely responsible for the failure |
 | `status.diagnostics.message` | Human-readable diagnostic summary |
+| `status.diagnostics.rootCause` | Probable root cause inferred from logs, events, and component state |
+| `status.diagnostics.confidence` | Diagnostic confidence: `low`, `medium`, or `high` |
+| `status.diagnostics.recommendations` | Developer-facing suggested next actions |
+| `status.diagnostics.significantLogs` | Selected high-signal log lines grouped by component/source |
 | `status.diagnostics.podLogs` | Last 30 lines from the crashed app container |
 | `status.diagnostics.lastEvents` | Recent warning events from the preview namespace |
 | `status.diagnostics.debugCommands` | Useful `kubectl` commands to troubleshoot the preview |
@@ -810,7 +829,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.7.3/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.9.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling

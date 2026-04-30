@@ -236,6 +236,7 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(body).To(ContainSubstring("Migration: Succeeded"))
 			Expect(body).To(ContainSubstring("Seed: Skipped"))
 			Expect(body).To(ContainSubstring("Telemetry: enabled"))
+			Expect(body).To(ContainSubstring("AI-Assisted Summary"))
 		})
 
 		It("should build a failed comment with diagnostics", func() {
@@ -247,9 +248,23 @@ var _ = Describe("Cellenza Controller", func() {
 				Status: platformv1alpha1.CellenzaStatus{
 					NamespaceName: "preview-pr-9",
 					Diagnostics: &platformv1alpha1.DiagnosticsStatus{
-						Reason:    "DatabaseMigrationFailed",
-						Component: "migration",
-						Message:   "Job postgres-migrate failed: relation messages already exists",
+						Reason:     "DatabaseMigrationFailed",
+						Component:  "migration",
+						Message:    "Job postgres-migrate failed: relation messages already exists",
+						RootCause:  "Database migration failed",
+						Confidence: "high",
+						Recommendations: []string{
+							"Make the migration idempotent.",
+						},
+						SignificantLogs: []platformv1alpha1.DiagnosticLogExcerpt{
+							{
+								Component: "migration",
+								Source:    "pod/postgres-migrate-abc container/migration",
+								Lines: []string{
+									"ERROR relation messages already exists",
+								},
+							},
+						},
 						LastEvents: []string{
 							"Pod/postgres-migrate: BackoffLimitExceeded",
 						},
@@ -265,6 +280,10 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(body).To(ContainSubstring("Cellenza Preview Failed"))
 			Expect(body).To(ContainSubstring("DatabaseMigrationFailed"))
 			Expect(body).To(ContainSubstring("migration"))
+			Expect(body).To(ContainSubstring("Database migration failed"))
+			Expect(body).To(ContainSubstring("Confidence: `high`"))
+			Expect(body).To(ContainSubstring("ERROR relation messages already exists"))
+			Expect(body).To(ContainSubstring("Make the migration idempotent"))
 			Expect(body).To(ContainSubstring("relation messages already exists"))
 			Expect(body).To(ContainSubstring("kubectl logs -n preview-pr-9 job/postgres-migrate"))
 		})

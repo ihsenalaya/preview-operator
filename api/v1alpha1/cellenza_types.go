@@ -348,6 +348,22 @@ type DiagnosticsStatus struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 
+	// RootCause is the most likely human-readable cause inferred from logs and events.
+	// +optional
+	RootCause string `json:"rootCause,omitempty"`
+
+	// Confidence estimates how strong the diagnostic signal is: low, medium, or high.
+	// +optional
+	Confidence string `json:"confidence,omitempty"`
+
+	// Recommendations contains suggested next actions for the developer.
+	// +optional
+	Recommendations []string `json:"recommendations,omitempty"`
+
+	// SignificantLogs contains the most relevant log lines grouped by component.
+	// +optional
+	SignificantLogs []DiagnosticLogExcerpt `json:"significantLogs,omitempty"`
+
 	// LastEvents contains recent warning events related to the preview namespace.
 	// +optional
 	LastEvents []string `json:"lastEvents,omitempty"`
@@ -359,6 +375,21 @@ type DiagnosticsStatus struct {
 	// PodLogs contains the last lines of the crashed application pod.
 	// +optional
 	PodLogs []string `json:"podLogs,omitempty"`
+}
+
+// DiagnosticLogExcerpt contains selected log lines for one preview component.
+type DiagnosticLogExcerpt struct {
+	// Component identifies the Cellenza component that produced the logs.
+	// +optional
+	Component string `json:"component,omitempty"`
+
+	// Source identifies the Kubernetes object or container that produced the logs.
+	// +optional
+	Source string `json:"source,omitempty"`
+
+	// Lines contains selected significant log lines.
+	// +optional
+	Lines []string `json:"lines,omitempty"`
 }
 
 // +kubebuilder:object:root=true

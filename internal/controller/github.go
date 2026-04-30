@@ -231,6 +231,19 @@ func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string)
 		b.WriteString("- Telemetry: disabled\n")
 	}
 
+	b.WriteString("\n### AI-Assisted Summary\n\n")
+	b.WriteString("The preview is healthy: the operator observed the app deployment as ready")
+	if databaseEnabled(c) && c.Status.Database != nil {
+		b.WriteString(", PostgreSQL is available")
+		if c.Status.Database.Migration != "" {
+			b.WriteString(fmt.Sprintf(", migration is `%s`", c.Status.Database.Migration))
+		}
+		if c.Status.Database.Seed != "" {
+			b.WriteString(fmt.Sprintf(", seed is `%s`", c.Status.Database.Seed))
+		}
+	}
+	b.WriteString(".\n")
+
 	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
 	return b.String()
 }
@@ -250,6 +263,36 @@ func githubFailedCommentBody(c *platformv1alpha1.Cellenza) string {
 		b.WriteString(fmt.Sprintf("- Component: `%s`\n", defaultStatus(diag.Component)))
 		if diag.Message != "" {
 			b.WriteString(fmt.Sprintf("- Message: %s\n", diag.Message))
+		}
+		if diag.RootCause != "" {
+			b.WriteString(fmt.Sprintf("- Probable cause: **%s**\n", diag.RootCause))
+		}
+		if diag.Confidence != "" {
+			b.WriteString(fmt.Sprintf("- Confidence: `%s`\n", diag.Confidence))
+		}
+		if len(diag.SignificantLogs) > 0 {
+			b.WriteString("\n### Significant Logs\n\n")
+			for _, excerpt := range diag.SignificantLogs {
+				if len(excerpt.Lines) == 0 {
+					continue
+				}
+				b.WriteString(fmt.Sprintf("**%s**", defaultStatus(excerpt.Component)))
+				if excerpt.Source != "" {
+					b.WriteString(fmt.Sprintf(" — `%s`", excerpt.Source))
+				}
+				b.WriteString("\n\n```text\n")
+				for _, line := range excerpt.Lines {
+					b.WriteString(line)
+					b.WriteByte('\n')
+				}
+				b.WriteString("```\n\n")
+			}
+		}
+		if len(diag.Recommendations) > 0 {
+			b.WriteString("\n### Recommendations\n\n")
+			for i, recommendation := range diag.Recommendations {
+				b.WriteString(fmt.Sprintf("%d. %s\n", i+1, recommendation))
+			}
 		}
 		if len(diag.LastEvents) > 0 {
 			b.WriteString("\n### Recent Warning Events\n\n")

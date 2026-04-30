@@ -56,6 +56,7 @@ type CellenzaReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
@@ -184,6 +185,10 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if err := r.reconcileIngress(ctx, cellenza, nsName); err != nil {
 		return r.setFailedStatus(ctx, cellenza, "IngressFailed", err)
+	}
+
+	if handled, result, err := r.handleAppAvailability(ctx, cellenza, nsName); handled {
+		return result, err
 	}
 
 	// 9. Mark as Running
@@ -541,8 +546,10 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 			labelManagedBy:    "cellenza-operator",
 			labelCellenzaName: c.Name,
 		}
+		progressDeadlineSeconds := int32(60)
 		deploy.Spec = appsv1.DeploymentSpec{
-			Replicas: &replicas,
+			Replicas:                &replicas,
+			ProgressDeadlineSeconds: &progressDeadlineSeconds,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": "cellenza-preview"},
 			},
@@ -594,6 +601,56 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 		return nil
 	})
 	return err
+}
+
+func (r *CellenzaReconciler) handleAppAvailability(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
+	appReady, appReason, err := r.appDeploymentReady(ctx, nsName)
+	if err != nil {
+		result, err := r.setFailedStatus(ctx, c, appReason, err)
+		return true, result, err
+	}
+	if appReady {
+		return false, ctrl.Result{}, nil
+	}
+
+	c.Status.Phase = platformv1alpha1.PhaseProvisioning
+	c.Status.NamespaceName = nsName
+	c.Status.ObservedGeneration = c.Generation
+	c.SetCondition(metav1.Condition{
+		Type:               platformv1alpha1.ConditionReady,
+		Status:             metav1.ConditionFalse,
+		Reason:             appReason,
+		Message:            "Waiting for app deployment to become available",
+		LastTransitionTime: metav1.Now(),
+	})
+	if err := r.Status().Update(ctx, c); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	syncGitHubAfterStatus(ctx, r, c, "")
+	return true, ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+}
+
+func (r *CellenzaReconciler) appDeploymentReady(ctx context.Context, nsName string) (bool, string, error) {
+	deploy := &appsv1.Deployment{}
+	if err := r.Get(ctx, types.NamespacedName{Name: "app", Namespace: nsName}, deploy); err != nil {
+		return false, "DeploymentUnavailable", err
+	}
+
+	for _, condition := range deploy.Status.Conditions {
+		if condition.Type == appsv1.DeploymentProgressing && condition.Status == corev1.ConditionFalse {
+			message := condition.Message
+			if message == "" {
+				message = "app deployment stopped progressing"
+			}
+			return false, "DeploymentFailed", fmt.Errorf("%s", message)
+		}
+	}
+
+	if deploy.Status.AvailableReplicas >= *deploy.Spec.Replicas && deploy.Status.ObservedGeneration >= deploy.Generation {
+		return true, "DeploymentAvailable", nil
+	}
+
+	return false, "DeploymentNotReady", nil
 }
 
 func telemetryPodAnnotations(c *platformv1alpha1.Cellenza) map[string]string {

@@ -375,6 +375,10 @@ spec:
                     description: Component identifies the component most likely responsible
                       for the issue.
                     type: string
+                  confidence:
+                    description: 'Confidence estimates how strong the diagnostic signal
+                      is: low, medium, or high.'
+                    type: string
                   debugCommands:
                     description: DebugCommands contains useful kubectl commands for
                       troubleshooting.
@@ -399,6 +403,38 @@ spec:
                   reason:
                     description: Reason is a short machine-readable reason.
                     type: string
+                  recommendations:
+                    description: Recommendations contains suggested next actions for
+                      the developer.
+                    items:
+                      type: string
+                    type: array
+                  rootCause:
+                    description: RootCause is the most likely human-readable cause
+                      inferred from logs and events.
+                    type: string
+                  significantLogs:
+                    description: SignificantLogs contains the most relevant log lines
+                      grouped by component.
+                    items:
+                      description: DiagnosticLogExcerpt contains selected log lines
+                        for one preview component.
+                      properties:
+                        component:
+                          description: Component identifies the Cellenza component
+                            that produced the logs.
+                          type: string
+                        lines:
+                          description: Lines contains selected significant log lines.
+                          items:
+                            type: string
+                          type: array
+                        source:
+                          description: Source identifies the Kubernetes object or
+                            container that produced the logs.
+                          type: string
+                      type: object
+                    type: array
                 type: object
               expiresAt:
                 description: ExpiresAt is when this environment will be auto-deleted

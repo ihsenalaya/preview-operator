@@ -29,6 +29,12 @@ const (
 	componentService   = "service"
 )
 
+const (
+	diagnosticConfidenceHigh   = "high"
+	diagnosticConfidenceMedium = "medium"
+	diagnosticConfidenceLow    = "low"
+)
+
 func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platformv1alpha1.Cellenza, reason string, reconcileErr error) *platformv1alpha1.DiagnosticsStatus {
 	nsName := c.Status.NamespaceName
 	if nsName == "" {
@@ -66,7 +72,14 @@ func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platform
 	}
 
 	diag.LastEvents = r.warningEvents(ctx, nsName, 3)
+	r.enrichDiagnostics(ctx, c, nsName, diag)
 	return diag
+}
+
+func (r *CellenzaReconciler) enrichDiagnostics(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string, diag *platformv1alpha1.DiagnosticsStatus) {
+	diag.SignificantLogs = r.significantLogExcerpts(ctx, nsName)
+	diag.RootCause, diag.Confidence = inferRootCause(diag)
+	diag.Recommendations = diagnosticRecommendations(c, diag)
 }
 
 func diagnosticComponent(reason string) string {
@@ -214,6 +227,56 @@ func (r *CellenzaReconciler) podLogs(ctx context.Context, nsName string, lines i
 	return nil
 }
 
+func (r *CellenzaReconciler) significantLogExcerpts(ctx context.Context, nsName string) []platformv1alpha1.DiagnosticLogExcerpt {
+	if r.KubeClient == nil {
+		return nil
+	}
+
+	candidates := []struct {
+		component string
+		container string
+		labels    client.MatchingLabels
+	}{
+		{component: componentMigration, container: componentMigration, labels: client.MatchingLabels{"platform.company.io/task": componentMigration}},
+		{component: componentSeed, container: componentSeed, labels: client.MatchingLabels{"platform.company.io/task": componentSeed}},
+		{component: componentApp, container: componentApp, labels: client.MatchingLabels{"app": "cellenza-preview"}},
+		{component: componentDatabase, container: "postgres", labels: client.MatchingLabels{"app": "postgres"}},
+	}
+
+	var excerpts []platformv1alpha1.DiagnosticLogExcerpt
+	for _, candidate := range candidates {
+		podName := r.firstPodName(ctx, nsName, candidate.labels)
+		if podName == "" {
+			continue
+		}
+		lines := r.fetchPodLogs(ctx, nsName, podName, candidate.container, 60)
+		significant := selectSignificantLines(lines, 6)
+		if len(significant) == 0 {
+			continue
+		}
+		excerpts = append(excerpts, platformv1alpha1.DiagnosticLogExcerpt{
+			Component: candidate.component,
+			Source:    fmt.Sprintf("pod/%s container/%s", podName, candidate.container),
+			Lines:     significant,
+		})
+	}
+	return excerpts
+}
+
+func (r *CellenzaReconciler) firstPodName(ctx context.Context, nsName string, labels client.MatchingLabels) string {
+	pods := &corev1.PodList{}
+	if err := r.List(ctx, pods, client.InNamespace(nsName), labels); err != nil {
+		return ""
+	}
+	sort.Slice(pods.Items, func(i, j int) bool {
+		return pods.Items[i].CreationTimestamp.After(pods.Items[j].CreationTimestamp.Time)
+	})
+	if len(pods.Items) == 0 {
+		return ""
+	}
+	return pods.Items[0].Name
+}
+
 func (r *CellenzaReconciler) fetchPodLogs(ctx context.Context, nsName, podName, container string, lines int) []string {
 	tailLines := int64(lines)
 	req := r.KubeClient.CoreV1().Pods(nsName).GetLogs(podName, &corev1.PodLogOptions{
@@ -230,4 +293,124 @@ func (r *CellenzaReconciler) fetchPodLogs(ctx context.Context, nsName, podName, 
 		return nil
 	}
 	return strings.Split(strings.TrimSpace(string(data)), "\n")
+}
+
+func selectSignificantLines(lines []string, limit int) []string {
+	keywords := []string{
+		"error", "failed", "failure", "fatal", "panic", "exception", "traceback",
+		"denied", "unauthorized", "forbidden", "timeout", "refused", "back-off",
+		"backoff", "oom", "killed", "crash", "migration", "duplicate", "constraint",
+		"does not exist", "already exists", "connection", "imagepull", "errimagepull",
+	}
+
+	var selected []string
+	for _, line := range lines {
+		normalized := strings.ToLower(line)
+		for _, keyword := range keywords {
+			if strings.Contains(normalized, keyword) {
+				selected = append(selected, truncateDiagnosticLine(line))
+				break
+			}
+		}
+		if len(selected) == limit {
+			return selected
+		}
+	}
+	return selected
+}
+
+func inferRootCause(diag *platformv1alpha1.DiagnosticsStatus) (string, string) {
+	text := strings.ToLower(diag.Message + "\n" + strings.Join(diag.LastEvents, "\n") + "\n" + diagnosticLogText(diag.SignificantLogs))
+
+	switch {
+	case containsAny(text, "imagepullbackoff", "errimagepull", "pull access denied", "manifest unknown"):
+		return "Container image cannot be pulled", diagnosticConfidenceHigh
+	case containsAny(text, "migration") && containsAny(text, "already exists", "duplicate", "constraint", "relation", "syntax error", "failed"):
+		return "Database migration failed", diagnosticConfidenceHigh
+	case containsAny(text, "seed") && containsAny(text, "duplicate", "constraint", "failed", "error"):
+		return "Database seed failed", diagnosticConfidenceHigh
+	case containsAny(text, "connection refused", "could not connect", "timeout", "no route to host"):
+		return "Application cannot reach a required dependency", diagnosticConfidenceMedium
+	case containsAny(text, "readiness probe failed", "liveness probe failed", "crashloopbackoff", "back-off restarting"):
+		return "Application pod is unhealthy", diagnosticConfidenceMedium
+	case containsAny(text, "forbidden", "unauthorized", "permission denied", "denied"):
+		return "Permission or authentication failure", diagnosticConfidenceMedium
+	case diag.Component != "":
+		return fmt.Sprintf("%s component failed during preview reconciliation", diag.Component), diagnosticConfidenceLow
+	default:
+		return "Preview reconciliation failed; inspect events and logs", diagnosticConfidenceLow
+	}
+}
+
+func diagnosticRecommendations(c *platformv1alpha1.Cellenza, diag *platformv1alpha1.DiagnosticsStatus) []string {
+	rootCause := strings.ToLower(diag.RootCause)
+	switch {
+	case strings.Contains(rootCause, "image"):
+		return []string{
+			fmt.Sprintf("Verify that image `%s` exists and is accessible from the cluster.", c.Spec.Image),
+			"Check the image tag produced by CI for this pull request.",
+			"Confirm the namespace has the required imagePullSecrets if the registry is private.",
+		}
+	case strings.Contains(rootCause, "migration"):
+		return []string{
+			"Check that the migration is idempotent and can run on a fresh preview database.",
+			"Look for duplicate table/index creation or schema ordering issues in the highlighted logs.",
+			fmt.Sprintf("After fixing the migration, request a DB reset with `kubectl patch cellenza %s --type=merge -p '{\"spec\":{\"database\":{\"resetRequested\":true}}}'`.", c.Name),
+		}
+	case strings.Contains(rootCause, "seed"):
+		return []string{
+			"Make the seed script idempotent with upserts or conflict handling.",
+			"Check whether seed data assumes tables or migrations that did not complete.",
+			fmt.Sprintf("After fixing the seed, request a DB reset with `kubectl patch cellenza %s --type=merge -p '{\"spec\":{\"database\":{\"resetRequested\":true}}}'`.", c.Name),
+		}
+	case strings.Contains(rootCause, "dependency"):
+		return []string{
+			"Verify service names, ports, and environment variables injected into the app pod.",
+			"Check PostgreSQL readiness and credentials when the failure is database-related.",
+			"Inspect recent Kubernetes warning events for networking or DNS symptoms.",
+		}
+	case strings.Contains(rootCause, "unhealthy"):
+		return []string{
+			"Inspect the highlighted app logs and the deployment description.",
+			"Check readiness/liveness probe paths, startup time, and required environment variables.",
+			"Rebuild the application image if the failure started after a code change.",
+		}
+	case strings.Contains(rootCause, "permission"):
+		return []string{
+			"Check service account permissions, registry credentials, and application secrets.",
+			"Verify that required Kubernetes Secrets exist in the preview namespace.",
+		}
+	default:
+		return []string{
+			"Start with the highlighted logs and recent warning events in this comment.",
+			fmt.Sprintf("Run `kubectl describe cellenza %s` to inspect the full operator status.", c.Name),
+			"Check the debug commands below for component-level troubleshooting.",
+		}
+	}
+}
+
+func diagnosticLogText(excerpts []platformv1alpha1.DiagnosticLogExcerpt) string {
+	var b strings.Builder
+	for _, excerpt := range excerpts {
+		b.WriteString(strings.Join(excerpt.Lines, "\n"))
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func containsAny(text string, needles ...string) bool {
+	for _, needle := range needles {
+		if strings.Contains(text, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func truncateDiagnosticLine(line string) string {
+	line = strings.TrimSpace(line)
+	if len(line) <= 240 {
+		return line
+	}
+	return line[:237] + "..."
 }
