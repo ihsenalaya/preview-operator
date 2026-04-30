@@ -224,7 +224,7 @@ func (r *CellenzaReconciler) fetchPodLogs(ctx context.Context, nsName, podName, 
 	if err != nil {
 		return nil
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 	data, err := io.ReadAll(io.LimitReader(stream, 8192))
 	if err != nil || len(data) == 0 {
 		return nil

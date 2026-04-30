@@ -48,9 +48,9 @@ type sseChunk struct {
 }
 
 type sseChoice struct {
-	Index        int       `json:"index"`
-	Delta        sseDelta  `json:"delta"`
-	FinishReason *string   `json:"finish_reason"`
+	Index        int      `json:"index"`
+	Delta        sseDelta `json:"delta"`
+	FinishReason *string  `json:"finish_reason"`
 }
 
 type sseDelta struct {
@@ -134,12 +134,12 @@ func (s *Server) writeSSE(w http.ResponseWriter, id, role, content string) {
 	}
 	for _, chunk := range chunks {
 		data, _ := json.Marshal(chunk)
-		fmt.Fprintf(w, "data: %s\n\n", data)
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 	}
 }
 
 func (s *Server) writeSSEDone(w http.ResponseWriter, _ string) {
-	fmt.Fprintf(w, "data: [DONE]\n\n")
+	_, _ = fmt.Fprintf(w, "data: [DONE]\n\n")
 }
 
 // execute parses the user message and dispatches to the right command.
@@ -147,8 +147,8 @@ func (s *Server) execute(ctx context.Context, msg string) string {
 	msg = strings.TrimSpace(msg)
 	// Strip @cellenza prefix
 	for _, prefix := range []string{"@cellenza ", "@cellenza"} {
-		if strings.HasPrefix(msg, prefix) {
-			msg = strings.TrimPrefix(msg, prefix)
+		if rest, ok := strings.CutPrefix(msg, prefix); ok {
+			msg = rest
 			break
 		}
 	}

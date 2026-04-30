@@ -45,6 +45,9 @@ linters:
           - dupl
           - lll
         path: internal/*
+      - linters:
+          - misspell
+        text: "Commandes"
     paths:
       - third_party$
       - builtin$

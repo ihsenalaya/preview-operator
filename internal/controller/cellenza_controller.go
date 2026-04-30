@@ -89,7 +89,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// 4. Check TTL expiration
-	if cellenza.Status.ExpiresAt != nil && time.Now().After(cellenza.Status.ExpiresAt.Time) {
+	if isTTLExpired(cellenza) {
 		logger.Info("Cellenza TTL expired, deleting", "name", cellenza.Name)
 		cellenza.SetCondition(metav1.Condition{
 			Type:               platformv1alpha1.ConditionExpired,
@@ -152,21 +152,8 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.setFailedStatus(ctx, cellenza, "QuotaFailed", err)
 	}
 
-	// Handle database reset request from @cellenza reset-db
-	if databaseEnabled(cellenza) && cellenza.Spec.Database.ResetRequested {
-		if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
-			return ctrl.Result{}, err
-		}
-		if cellenza.Status.Database != nil {
-			cellenza.Status.Database.Migration = ""
-			cellenza.Status.Database.Seed = ""
-			cellenza.Status.Database.Ready = false
-		}
-		cellenza.Spec.Database.ResetRequested = false
-		if err := r.Update(ctx, cellenza); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
+	if handled, result, err := r.handleResetRequested(ctx, cellenza, nsName); handled {
+		return result, err
 	}
 
 	databaseReady, reason, err := r.reconcileDatabase(ctx, cellenza, nsName)
@@ -243,15 +230,43 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 
 	// Requeue before expiry to handle TTL cleanup
-	if cellenza.Status.ExpiresAt != nil {
-		remaining := time.Until(cellenza.Status.ExpiresAt.Time)
-		if remaining > 0 {
-			logger.Info("Requeuing before TTL expiry", "in", remaining)
-			return ctrl.Result{RequeueAfter: remaining}, nil
-		}
+	remaining := ttlRemaining(cellenza)
+	if remaining > 0 {
+		logger.Info("Requeuing before TTL expiry", "in", remaining)
 	}
+	return ctrl.Result{RequeueAfter: remaining}, nil
+}
 
-	return ctrl.Result{}, nil
+func isTTLExpired(cellenza *platformv1alpha1.Cellenza) bool {
+	return cellenza.Status.ExpiresAt != nil && time.Now().After(cellenza.Status.ExpiresAt.Time)
+}
+
+func ttlRemaining(cellenza *platformv1alpha1.Cellenza) time.Duration {
+	if cellenza.Status.ExpiresAt == nil {
+		return 0
+	}
+	return time.Until(cellenza.Status.ExpiresAt.Time)
+}
+
+// handleResetRequested processes a reset-db request from the Copilot Extension.
+// Returns (handled bool, result, error). If handled=true, the caller should return immediately.
+func (r *CellenzaReconciler) handleResetRequested(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
+	if !databaseEnabled(cellenza) || !cellenza.Spec.Database.ResetRequested {
+		return false, ctrl.Result{}, nil
+	}
+	if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	if cellenza.Status.Database != nil {
+		cellenza.Status.Database.Migration = ""
+		cellenza.Status.Database.Seed = ""
+		cellenza.Status.Database.Ready = false
+	}
+	cellenza.Spec.Database.ResetRequested = false
+	if err := r.Update(ctx, cellenza); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	return true, ctrl.Result{Requeue: true}, nil
 }
 
 func (r *CellenzaReconciler) reconcileDatabase(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (bool, string, error) {

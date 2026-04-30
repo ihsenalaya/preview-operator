@@ -154,7 +154,7 @@ func (s *Server) fetchLogs(ctx context.Context, nsName string, lines int) []stri
 			continue
 		}
 		data, err := io.ReadAll(io.LimitReader(stream, 16384))
-		stream.Close()
+		_ = stream.Close()
 		if err == nil && len(data) > 0 {
 			return strings.Split(strings.TrimSpace(string(data)), "\n")
 		}
@@ -206,7 +206,7 @@ func (s *Server) cmdExtend(ctx context.Context, args []string) string {
 	}
 
 	return fmt.Sprintf("**TTL étendu** pour `%s`\n\n- Durée ajoutée: **%s**\n- Nouvelle expiration: `%s`\n- Phase actuelle: `%s`",
-		name, duration, newExpiry.Time.Format("2006-01-02 15:04 UTC"), cz.Status.Phase)
+		name, duration, newExpiry.Format("2006-01-02 15:04 UTC"), cz.Status.Phase)
 }
 
 func (s *Server) cmdWake(ctx context.Context, args []string) string {
@@ -296,7 +296,7 @@ func (s *Server) cmdList(ctx context.Context) string {
 	return b.String()
 }
 
-func cmdHelp() string {
+func cmdHelp() string { //nolint:misspell
 	return `**Cellenza Extension — Commandes disponibles**
 
 | Commande | Description |
