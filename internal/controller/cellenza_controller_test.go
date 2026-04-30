@@ -175,6 +175,46 @@ var _ = Describe("Cellenza Controller", func() {
 		})
 	})
 
+	Context("When collecting diagnostics", func() {
+		It("should keep context around Python syntax errors", func() {
+			lines := []string{
+				"Traceback (most recent call last):",
+				"  File \"/app/app.py\", line 2",
+				"    this is not valid python",
+				"                ^",
+				"SyntaxError: invalid syntax",
+			}
+
+			significant := selectSignificantLines(lines, 6)
+
+			Expect(significant).To(ContainElement("Traceback (most recent call last):"))
+			Expect(significant).To(ContainElement("File \"/app/app.py\", line 2"))
+			Expect(significant).To(ContainElement("this is not valid python"))
+			Expect(significant).To(ContainElement("SyntaxError: invalid syntax"))
+		})
+
+		It("should infer syntax errors as a high-confidence app failure", func() {
+			diag := &platformv1alpha1.DiagnosticsStatus{
+				Component: componentApp,
+				Message:   "Deployment app is unavailable: Deployment does not have minimum availability.",
+				SignificantLogs: []platformv1alpha1.DiagnosticLogExcerpt{
+					{
+						Component: componentApp,
+						Lines: []string{
+							"File \"/app/app.py\", line 2",
+							"SyntaxError: invalid syntax",
+						},
+					},
+				},
+			}
+
+			rootCause, confidence := inferRootCause(diag)
+
+			Expect(rootCause).To(Equal("Application failed to start due to a syntax error"))
+			Expect(confidence).To(Equal(diagnosticConfidenceHigh))
+		})
+	})
+
 	Context("When GitHub integration is enabled", func() {
 		It("should map Cellenza phases to GitHub deployment states", func() {
 			Expect(githubDeploymentStateForPhase(platformv1alpha1.PhasePending)).To(Equal("queued"))

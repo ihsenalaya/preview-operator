@@ -301,19 +301,33 @@ func selectSignificantLines(lines []string, limit int) []string {
 		"denied", "unauthorized", "forbidden", "timeout", "refused", "back-off",
 		"backoff", "oom", "killed", "crash", "migration", "duplicate", "constraint",
 		"does not exist", "already exists", "connection", "imagepull", "errimagepull",
+		"syntaxerror", "nameerror", "typeerror", "valueerror", "importerror", "modulenotfounderror",
 	}
 
 	var selected []string
-	for _, line := range lines {
+	seen := map[string]struct{}{}
+	for i, line := range lines {
 		normalized := strings.ToLower(line)
 		for _, keyword := range keywords {
 			if strings.Contains(normalized, keyword) {
-				selected = append(selected, truncateDiagnosticLine(line))
+				start := max(0, i-2)
+				end := min(len(lines)-1, i+1)
+				for j := start; j <= end; j++ {
+					trimmed := truncateDiagnosticLine(lines[j])
+					if trimmed == "" {
+						continue
+					}
+					if _, ok := seen[trimmed]; ok {
+						continue
+					}
+					selected = append(selected, trimmed)
+					seen[trimmed] = struct{}{}
+					if len(selected) == limit {
+						return selected
+					}
+				}
 				break
 			}
-		}
-		if len(selected) == limit {
-			return selected
 		}
 	}
 	return selected
@@ -329,6 +343,10 @@ func inferRootCause(diag *platformv1alpha1.DiagnosticsStatus) (string, string) {
 		return "Database migration failed", diagnosticConfidenceHigh
 	case containsAny(text, "seed") && containsAny(text, "duplicate", "constraint", "failed", "error"):
 		return "Database seed failed", diagnosticConfidenceHigh
+	case containsAny(text, "syntaxerror", "syntax error", "invalid syntax"):
+		return "Application failed to start due to a syntax error", diagnosticConfidenceHigh
+	case containsAny(text, "traceback", "nameerror", "typeerror", "valueerror", "importerror", "modulenotfounderror"):
+		return "Application failed with an unhandled exception", diagnosticConfidenceMedium
 	case containsAny(text, "connection refused", "could not connect", "timeout", "no route to host"):
 		return "Application cannot reach a required dependency", diagnosticConfidenceMedium
 	case containsAny(text, "readiness probe failed", "liveness probe failed", "crashloopbackoff", "back-off restarting"):
@@ -375,6 +393,18 @@ func diagnosticRecommendations(c *platformv1alpha1.Cellenza, diag *platformv1alp
 			"Check readiness/liveness probe paths, startup time, and required environment variables.",
 			"Rebuild the application image if the failure started after a code change.",
 		}
+	case strings.Contains(rootCause, "syntax error"):
+		return []string{
+			"Fix the syntax error reported in the highlighted app logs before rebuilding the image.",
+			"Check the recent code change that triggered this preview for malformed Python, shell, or config syntax.",
+			"Rebuild and push a fresh application image after the syntax issue is corrected.",
+		}
+	case strings.Contains(rootCause, "unhandled exception"):
+		return []string{
+			"Inspect the traceback in the highlighted app logs to identify the failing module or statement.",
+			"Check application startup configuration, imports, and required environment variables.",
+			"Rebuild the application image after fixing the startup exception.",
+		}
 	case strings.Contains(rootCause, "permission"):
 		return []string{
 			"Check service account permissions, registry credentials, and application secrets.",
@@ -413,4 +443,18 @@ func truncateDiagnosticLine(line string) string {
 		return line
 	}
 	return line[:237] + "..."
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
