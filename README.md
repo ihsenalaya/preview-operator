@@ -90,36 +90,43 @@ EOF
 
 Preview URLs will then be reachable at `http://pr-42.preview.localtest.me:8080` from your machine (no DNS needed — `localtest.me` resolves to `127.0.0.1`).
 
-### 1. Add the Helm repository
+### 1. Add all Helm repositories
+
+Run this once to register all required repositories:
 
 ```bash
-helm repo add cellenza https://ihsenalaya.github.io/cellenza-operator
-helm repo update
-```
-
-### 2. Install cert-manager (if not already present)
-
-```bash
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-helm install cert-manager jetstack/cert-manager \
-  --namespace cert-manager --create-namespace \
-  --set crds.enabled=true
-```
-
-### 3. Install ingress-nginx (if not already present)
-
-Preview environments are exposed through Kubernetes `Ingress` resources. Install an ingress controller before creating `Cellenza` resources:
-
-```bash
+helm repo add cellenza      https://ihsenalaya.github.io/cellenza-operator
+helm repo add jetstack      https://charts.jetstack.io
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
 helm repo update
+```
+
+### 2. Install cert-manager
+
+Required for webhook TLS. Skip if already installed.
+
+```bash
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --set crds.enabled=true \
+  --wait
+```
+
+### 3. Install ingress-nginx
+
+Preview environments are exposed through Kubernetes `Ingress` resources.
+
+```bash
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
-  --create-namespace
+  --create-namespace \
+  --wait
 ```
 
-For Kind/local clusters, map the ingress controller ports when creating the cluster, or use a local port-forward while testing:
+For Kind clusters with the port mapping from step 0, previews will be available at `http://pr-42.preview.localtest.me:8080` immediately after this step. For clusters without port mapping, use a port-forward:
 
 ```bash
 kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
@@ -127,11 +134,9 @@ kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
 
 ### 4. Install OpenTelemetry Operator (optional)
 
-Required only when using `telemetry.autoInstrumentation` in your `Cellenza` resources.
+Required only when using `telemetry.autoInstrumentation`. cert-manager must be installed first.
 
 ```bash
-helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
-helm repo update
 helm install opentelemetry-operator open-telemetry/opentelemetry-operator \
   --namespace opentelemetry-operator-system \
   --create-namespace \
@@ -140,15 +145,11 @@ helm install opentelemetry-operator open-telemetry/opentelemetry-operator \
   --wait
 ```
 
-> cert-manager (step 2) must be installed before the OTel Operator.
-
 ### 5. Install Jaeger (optional)
 
-A simple all-in-one Jaeger instance to receive and visualize traces. Skip this step if you already have a tracing backend.
+A lightweight all-in-one Jaeger for local trace visualization. Skip if you already have a tracing backend.
 
 ```bash
-helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
-helm repo update
 helm install jaeger jaegertracing/jaeger \
   --namespace observability \
   --create-namespace \
@@ -164,7 +165,7 @@ helm install jaeger jaegertracing/jaeger \
   --wait
 ```
 
-Then deploy the OTel Collector and the `Instrumentation` CR into the `observability` namespace:
+Then deploy the OTel Collector and the `Instrumentation` CR:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/main/demo-app/otel.yaml
@@ -182,10 +183,17 @@ kubectl port-forward -n observability svc/jaeger 16686:16686
 ```bash
 helm install cellenza-operator cellenza/cellenza-operator \
   --namespace cellenza-operator-system \
-  --create-namespace
+  --create-namespace \
+  --wait
 ```
 
-The chart installs the CRD, RBAC, webhooks, and the controller in one shot.
+The chart installs the CRD, RBAC, webhooks, and the controller in one shot. Verify:
+
+```bash
+kubectl get pods -n cellenza-operator-system
+# NAME                                  READY   STATUS    RESTARTS   AGE
+# cellenza-operator-647dc9db-xxxxx      1/1     Running   0          30s
+```
 
 ### (Optional) GHCR pull secret for private registries
 
@@ -886,15 +894,17 @@ The extension server is a separate binary (`cmd/extension/`) deployed in `cellen
 
 ### Available commands
 
+All responses are in French. Arguments accept `pr-42`, `42`, or `#42`.
+
 | Command | Description |
 |---|---|
-| `@cellenza list` | List all active environments with phase and TTL |
-| `@cellenza status pr-42` | Phase, URL, DB state, running time, TTL remaining |
-| `@cellenza logs pr-42` | Last 40 lines from the app pod |
-| `@cellenza extend pr-42 [24h]` | Extend TTL (patches `spec.ttl` and `status.expiresAt`) |
-| `@cellenza wake pr-42` | Restart a scaled-down environment (sets `spec.replicas=1`) |
-| `@cellenza reset-db pr-42` | Delete migration/seed jobs and re-run them (sets `spec.database.resetRequested=true`) |
-| `@cellenza help` | Show all commands |
+| `@cellenza list` | Lists all active environments with phase, branch, and TTL remaining |
+| `@cellenza status pr-42` | Phase, URL, branch, tier, replicas, running time, TTL, DB state, GitHub Deployment state, and crash diagnostics if `Failed` |
+| `@cellenza logs pr-42` | Last 40 lines from the app pod; falls back to `status.diagnostics.podLogs` when the pod is gone |
+| `@cellenza extend pr-42 [24h]` | Extends TTL by the given duration (default `24h`) — patches `spec.ttl` and `status.expiresAt` immediately |
+| `@cellenza wake pr-42` | Sets `spec.replicas` to `1` to restart a scaled-down environment |
+| `@cellenza reset-db pr-42` | Sets `spec.database.resetRequested: true` — operator deletes migration/seed jobs and re-runs them on next reconcile |
+| `@cellenza help` | Shows the command list |
 
 ### Setup from scratch
 
@@ -1009,28 +1019,39 @@ A developer notices their preview is stuck. They open Copilot Chat and type:
 @cellenza status pr-42
 ```
 
-The extension responds with the current phase, diagnostics, and actionable next steps:
+The extension responds in French with the current phase, DB status, and diagnostics:
 
 ```
-pr-42 is Failed (since 14:08 UTC)
+## ❌ pr-42 — Failed
 
-Diagnosis: Container image cannot be pulled (confidence: high)
-  Image: ghcr.io/acme/myapp:does-not-exist
-  Component: app
+**Branch:** `feature/my-feature`
+**Tier:** `medium`
+**Replicas:** 1
+**TTL:** expire dans 23h45m
 
-Recommendations:
-  1. Verify the image tag exists in GHCR for this PR's CI build.
-  2. Check imagePullSecrets if the registry is private.
+**Erreur:** Deployment app is unavailable: Deployment does not have minimum availability.
 
-Debug:
-  kubectl get pods -n preview-pr-42
-  kubectl describe deployment app -n preview-pr-42
+**Derniers logs:**
+```
+Error: ImagePullBackOff
+Failed to pull image "ghcr.io/acme/myapp:does-not-exist": not found
 ```
 
-They can then request the raw logs:
+---
+`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42`
+```
+
+They can request the raw pod logs:
 
 ```
 @cellenza logs pr-42
+```
+
+```
+**Logs — pr-42** (namespace: `preview-pr-42`)
+
+[db] Opening PostgreSQL connection database=appdb user=preview_42
+Error: connection refused
 ```
 
 Or trigger a database reset after fixing a migration:
@@ -1039,7 +1060,21 @@ Or trigger a database reset after fixing a migration:
 @cellenza reset-db pr-42
 ```
 
+```
+**Reset DB lancé** pour `pr-42`
+
+L'opérateur va:
+1. Supprimer les jobs migration et seed
+2. Recréer la base de données
+3. Rejouer les migrations
+4. Rejouer le seed
+
+Suivi: `@cellenza status pr-42`
+```
+
 The controller patches `spec.database.resetRequested: true`, deletes the failed Jobs, and re-runs migration and seed on the next reconcile cycle.
+
+> **Note:** The extension responds in French. The `kubectl` debug commands shown in PR comments are generated by the **operator** (in `status.diagnostics.debugCommands`), not by the extension.
 
 ### Testing crash scenarios locally
 

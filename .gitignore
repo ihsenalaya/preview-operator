@@ -29,9 +29,6 @@ go.work
 # Kubeconfig might contain secrets
 *.kubeconfig
 
-# Claude Code local settings
-.claude/
-
 # AI assistant files
 .codex
 
