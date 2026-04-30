@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -56,6 +57,7 @@ func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platform
 	} else if message := r.deploymentDiagnostic(ctx, nsName, componentApp); message != "" {
 		diag.Component = componentApp
 		diag.Message = message
+		diag.PodLogs = r.podLogs(ctx, nsName, 30)
 		diag.DebugCommands = append(diag.DebugCommands, fmt.Sprintf("kubectl describe deployment app -n %s", nsName))
 	} else if message := r.deploymentDiagnostic(ctx, nsName, "postgres"); message != "" {
 		diag.Component = componentDatabase
@@ -192,4 +194,40 @@ func (r *CellenzaReconciler) warningEvents(ctx context.Context, nsName string, l
 		}
 	}
 	return messages
+}
+
+func (r *CellenzaReconciler) podLogs(ctx context.Context, nsName string, lines int) []string {
+	if r.KubeClient == nil {
+		return nil
+	}
+	pods := &corev1.PodList{}
+	if err := r.List(ctx, pods, client.InNamespace(nsName), client.MatchingLabels{"app": "cellenza-preview"}); err != nil {
+		return nil
+	}
+	for _, pod := range pods.Items {
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.State.Terminated != nil || cs.State.Waiting != nil {
+				return r.fetchPodLogs(ctx, nsName, pod.Name, "app", lines)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *CellenzaReconciler) fetchPodLogs(ctx context.Context, nsName, podName, container string, lines int) []string {
+	tailLines := int64(lines)
+	req := r.KubeClient.CoreV1().Pods(nsName).GetLogs(podName, &corev1.PodLogOptions{
+		Container: container,
+		TailLines: &tailLines,
+	})
+	stream, err := req.Stream(ctx)
+	if err != nil {
+		return nil
+	}
+	defer stream.Close()
+	data, err := io.ReadAll(io.LimitReader(stream, 8192))
+	if err != nil || len(data) == 0 {
+		return nil
+	}
+	return strings.Split(strings.TrimSpace(string(data)), "\n")
 }

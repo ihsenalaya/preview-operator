@@ -485,6 +485,7 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `database.seed.image` | string | `spec.image` | Optional image for the seed Job |
 | `database.seed.command` | string array | — | Required when seed is enabled |
 | `database.seed.args` | string array | — | Optional seed command arguments |
+| `database.resetRequested` | bool | `false` | Trigger a full DB reset: deletes migration/seed jobs, clears DB status, re-runs both jobs on next reconcile. Cleared automatically by the controller. |
 | `telemetry.enabled` | bool | `false` | Add OpenTelemetry settings to the app Pod template |
 | `telemetry.serviceName` | string | `cellenza-<name>` | Value for `OTEL_SERVICE_NAME` |
 | `telemetry.autoInstrumentation.language` | `python` \| `java` \| `nodejs` \| `dotnet` \| `go` \| `sdk` | — | Auto-instrumentation annotation language |
@@ -643,9 +644,11 @@ kubectl describe cellenza pr-42
 | `status.database.ready` | Whether PostgreSQL plus configured migration/seed jobs are complete |
 | `status.database.migration` | Migration job state: `Skipped`, `Running`, `Succeeded`, or `Failed` |
 | `status.database.seed` | Seed job state: `Skipped`, `Running`, `Succeeded`, or `Failed` |
+| `status.readyAt` | Timestamp of the first transition to `Running` |
 | `status.diagnostics.reason` | Latest operator diagnostic reason when the preview fails |
 | `status.diagnostics.component` | Component most likely responsible for the failure |
 | `status.diagnostics.message` | Human-readable diagnostic summary |
+| `status.diagnostics.podLogs` | Last 30 lines from the crashed app container |
 | `status.diagnostics.lastEvents` | Recent warning events from the preview namespace |
 | `status.diagnostics.debugCommands` | Useful `kubectl` commands to troubleshoot the preview |
 | `status.github.deploymentState` | Last GitHub Deployment state emitted by the controller |
@@ -653,6 +656,76 @@ kubectl describe cellenza pr-42
 | `status.github.commentId` | PR comment id created by the controller |
 | `status.github.lastError` | Latest non-blocking GitHub notification error |
 | `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady`, `MigrationReady`, `SeedReady` |
+
+---
+
+## GitHub Copilot Extension
+
+The **Cellenza Extension** is a companion server that exposes preview environment management directly inside GitHub Copilot Chat — no `kubectl` access needed for developers.
+
+### How it works
+
+```
+Developer → @cellenza status pr-42
+                │
+                ▼
+         GitHub Copilot Chat
+                │  (POST webhook, OpenAI SSE format)
+                ▼
+     cellenza-extension server
+                │  (controller-runtime + kubernetes client)
+                ▼
+        Kubernetes API Server
+                │
+                ▼
+         Cellenza CR → response streamed back to Copilot
+```
+
+The extension server is a separate binary (`cmd/extension/`) deployed in `cellenza-operator-system`. It speaks the GitHub Copilot Extension protocol (OpenAI-compatible SSE streaming) and talks to the Kubernetes API with the same privileges as a read/patch role on `Cellenza` resources.
+
+### Available commands
+
+| Command | Description |
+|---|---|
+| `@cellenza list` | List all active environments with phase and TTL |
+| `@cellenza status pr-42` | Phase, URL, DB state, running time, TTL remaining |
+| `@cellenza logs pr-42` | Last 40 lines from the app pod |
+| `@cellenza extend pr-42 [24h]` | Extend TTL (patches `spec.ttl` and `status.expiresAt`) |
+| `@cellenza wake pr-42` | Restart a scaled-down environment (sets `spec.replicas=1`) |
+| `@cellenza reset-db pr-42` | Delete migration/seed jobs and re-run them (sets `spec.database.resetRequested=true`) |
+| `@cellenza help` | Show all commands |
+
+### Deploy
+
+```bash
+kubectl apply -f config/extension/rbac.yaml
+kubectl apply -f config/extension/deployment.yaml
+kubectl -n cellenza-operator-system rollout status deployment/cellenza-extension --timeout=60s
+```
+
+### Expose for local Kind (ngrok)
+
+```bash
+kubectl port-forward -n cellenza-operator-system svc/cellenza-extension 8090:8090 &
+ngrok http 8090
+# Copy the HTTPS URL → paste as webhook URL in your GitHub App settings
+```
+
+### Trigger a database reset from Copilot Chat
+
+```
+@cellenza reset-db pr-42
+```
+
+The extension patches `spec.database.resetRequested: true`. The controller detects this on the next reconcile loop, deletes both migration and seed jobs, clears `status.database`, and re-runs the full database setup sequence. The flag is cleared automatically once the reset starts.
+
+### Read pod logs from a failed environment
+
+```
+@cellenza logs pr-42
+```
+
+If the pod is running, the extension streams the last 40 live lines. If the environment is in `Failed` phase, it falls back to `status.diagnostics.podLogs` (last 30 lines captured by the controller at failure time).
 
 ---
 
@@ -672,9 +745,16 @@ kubectl patch cellenza pr-42 --type=merge \
 # Delete an environment (triggers immediate cleanup)
 kubectl delete cellenza pr-42
 
+# Trigger a database reset (deletes migration/seed jobs and re-runs them)
+kubectl patch cellenza pr-42 --type=merge \
+  -p '{"spec":{"database":{"resetRequested":true}}}'
+
 # Check controller logs
 kubectl logs -n cellenza-operator-system \
   deployment/cellenza-operator -f
+
+# Read pod logs captured at failure time
+kubectl get cellenza pr-42 -o jsonpath='{.status.diagnostics.podLogs}' | jq .
 ```
 
 ---
@@ -813,9 +893,15 @@ GitHub Actions will:
 ```
 cellenza-operator/
 ├── api/v1alpha1/          # CRD types (CellenzaSpec, CellenzaStatus)
+├── cmd/
+│   ├── main.go            # Operator entry point
+│   └── extension/main.go  # Copilot Extension server entry point
 ├── internal/
-│   ├── controller/        # Reconciliation loop
+│   ├── controller/        # Reconciliation loop + diagnostics
+│   ├── extension/         # Copilot Extension HTTP server + commands
 │   └── webhook/v1alpha1/  # Defaulter + Validator admission webhooks
+├── config/
+│   └── extension/         # RBAC + Deployment manifests for the extension
 ├── charts/
 │   └── cellenza-operator/ # Helm chart for distribution
 └── .github/workflows/     # CI: docker build, helm release

@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cellenza-extension
+  namespace: cellenza-operator-system
+  labels:
+    app: cellenza-extension
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cellenza-extension
+  template:
+    metadata:
+      labels:
+        app: cellenza-extension
+    spec:
+      serviceAccountName: cellenza-extension
+      containers:
+        - name: extension
+          image: ghcr.io/ihsenalaya/cellenza-extension:latest
+          ports:
+            - containerPort: 8090
+              name: http
+          env:
+            - name: LISTEN_ADDR
+              value: ":8090"
+            - name: GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cellenza-extension-secret
+                  key: webhook-secret
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8090
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8090
+            initialDelaySeconds: 3
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cellenza-extension
+  namespace: cellenza-operator-system
+spec:
+  selector:
+    app: cellenza-extension
+  ports:
+    - port: 8090
+      targetPort: 8090
+      name: http
+  type: ClusterIP

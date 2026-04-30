@@ -107,6 +107,11 @@ spec:
                           task. When empty, spec.image is used.
                         type: string
                     type: object
+                  resetRequested:
+                    description: |-
+                      ResetRequested triggers a database reset: migration and seed jobs are deleted and re-run.
+                      The operator clears this flag automatically after the reset is initiated.
+                    type: boolean
                   seed:
                     description: |-
                       Seed configures an optional one-shot Job that runs after migration and before the app is deployed.
@@ -385,6 +390,12 @@ spec:
                   message:
                     description: Message is a concise human-readable summary.
                     type: string
+                  podLogs:
+                    description: PodLogs contains the last lines of the crashed application
+                      pod.
+                    items:
+                      type: string
+                    type: array
                   reason:
                     description: Reason is a short machine-readable reason.
                     type: string
@@ -432,6 +443,11 @@ spec:
                 type: integer
               phase:
                 description: Phase is the current lifecycle phase
+                type: string
+              readyAt:
+                description: ReadyAt is the timestamp when the environment first reached
+                  the Running phase.
+                format: date-time
                 type: string
               url:
                 description: URL is the ingress URL of the preview environment

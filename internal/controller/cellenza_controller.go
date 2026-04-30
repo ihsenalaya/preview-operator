@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -43,6 +44,7 @@ type CellenzaReconciler struct {
 	Scheme           *runtime.Scheme
 	GitHubAPIBaseURL string
 	GitHubHTTPClient *http.Client
+	KubeClient       kubernetes.Interface
 }
 
 // +kubebuilder:rbac:groups=platform.company.io,resources=cellenzas,verbs=get;list;watch;create;update;patch;delete
@@ -150,6 +152,23 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.setFailedStatus(ctx, cellenza, "QuotaFailed", err)
 	}
 
+	// Handle database reset request from @cellenza reset-db
+	if databaseEnabled(cellenza) && cellenza.Spec.Database.ResetRequested {
+		if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
+			return ctrl.Result{}, err
+		}
+		if cellenza.Status.Database != nil {
+			cellenza.Status.Database.Migration = ""
+			cellenza.Status.Database.Seed = ""
+			cellenza.Status.Database.Ready = false
+		}
+		cellenza.Spec.Database.ResetRequested = false
+		if err := r.Update(ctx, cellenza); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	databaseReady, reason, err := r.reconcileDatabase(ctx, cellenza, nsName)
 	if err != nil {
 		return r.setFailedStatus(ctx, cellenza, reason, err)
@@ -182,6 +201,10 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// 9. Mark as Running
 	previewURL := fmt.Sprintf("http://pr-%d.preview.localtest.me:8080", cellenza.Spec.PRNumber)
+	if cellenza.Status.Phase != platformv1alpha1.PhaseRunning && cellenza.Status.ReadyAt == nil {
+		now := metav1.Now()
+		cellenza.Status.ReadyAt = &now
+	}
 	cellenza.Status.Phase = platformv1alpha1.PhaseRunning
 	cellenza.Status.URL = previewURL
 	cellenza.Status.NamespaceName = nsName
@@ -1114,6 +1137,19 @@ func sanitizeOTelResourceValue(s string) string {
 }
 
 func strPtr(s string) *string { return &s }
+
+func (r *CellenzaReconciler) deleteDatabaseJobs(ctx context.Context, nsName string) error {
+	jobs := []client.Object{
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: migrationJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: seedJobName, Namespace: nsName}},
+	}
+	for _, job := range jobs {
+		if err := r.Delete(ctx, job); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
 
 // SetupWithManager registers the controller
 func (r *CellenzaReconciler) SetupWithManager(mgr ctrl.Manager) error {

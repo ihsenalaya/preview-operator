@@ -34,6 +34,11 @@ type DatabaseSpec struct {
 	// The operator injects POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB and DATABASE_URL.
 	// +optional
 	Seed *DatabaseTaskSpec `json:"seed,omitempty"`
+
+	// ResetRequested triggers a database reset: migration and seed jobs are deleted and re-run.
+	// The operator clears this flag automatically after the reset is initiated.
+	// +optional
+	ResetRequested bool `json:"resetRequested,omitempty"`
 }
 
 // DatabaseTaskSpec configures a one-shot database task.
@@ -286,6 +291,10 @@ type CellenzaStatus struct {
 	// GitHub describes the latest GitHub Deployment or PR notification.
 	// +optional
 	GitHub *GitHubIntegrationStatus `json:"github,omitempty"`
+
+	// ReadyAt is the timestamp when the environment first reached the Running phase.
+	// +optional
+	ReadyAt *metav1.Time `json:"readyAt,omitempty"`
 }
 
 // Condition types
@@ -346,6 +355,10 @@ type DiagnosticsStatus struct {
 	// DebugCommands contains useful kubectl commands for troubleshooting.
 	// +optional
 	DebugCommands []string `json:"debugCommands,omitempty"`
+
+	// PodLogs contains the last lines of the crashed application pod.
+	// +optional
+	PodLogs []string `json:"podLogs,omitempty"`
 }
 
 // +kubebuilder:object:root=true

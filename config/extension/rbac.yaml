@@ -1,0 +1,37 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cellenza-extension
+  namespace: cellenza-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cellenza-extension
+rules:
+  - apiGroups: ["platform.company.io"]
+    resources: ["cellenzas"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["platform.company.io"]
+    resources: ["cellenzas/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cellenza-extension
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cellenza-extension
+subjects:
+  - kind: ServiceAccount
+    name: cellenza-extension
+    namespace: cellenza-operator-system
