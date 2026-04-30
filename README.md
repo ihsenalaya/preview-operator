@@ -528,6 +528,44 @@ kubectl logs -n preview-pr-42 job/postgres-migrate
 ```
 ~~~
 
+Example failure comment — application crash (CrashLoopBackOff):
+
+~~~markdown
+## Cellenza Preview Failed
+
+Environment: `pr-42`
+Namespace: `preview-pr-42`
+
+### Diagnosis
+
+- Reason: `DeploymentFailed`
+- Component: `app`
+- Message: Deployment app is unavailable: Deployment does not have minimum availability.
+- Probable cause: **Application pod is unhealthy**
+- Confidence: `medium`
+
+### Recommendations
+
+1. Inspect the highlighted app logs and the deployment description.
+2. Check readiness/liveness probe paths, startup time, and required environment variables.
+3. Rebuild the application image if the failure started after a code change.
+
+### Recent Warning Events
+
+- Pod/app-xyz: Back-off restarting failed container app in pod app-xyz_preview-pr-42(...)
+
+### Debug Commands
+
+```bash
+kubectl describe cellenza pr-42
+kubectl get pods -n preview-pr-42
+kubectl get events -n preview-pr-42 --sort-by=.lastTimestamp
+kubectl describe deployment app -n preview-pr-42
+```
+~~~
+
+> Application crashes (`CrashLoopBackOff`) are diagnosed with `medium` confidence because the root cause can vary: a missing environment variable, a failed startup script, a misconfigured readiness probe, or a code-level panic. The recommendations always guide the developer to inspect pod logs and the deployment description first.
+
 When the resource is deleted, the finalizer sends an `inactive` status before cleanup completes.
 
 Read the credentials at any time:
