@@ -169,6 +169,89 @@ type GitHubIntegrationSpec struct {
 	CommentOnReady bool `json:"commentOnReady,omitempty"`
 }
 
+// AIEnrichmentSpec configures AI-powered seed data and test generation
+// after the preview environment reaches the Running phase.
+type AIEnrichmentSpec struct {
+	// Enabled controls whether AI enrichment runs after the environment is ready.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// APISecretRef points to a Secret containing the AI provider API key (key: "api-key").
+	// +optional
+	APISecretRef *SecretKeyRef `json:"apiSecretRef,omitempty"`
+
+	// Model is the AI model to use (e.g. "gpt-4o-mini", "gpt-4o").
+	// +kubebuilder:default="gpt-4o-mini"
+	// +optional
+	Model string `json:"model,omitempty"`
+
+	// Seed configures AI seed data generation and execution.
+	// +optional
+	Seed *AIEnrichmentTaskSpec `json:"seed,omitempty"`
+
+	// Tests configures AI test generation and execution.
+	// +optional
+	Tests *AIEnrichmentTaskSpec `json:"tests,omitempty"`
+}
+
+// AIEnrichmentTaskSpec configures one AI enrichment task (seed or tests).
+type AIEnrichmentTaskSpec struct {
+	// Enabled controls whether this task runs.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Image is the container image used to run the task.
+	// Defaults to "postgres:15-alpine" for seed, "python:3.12-slim" for tests.
+	// +optional
+	Image string `json:"image,omitempty"`
+}
+
+// SecretKeyRef points to a specific key inside a Kubernetes Secret.
+type SecretKeyRef struct {
+	// Name is the Secret name.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Namespace is the Secret namespace. Defaults to cellenza-operator-system.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// Key is the Secret data key. Defaults to "api-key".
+	// +optional
+	Key string `json:"key,omitempty"`
+}
+
+// AIEnrichmentStatus describes the observed AI enrichment state.
+type AIEnrichmentStatus struct {
+	// Phase: Pending | Generating | Running | Succeeded | Failed
+	// +optional
+	Phase string `json:"phase,omitempty"`
+
+	// SeedStatus: Skipped | Running | Succeeded | Failed
+	// +optional
+	SeedStatus string `json:"seedStatus,omitempty"`
+
+	// TestsStatus: Skipped | Running | Succeeded | Failed
+	// +optional
+	TestsStatus string `json:"testsStatus,omitempty"`
+
+	// TestResults contains stdout lines from the test job.
+	// +optional
+	TestResults []string `json:"testResults,omitempty"`
+
+	// Summary is a human-readable enrichment summary for the PR comment.
+	// +optional
+	Summary string `json:"summary,omitempty"`
+
+	// Error stores the latest enrichment error message.
+	// +optional
+	Error string `json:"error,omitempty"`
+
+	// CompletedAt is when the enrichment completed.
+	// +optional
+	CompletedAt *metav1.Time `json:"completedAt,omitempty"`
+}
+
 // EnvironmentPhase describes the lifecycle phase
 type EnvironmentPhase string
 
@@ -227,6 +310,10 @@ type CellenzaSpec struct {
 	// GitHub configures optional GitHub Deployment and pull request updates.
 	// +optional
 	GitHub *GitHubIntegrationSpec `json:"github,omitempty"`
+
+	// AIEnrichment configures AI-powered seed data and test generation after deployment.
+	// +optional
+	AIEnrichment *AIEnrichmentSpec `json:"aiEnrichment,omitempty"`
 }
 
 // GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.
@@ -292,6 +379,10 @@ type CellenzaStatus struct {
 	// +optional
 	GitHub *GitHubIntegrationStatus `json:"github,omitempty"`
 
+	// AIEnrichment describes the observed AI enrichment state.
+	// +optional
+	AIEnrichment *AIEnrichmentStatus `json:"aiEnrichment,omitempty"`
+
 	// ReadyAt is the timestamp when the environment first reached the Running phase.
 	// +optional
 	ReadyAt *metav1.Time `json:"readyAt,omitempty"`
@@ -299,12 +390,13 @@ type CellenzaStatus struct {
 
 // Condition types
 const (
-	ConditionReady          = "Ready"
-	ConditionApproved       = "Approved"
-	ConditionExpired        = "Expired"
-	ConditionDatabaseReady  = "DatabaseReady"
-	ConditionMigrationReady = "MigrationReady"
-	ConditionSeedReady      = "SeedReady"
+	ConditionReady             = "Ready"
+	ConditionApproved          = "Approved"
+	ConditionExpired           = "Expired"
+	ConditionDatabaseReady     = "DatabaseReady"
+	ConditionMigrationReady    = "MigrationReady"
+	ConditionSeedReady         = "SeedReady"
+	ConditionAIEnrichmentReady = "AIEnrichmentReady"
 )
 
 // DatabaseStatus describes the observed database state for the preview environment.

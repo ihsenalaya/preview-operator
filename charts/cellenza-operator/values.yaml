@@ -33,6 +33,9 @@ certManager:
 metrics:
   port: 8443
 
+ai:
+  apiURL: "https://api.openai.com/v1"
+
 nodeSelector: {}
 tolerations: []
 affinity: {}

@@ -173,6 +173,8 @@ func (s *Server) execute(ctx context.Context, msg string) string {
 		return s.cmdWake(ctx, args)
 	case "reset-db", "resetdb":
 		return s.cmdResetDB(ctx, args)
+	case "enrich":
+		return s.cmdEnrich(ctx, args)
 	case "list":
 		return s.cmdList(ctx)
 	case "help", "":

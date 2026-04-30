@@ -10,6 +10,45 @@ Après le déploiement réussi d'un preview environment, générer automatiqueme
 Le développeur et le reviewer trouvent l'environnement immédiatement utilisable,
 avec des données pertinentes au changement effectué — sans aucune intervention manuelle.
 
+## Périmètre et séparation des responsabilités
+
+Ce document couvre uniquement **AI Enrichment** :
+
+- génération de données de seed
+- génération et exécution de tests ciblés
+- publication d'un résumé d'enrichissement sur la PR
+
+Le déclenchement se fait **uniquement après que le preview environment soit `Running`**.
+
+Ce document **ne couvre pas AI Diagnostics**, c'est-à-dire :
+
+- l'analyse d'un preview `Failed`
+- l'explication de la cause racine à partir des logs, events et statuts Kubernetes
+- la génération d'un commentaire d'échec enrichi par IA
+
+La séparation est volontaire :
+
+- **AI Enrichment** intervient sur un environnement sain et exploitable
+- **AI Diagnostics** intervient sur un environnement en échec
+- les préconditions, les sorties attendues et le branchement dans le controller ne sont pas les mêmes
+
+En pratique :
+
+- `PhaseRunning` → enrichir l'environnement avec des seeds/tests
+- `PhaseFailed` → diagnostiquer l'échec à partir des logs et events
+
+`AI Diagnostics` devra faire l'objet d'un document et d'un flux d'implémentation séparés.
+
+## Non-objectifs de ce plan
+
+Ce plan ne cherche pas à :
+
+- remplacer le diagnostic déterministe actuel de l'operator
+- rendre le reconcile principal dépendant d'un appel IA pour conclure un échec
+- fusionner dans un même statut les résultats d'enrichissement post-déploiement et les diagnostics d'échec
+
+L'operator doit continuer à produire un diagnostic de base fiable même sans IA.
+
 ## Pourquoi l'opérateur est indispensable
 
 | Capacité | GitHub Action seule | Avec l'opérateur |

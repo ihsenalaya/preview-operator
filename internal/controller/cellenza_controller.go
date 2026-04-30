@@ -44,6 +44,8 @@ type CellenzaReconciler struct {
 	Scheme           *runtime.Scheme
 	GitHubAPIBaseURL string
 	GitHubHTTPClient *http.Client
+	AIAPIBaseURL     string
+	AIHTTPClient     *http.Client
 	KubeClient       kubernetes.Interface
 }
 
@@ -231,6 +233,12 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if err := r.Status().Update(ctx, cellenza); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if aiEnrichmentEnabled(cellenza) {
+		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 || result.Requeue {
+			return result, err
+		}
 	}
 	syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 

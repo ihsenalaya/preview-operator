@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,7 +101,7 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s`", name, name, name))
+	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza enrich %s`", name, name, name, name))
 	return b.String()
 }
 
@@ -258,6 +260,43 @@ func (s *Server) cmdResetDB(ctx context.Context, args []string) string {
 	return fmt.Sprintf("**Reset DB lancé** pour `%s`\n\nL'opérateur va:\n1. Supprimer les jobs migration et seed\n2. Recréer la base de données\n3. Rejouer les migrations\n4. Rejouer le seed\n\nSuivi: `@cellenza status %s`", name, name)
 }
 
+func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
+	name := parsePRArg(args)
+	if name == "" {
+		return "Usage: `@cellenza enrich pr-<N>`"
+	}
+
+	cz, err := s.getCellenza(ctx, name)
+	if err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.", name)
+	}
+
+	statusBase := client.MergeFrom(cz.DeepCopy())
+	cz.Status.AIEnrichment = nil
+	if err := s.crClient.Status().Patch(ctx, cz, statusBase); err != nil {
+		return fmt.Sprintf("Erreur lors du reset IA (status): %v", err)
+	}
+
+	nsName := cz.Status.NamespaceName
+	if nsName == "" {
+		nsName = fmt.Sprintf("preview-pr-%d", cz.Spec.PRNumber)
+	}
+
+	toDelete := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "ai-enrichment", Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "ai-seed", Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "ai-tests", Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "ai-schema-dump", Namespace: nsName}},
+	}
+	for _, obj := range toDelete {
+		if err := s.crClient.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
+			return fmt.Sprintf("Erreur lors du nettoyage IA: %v", err)
+		}
+	}
+
+	return fmt.Sprintf("**Enrichissement IA relancé** pour `%s`\n\nL'opérateur va:\n1. Relire le diff PR\n2. Régénérer le seed SQL\n3. Rejouer les tests\n\nSuivi: `@cellenza status %s`", name, name)
+}
+
 func (s *Server) cmdList(ctx context.Context) string {
 	list := &platformv1alpha1.CellenzaList{}
 	if err := s.crClient.List(ctx, list); err != nil {
@@ -307,6 +346,7 @@ func cmdHelp() string { //nolint:misspell
 | ` + "`@cellenza extend pr-42 [24h]`" + ` | Prolonge le TTL |
 | ` + "`@cellenza wake pr-42`" + ` | Redémarre un environnement mis en veille |
 | ` + "`@cellenza reset-db pr-42`" + ` | Recrée la base de données + rejoue seed |
+| ` + "`@cellenza enrich pr-42`" + ` | Relance la génération IA de seed et de tests |
 | ` + "`@cellenza help`" + ` | Affiche cette aide |`
 }
 

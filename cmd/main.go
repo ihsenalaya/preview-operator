@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -65,6 +67,11 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	aiAPIURL := os.Getenv("AI_API_URL")
+	if aiAPIURL == "" {
+		aiAPIURL = "https://api.openai.com/v1"
+	}
+
 	metricsOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
 		SecureServing: secureMetrics,
@@ -95,9 +102,13 @@ func main() {
 	}
 
 	if err = (&controller.CellenzaReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		KubeClient: kubeClient,
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		GitHubAPIBaseURL: "https://api.github.com",
+		GitHubHTTPClient: &http.Client{Timeout: 15 * time.Second},
+		KubeClient:       kubeClient,
+		AIAPIBaseURL:     aiAPIURL,
+		AIHTTPClient:     &http.Client{Timeout: 60 * time.Second},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cellenza")
 		os.Exit(1)

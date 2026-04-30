@@ -39,6 +39,9 @@ spec:
         {{- if .Values.leaderElect }}
         - --leader-elect
         {{- end }}
+        env:
+        - name: AI_API_URL
+          value: {{ .Values.ai.apiURL | quote }}
         ports:
         {{- if .Values.webhook.enabled }}
         - containerPort: {{ .Values.webhook.port }}

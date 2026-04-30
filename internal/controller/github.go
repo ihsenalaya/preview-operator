@@ -244,8 +244,46 @@ func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string)
 	}
 	b.WriteString(".\n")
 
+	b.WriteString(buildAIEnrichmentSection(c))
 	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
 	return b.String()
+}
+
+func buildAIEnrichmentSection(c *platformv1alpha1.Cellenza) string {
+	aiStatus := c.Status.AIEnrichment
+	if aiStatus == nil {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("\n### AI Enrichment\n\n")
+	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Seed != nil && c.Spec.AIEnrichment.Seed.Enabled {
+		b.WriteString(fmt.Sprintf("- Seed: %s `%s`\n", statusIcon(aiStatus.SeedStatus), defaultStatus(aiStatus.SeedStatus)))
+	}
+	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Tests != nil && c.Spec.AIEnrichment.Tests.Enabled {
+		b.WriteString(fmt.Sprintf("- Tests: %s `%s`\n", statusIcon(aiStatus.TestsStatus), defaultStatus(aiStatus.TestsStatus)))
+		for _, line := range aiStatus.TestResults {
+			b.WriteString(fmt.Sprintf("  - `%s`\n", line))
+		}
+	}
+	if aiStatus.Error != "" {
+		b.WriteString(fmt.Sprintf("\n> Warning: %s\n", aiStatus.Error))
+		b.WriteString("> Relancer avec `@cellenza enrich pr-N`\n")
+	}
+	return b.String()
+}
+
+func statusIcon(status string) string {
+	switch status {
+	case "Succeeded":
+		return "SUCCESS"
+	case "Failed":
+		return "FAIL"
+	case "Running", "Generating":
+		return "RUN"
+	default:
+		return "SKIP"
+	}
 }
 
 func githubFailedCommentBody(c *platformv1alpha1.Cellenza) string {

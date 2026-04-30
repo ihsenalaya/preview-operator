@@ -234,7 +234,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.9.0 \
+  --version 0.10.0 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -906,6 +906,7 @@ All responses are in French. Arguments accept `pr-42`, `42`, or `#42`.
 | `@cellenza extend pr-42 [24h]` | Extends TTL by the given duration (default `24h`) — patches `spec.ttl` and `status.expiresAt` immediately |
 | `@cellenza wake pr-42` | Sets `spec.replicas` to `1` to restart a scaled-down environment |
 | `@cellenza reset-db pr-42` | Sets `spec.database.resetRequested: true` — operator deletes migration/seed jobs and re-runs them on next reconcile |
+| `@cellenza enrich pr-42` | Resets AI enrichment state, deletes generated artifacts, and asks the operator to regenerate seed + tests |
 | `@cellenza help` | Shows the command list |
 
 ### Setup from scratch
@@ -1005,6 +1006,14 @@ Now open GitHub Copilot Chat in any repository where the App is installed and ty
 
 The extension patches `spec.database.resetRequested: true`. The controller detects this on the next reconcile loop, deletes both migration and seed jobs, clears `status.database`, and re-runs the full database setup sequence. The flag is cleared automatically once the reset starts.
 
+### Relaunch AI enrichment from Copilot Chat
+
+```
+@cellenza enrich pr-42
+```
+
+The extension clears `status.aiEnrichment`, deletes `ai-enrichment`, `ai-seed`, `ai-tests`, and `ai-schema-dump` in the preview namespace, then lets the operator regenerate seed and tests on the next reconcile.
+
 ### Read pod logs from a failed environment
 
 ```
@@ -1040,7 +1049,7 @@ Failed to pull image "ghcr.io/acme/myapp:does-not-exist": not found
 ```
 
 ---
-`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42`
+`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42` · `@cellenza enrich pr-42`
 ```
 
 They can request the raw pod logs:
@@ -1255,6 +1264,9 @@ image:
   pullPolicy: IfNotPresent
   tag: ""             # defaults to Chart.appVersion
 
+ai:
+  apiURL: "https://api.openai.com/v1"
+
 # Image pull secrets for private GHCR registries
 imagePullSecrets: []
 # - name: ghcr-pull-secret
@@ -1306,7 +1318,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.9.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.10.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1410,8 +1422,8 @@ kubectl patch cellenza demo --type merge \
 ### Release a new version
 
 ```bash
-git tag v0.9.1
-git push origin v0.9.1
+git tag v0.10.0
+git push origin v0.10.0
 ```
 
 GitHub Actions will automatically:
