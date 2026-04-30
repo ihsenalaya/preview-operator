@@ -188,7 +188,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// 9. Mark as Running
 	previewURL := fmt.Sprintf("http://pr-%d.preview.localtest.me:8080", cellenza.Spec.PRNumber)
-	if cellenza.Status.Phase != platformv1alpha1.PhaseRunning && cellenza.Status.ReadyAt == nil {
+	if cellenza.Status.ReadyAt == nil {
 		now := metav1.Now()
 		cellenza.Status.ReadyAt = &now
 	}
