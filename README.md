@@ -38,18 +38,57 @@ An **approval gate** is available for sensitive environments: set `requiresAppro
 
 ## Prerequisites
 
-| Requirement | Version |
-|---|---|
-| Kubernetes | 1.25+ |
-| cert-manager | 1.13+ (required for webhooks) |
-| nginx ingress controller | any recent version |
-| OpenTelemetry Operator | optional, required for app auto-instrumentation |
-| GitHub token Secret | optional, required for `github.enabled=true` |
-| Helm | 3.12+ |
+| Requirement | Version | Notes |
+|---|---|---|
+| Kubernetes | 1.25+ | Kind, k3s, GKE, AKS, EKS, or any conformant cluster |
+| Helm | 3.12+ | Required to install the operator |
+| cert-manager | 1.13+ | Required for webhook TLS — can be skipped with `--set webhook.enabled=false` |
+| nginx ingress controller | any recent | Exposes preview URLs |
+| Docker | any recent | Required for local Kind setup and image builds |
+| kubectl | 1.25+ | |
+| gh CLI | 2.x | Required to create GitHub Deployments and manage tokens |
+| OpenTelemetry Operator | optional | Required only for `telemetry.autoInstrumentation` |
+| GitHub token Secret | optional | Required only for `github.enabled=true` |
+| GitHub App | optional | Required only for the Copilot Extension |
+| ngrok | optional | Required to expose the extension locally for Copilot Chat |
 
 ---
 
 ## Installation
+
+### 0. Create a local Kind cluster
+
+Skip this step if you already have a Kubernetes cluster.
+
+```bash
+kind create cluster --name cellenza-test
+```
+
+For preview environments to be reachable from your browser via ingress, map the ingress ports when creating the cluster:
+
+```bash
+cat <<EOF | kind create cluster --name cellenza-test --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8443
+        protocol: TCP
+EOF
+```
+
+Preview URLs will then be reachable at `http://pr-42.preview.localtest.me:8080` from your machine (no DNS needed — `localtest.me` resolves to `127.0.0.1`).
 
 ### 1. Add the Helm repository
 
@@ -147,6 +186,27 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```
 
 The chart installs the CRD, RBAC, webhooks, and the controller in one shot.
+
+### (Optional) GHCR pull secret for private registries
+
+If the operator image or your app images are hosted in a private GHCR registry, create an image pull secret:
+
+```bash
+kubectl create secret docker-registry ghcr-pull-secret \
+  --namespace=cellenza-operator-system \
+  --docker-server=ghcr.io \
+  --docker-username=<github-username> \
+  --docker-password=<github-token>
+```
+
+Then reference it in the Helm install:
+
+```bash
+helm install cellenza-operator cellenza/cellenza-operator \
+  --namespace cellenza-operator-system \
+  --create-namespace \
+  --set imagePullSecrets[0].name=ghcr-pull-secret
+```
 
 ### Install without webhooks (no cert-manager needed)
 
@@ -804,7 +864,7 @@ Developer → @cellenza status pr-42
          GitHub Copilot Chat
                 │  (POST webhook, OpenAI SSE format)
                 ▼
-     cellenza-extension server
+     cellenza-extension server  (port 8090)
                 │  (controller-runtime + kubernetes client)
                 ▼
         Kubernetes API Server
@@ -813,7 +873,16 @@ Developer → @cellenza status pr-42
          Cellenza CR → response streamed back to Copilot
 ```
 
-The extension server is a separate binary (`cmd/extension/`) deployed in `cellenza-operator-system`. It speaks the GitHub Copilot Extension protocol (OpenAI-compatible SSE streaming) and talks to the Kubernetes API with the same privileges as a read/patch role on `Cellenza` resources.
+The extension server is a separate binary (`cmd/extension/`) deployed in `cellenza-operator-system`. It speaks the GitHub Copilot Extension protocol (OpenAI-compatible SSE streaming) and reads/patches `Cellenza` resources and pod logs via a dedicated ClusterRole.
+
+**RBAC granted to the extension:**
+
+| Resource | Verbs |
+|---|---|
+| `cellenzas` | `get`, `list`, `watch`, `patch`, `update` |
+| `cellenzas/status` | `get`, `patch`, `update` |
+| `pods` | `get`, `list`, `watch` |
+| `pods/log` | `get` |
 
 ### Available commands
 
@@ -827,7 +896,58 @@ The extension server is a separate binary (`cmd/extension/`) deployed in `cellen
 | `@cellenza reset-db pr-42` | Delete migration/seed jobs and re-run them (sets `spec.database.resetRequested=true`) |
 | `@cellenza help` | Show all commands |
 
-### Deploy
+### Setup from scratch
+
+#### 1. Create the GitHub App
+
+Go to **github.com → Settings → Developer settings → GitHub Apps → New GitHub App** and fill in:
+
+| Field | Value |
+|---|---|
+| GitHub App name | `cellenza-extension` (or any name) |
+| Homepage URL | your repo URL |
+| Webhook URL | leave empty for now — you'll fill it after deploy |
+| Webhook secret | generate a random string: `openssl rand -hex 32` |
+| Permissions → Repository → Pull requests | Read-only |
+| Permissions → Account → Copilot Chat | Read-only |
+| Subscribe to events | *(none required)* |
+| Where can this GitHub App be installed? | Only on this account |
+
+After creating the App:
+- Copy the **Webhook Secret** you generated
+- Install the App on your account (Settings → Install App)
+
+#### 2. Create the webhook secret in the cluster
+
+```bash
+WEBHOOK_SECRET="<the-secret-you-generated-above>"
+
+kubectl create secret generic cellenza-extension-secret \
+  --namespace=cellenza-operator-system \
+  --from-literal=webhook-secret="$WEBHOOK_SECRET"
+```
+
+> The webhook secret is `optional` in the deployment — the extension starts without it, but GitHub webhook validation will be skipped. Set it for production use.
+
+#### 3. Verify the extension image is available
+
+The extension image is built automatically by CI on every push to `main` or on version tags:
+
+```text
+ghcr.io/ihsenalaya/cellenza-extension:latest
+ghcr.io/ihsenalaya/cellenza-extension:<version>
+```
+
+To build it locally:
+
+```bash
+docker build -f Dockerfile.extension -t cellenza-extension:local .
+kind load docker-image cellenza-extension:local --name cellenza-test
+```
+
+Then update the image in `config/extension/deployment.yaml` before applying.
+
+#### 4. Deploy the extension
 
 ```bash
 kubectl apply -f config/extension/rbac.yaml
@@ -835,13 +955,35 @@ kubectl apply -f config/extension/deployment.yaml
 kubectl -n cellenza-operator-system rollout status deployment/cellenza-extension --timeout=60s
 ```
 
-### Expose for local Kind (ngrok)
+Verify it is running:
 
 ```bash
-kubectl port-forward -n cellenza-operator-system svc/cellenza-extension 8090:8090 &
-ngrok http 8090
-# Copy the HTTPS URL → paste as webhook URL in your GitHub App settings
+kubectl get pods -n cellenza-operator-system -l app=cellenza-extension
+# NAME                                  READY   STATUS    RESTARTS   AGE
+# cellenza-extension-fbd8948cc-xxxxx    1/1     Running   0          1m
 ```
+
+#### 5. Expose the extension (local Kind with ngrok)
+
+```bash
+# Forward the extension service port
+kubectl port-forward -n cellenza-operator-system svc/cellenza-extension 8090:8090 &
+
+# Start ngrok
+ngrok http 8090
+# → Forwarding: https://abc123.ngrok-free.app → http://localhost:8090
+```
+
+Copy the `https://` ngrok URL and paste it as **Webhook URL** in your GitHub App settings (append `/` — the extension serves at the root path).
+
+#### 6. Enable Copilot Chat for the App
+
+In your GitHub App settings → **Copilot** tab:
+- Set **App type** to `Agent`
+- Set **Inference description** to something like `Manage Cellenza preview environments`
+- Save
+
+Now open GitHub Copilot Chat in any repository where the App is installed and type `@cellenza help` to verify the connection.
 
 ### Trigger a database reset from Copilot Chat
 
@@ -953,6 +1095,87 @@ Within ~30 seconds the controller detects `ErrImagePull`, collects diagnostics, 
 
 ---
 
+## Demo app
+
+The repository ships a ready-to-use Flask demo app (`demo-app/`) that showcases the full operator feature set: PostgreSQL integration, OTel auto-instrumentation, and live environment variables.
+
+### What it does
+
+- Connects to the PostgreSQL instance provisioned by the operator using the injected `DATABASE_URL` env var
+- Creates a `messages` table on startup (`CREATE TABLE IF NOT EXISTS`)
+- Exposes a simple UI where you can post and read messages
+- Displays all operator-injected env vars (`POSTGRES_USER`, `POSTGRES_DB`, `PREVIEW_BRANCH`, `PREVIEW_PR`, `ENVIRONMENT`)
+- Exposes `/healthz` for the readiness probe
+
+### Image
+
+Built automatically on every push to `main` or version tag:
+
+```text
+ghcr.io/ihsenalaya/cellenza-demo-app:latest
+ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1
+```
+
+### Deploy with the demo Cellenza manifest
+
+```bash
+kubectl apply -f demo-app/cellenza-demo.yaml
+kubectl get cellenza demo --watch
+```
+
+This applies:
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: demo
+spec:
+  branch: demo
+  prNumber: 1
+  image: ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1
+  resourceTier: medium
+  ttl: 72h
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
+  telemetry:
+    enabled: true
+    serviceName: cellenza-demo-app
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python
+```
+
+Access the app:
+
+```bash
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+# open http://pr-1.preview.localtest.me:8080
+```
+
+Watch PostgreSQL activity in the logs:
+
+```bash
+kubectl logs -n preview-pr-1 deployment/app -c app -f
+# [db] Opening PostgreSQL connection database=appdb user=preview_1
+# [db] Initialized PostgreSQL schema table=messages
+# [db] Read messages from PostgreSQL rows=1
+# [db] Inserted message into PostgreSQL author=ihsen
+```
+
+### Build locally
+
+```bash
+docker build -t cellenza-demo-app:local demo-app
+kind load docker-image cellenza-demo-app:local --name cellenza-test
+kubectl patch cellenza demo --type merge \
+  -p '{"spec":{"image":"cellenza-demo-app:local"}}'
+```
+
+---
+
 ## Useful commands
 
 ```bash
@@ -993,9 +1216,21 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/cellenza-operator
   pullPolicy: IfNotPresent
-  tag: ""          # defaults to Chart.appVersion
+  tag: ""             # defaults to Chart.appVersion
 
-leaderElect: true  # set false for single-node dev clusters
+# Image pull secrets for private GHCR registries
+imagePullSecrets: []
+# - name: ghcr-pull-secret
+
+# Override the chart or release name
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account name (leave empty to use the chart default)
+serviceAccount:
+  name: ""
+
+leaderElect: true     # set false for single-node dev clusters
 
 resources:
   limits:
@@ -1006,13 +1241,13 @@ resources:
     memory: 64Mi
 
 webhook:
-  enabled: true    # requires cert-manager
+  enabled: true       # requires cert-manager; set false to skip webhook TLS setup
   port: 9443
 
 certManager:
   enabled: true
-  issuerName: ""   # leave empty to create a self-signed issuer automatically
-                   # or set to an existing cert-manager Issuer name
+  issuerName: ""      # leave empty to auto-create a self-signed issuer
+                      # or set to an existing cert-manager Issuer name
 
 metrics:
   port: 8443
@@ -1056,59 +1291,98 @@ helm uninstall cellenza-operator -n cellenza-operator-system
 
 - Go 1.24+
 - Docker
-- `kubectl` with access to a cluster
+- `kubectl` with access to a cluster (Kind recommended for local dev)
 - `make`
+- `kind` (for local testing)
+- `gh` CLI (for GitHub integration testing)
 
 ### Run locally against a cluster
 
 ```bash
-# Install CRDs
+# Install CRDs into the cluster
 make install
 
 # Run the controller locally (uses your current kubeconfig)
 make run
 ```
 
-### Build and push your own image
+### Run tests
+
+```bash
+# Unit and integration tests (uses envtest — downloads API server binaries automatically)
+make test
+
+# E2E tests against a real Kind cluster
+make test-e2e
+```
+
+The integration tests use [envtest](https://book.kubebuilder.io/reference/envtest) from controller-runtime, which spins up a real Kubernetes API server in-process — no cluster needed.
+
+### Build and push the operator image
 
 ```bash
 make docker-build docker-push IMG=ghcr.io/ihsenalaya/cellenza-operator:dev
 ```
 
-### Build and publish the demo app image
+### Build and push the extension image
 
-The demo app image is built automatically by GitHub Actions when files under `demo-app/` are pushed to `main`:
-
-```text
-ghcr.io/ihsenalaya/cellenza-demo-app:latest
-ghcr.io/ihsenalaya/cellenza-demo-app:<version>
-```
-
-To build it locally for a Kind cluster:
+The extension has its own Dockerfile (`Dockerfile.extension`):
 
 ```bash
-docker build -t cellenza-demo-app:db-logs demo-app
-kind load docker-image cellenza-demo-app:db-logs --name cellenza-test
+docker build -f Dockerfile.extension -t ghcr.io/ihsenalaya/cellenza-extension:dev .
+docker push ghcr.io/ihsenalaya/cellenza-extension:dev
+```
+
+To test locally with Kind:
+
+```bash
+docker build -f Dockerfile.extension -t cellenza-extension:local .
+kind load docker-image cellenza-extension:local --name cellenza-test
+# Update image in config/extension/deployment.yaml, then:
+kubectl apply -f config/extension/deployment.yaml
+```
+
+### Build and push the demo app image
+
+```bash
+docker build -t ghcr.io/ihsenalaya/cellenza-demo-app:dev demo-app
+docker push ghcr.io/ihsenalaya/cellenza-demo-app:dev
+```
+
+To test locally with Kind:
+
+```bash
+docker build -t cellenza-demo-app:local demo-app
+kind load docker-image cellenza-demo-app:local --name cellenza-test
 kubectl patch cellenza demo --type merge \
-  -p '{"spec":{"image":"cellenza-demo-app:db-logs"}}'
+  -p '{"spec":{"image":"cellenza-demo-app:local"}}'
 ```
 
-### Run tests
+### CI pipelines
 
-```bash
-make test
-```
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `lint.yml` | push to any branch/tag | Runs `golangci-lint` |
+| `test.yml` | push to any branch/tag | Runs unit + envtest integration tests |
+| `test-e2e.yml` | push to any branch/tag | Spins up Kind, installs operator, runs e2e suite |
+| `docker-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-operator` image to GHCR |
+| `extension-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-extension` image to GHCR |
+| `demo-app-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-demo-app` image to GHCR |
+| `helm-release.yml` | `v*` tag only | Packages and publishes Helm chart to GitHub Releases + GitHub Pages + GHCR OCI |
 
 ### Release a new version
 
 ```bash
-git tag v0.5.1
-git push origin v0.5.1
+git tag v0.9.1
+git push origin v0.9.1
 ```
 
-GitHub Actions will:
-1. Build and push the Docker image to GHCR
-2. Package the Helm chart and publish it to GitHub Releases and GitHub Pages
+GitHub Actions will automatically:
+1. Build and push `ghcr.io/ihsenalaya/cellenza-operator:<version>`
+2. Build and push `ghcr.io/ihsenalaya/cellenza-extension:<version>`
+3. Build and push `ghcr.io/ihsenalaya/cellenza-demo-app:<version>` (if `demo-app/` changed)
+4. Package and publish the Helm chart to GitHub Releases and GitHub Pages
+5. Push the chart to `oci://ghcr.io/ihsenalaya/charts/cellenza-operator`
 
 ---
 
