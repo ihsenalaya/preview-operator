@@ -795,7 +795,6 @@ Configurer via la variable d'environnement `AI_API_URL` du pod opérateur :
 | OpenAI (défaut) | `https://api.openai.com/v1` | Clé OpenAI |
 | GitHub Models | `https://models.inference.ai.azure.com` | Token GitHub (PAT) |
 | Azure OpenAI | `https://<resource>.openai.azure.com/openai` | Clé Azure |
-| Anthropic (via proxy) | `https://api.anthropic.com/v1` | Clé Anthropic |
 
 **Recommandation production :** OpenAI API (token stable, SLA 99.9%, rate limits prévisibles).
 **Recommandation dev/POC :** GitHub Models (réutilise le token GitHub, gratuit dans les limites du free tier).
