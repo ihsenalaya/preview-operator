@@ -190,6 +190,297 @@ func TestGenerateAndStoreAIContentCreatesConfigMap(t *testing.T) {
 	}
 }
 
+func TestExtractAITestResults(t *testing.T) {
+	tests := []struct {
+		name  string
+		lines []string
+		want  []string
+	}{
+		{
+			name:  "extracts PASS and FAIL lines",
+			lines: []string{"some noise", "PASS GET /health", "FAIL POST /login - 401", "more noise"},
+			want:  []string{"PASS GET /health", "FAIL POST /login - 401"},
+		},
+		{
+			name:  "empty input",
+			lines: []string{},
+			want:  nil,
+		},
+		{
+			name:  "no matching lines",
+			lines: []string{"pip install requests", "running tests..."},
+			want:  nil,
+		},
+		{
+			name:  "trims whitespace",
+			lines: []string{"  PASS GET /  "},
+			want:  []string{"PASS GET /"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractAITestResults(tt.lines)
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("[%d] got %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestAIEnrichmentEnabled(t *testing.T) {
+	tests := []struct {
+		name string
+		spec *platformv1alpha1.AIEnrichmentSpec
+		want bool
+	}{
+		{"nil spec", nil, false},
+		{"disabled", &platformv1alpha1.AIEnrichmentSpec{Enabled: false}, false},
+		{"enabled", &platformv1alpha1.AIEnrichmentSpec{Enabled: true}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &platformv1alpha1.Cellenza{Spec: platformv1alpha1.CellenzaSpec{AIEnrichment: tt.spec}}
+			if got := aiEnrichmentEnabled(c); got != tt.want {
+				t.Errorf("aiEnrichmentEnabled = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAITestJobSpec(t *testing.T) {
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Tests: &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: true},
+			},
+		},
+	}
+	reconciler := &CellenzaReconciler{}
+	job := reconciler.aiTestJob(c, "preview-pr-21")
+
+	container := job.Spec.Template.Spec.Containers[0]
+
+	// Must have APP_URL injected
+	found := false
+	for _, e := range container.Env {
+		if e.Name == "APP_URL" && e.Value == defaultAIInternalAppURL {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected APP_URL env var to be set on test job container")
+	}
+
+	// Must NOT have postgres secret (tests don't need DB access)
+	if len(container.EnvFrom) != 0 {
+		t.Errorf("test job should not mount postgres secret, got %d EnvFrom entries", len(container.EnvFrom))
+	}
+
+	// Must mount ConfigMap volume
+	if len(job.Spec.Template.Spec.Volumes) == 0 {
+		t.Error("expected ConfigMap volume on test job")
+	}
+}
+
+func TestAISeedJobSpec(t *testing.T) {
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Seed: &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: true},
+			},
+		},
+	}
+	reconciler := &CellenzaReconciler{}
+	job := reconciler.aiSeedJob(c, "preview-pr-21")
+
+	container := job.Spec.Template.Spec.Containers[0]
+
+	// Must have postgres secret
+	if len(container.EnvFrom) == 0 {
+		t.Error("expected postgres secret on seed job container via EnvFrom")
+	}
+	if container.EnvFrom[0].SecretRef == nil || container.EnvFrom[0].SecretRef.Name != postgresSecretName {
+		t.Errorf("expected postgres-credentials secret, got %v", container.EnvFrom)
+	}
+
+	// Must mount ConfigMap volume
+	if len(job.Spec.Template.Spec.Volumes) == 0 {
+		t.Error("expected ConfigMap volume on seed job")
+	}
+}
+
+func TestReconcileAISeedJobSkipsWhenDisabled(t *testing.T) {
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Seed: &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: false},
+			},
+		},
+	}
+	reconciler := &CellenzaReconciler{}
+	state, err := reconciler.reconcileAISeedJob(context.Background(), c, "preview-pr-21")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != "Skipped" {
+		t.Errorf("expected Skipped, got %q", state)
+	}
+}
+
+func TestReconcileAIJobReturnsRunningOnCreate(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec:       platformv1alpha1.CellenzaSpec{},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
+		Scheme: scheme,
+	}
+	desired := reconciler.aiTestJob(c, "preview-pr-21")
+
+	state, err := reconciler.reconcileAIJob(context.Background(), c, "preview-pr-21", aiTestJobName, desired, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != "Running" {
+		t.Errorf("expected Running on job creation, got %q", state)
+	}
+}
+
+func TestReconcileAIJobReturnsSucceededWhenJobDone(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+	}
+	existingJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: aiTestJobName, Namespace: "preview-pr-21"},
+		Status:     batchv1.JobStatus{Succeeded: 1},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, existingJob).Build(),
+		Scheme: scheme,
+	}
+	desired := reconciler.aiTestJob(c, "preview-pr-21")
+
+	state, err := reconciler.reconcileAIJob(context.Background(), c, "preview-pr-21", aiTestJobName, desired, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != "Succeeded" {
+		t.Errorf("expected Succeeded, got %q", state)
+	}
+}
+
+func TestReconcileAIJobReturnsFailedWhenJobFailed(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{ObjectMeta: metav1.ObjectMeta{Name: "pr-21"}}
+	existingJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: aiTestJobName, Namespace: "preview-pr-21"},
+		Status: batchv1.JobStatus{
+			Conditions: []batchv1.JobCondition{{
+				Type:    batchv1.JobFailed,
+				Status:  corev1.ConditionTrue,
+				Message: "BackoffLimitExceeded",
+			}},
+		},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, existingJob).Build(),
+		Scheme: scheme,
+	}
+	desired := reconciler.aiTestJob(c, "preview-pr-21")
+
+	state, err := reconciler.reconcileAIJob(context.Background(), c, "preview-pr-21", aiTestJobName, desired, true)
+	if err == nil {
+		t.Fatal("expected error for failed job, got nil")
+	}
+	if state != "Failed" {
+		t.Errorf("expected Failed, got %q", state)
+	}
+}
+
+func TestAIAPIKey_missingSecret(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled:      true,
+				APISecretRef: &platformv1alpha1.SecretKeyRef{Name: "missing-secret"},
+			},
+		},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Scheme: scheme,
+	}
+	_, err := reconciler.aiAPIKey(context.Background(), c)
+	if err == nil {
+		t.Fatal("expected error when secret is missing")
+	}
+}
+
+func TestAIAPIKey_missingKeyInSecret(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled:      true,
+				APISecretRef: &platformv1alpha1.SecretKeyRef{Name: "ai-api"},
+			},
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "ai-api", Namespace: defaultAISecretNamespace},
+		Data:       map[string][]byte{"wrong-key": []byte("value")},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret).Build(),
+		Scheme: scheme,
+	}
+	_, err := reconciler.aiAPIKey(context.Background(), c)
+	if err == nil {
+		t.Fatal("expected error when key is missing from secret")
+	}
+}
+
+func TestGenerateAndStoreAIContent_missingAPIURL(t *testing.T) {
+	scheme := testAIScheme(t)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "ai-api", Namespace: defaultAISecretNamespace},
+		Data:       map[string][]byte{defaultAISecretKey: []byte("sk-test")},
+	}
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled:      true,
+				APISecretRef: &platformv1alpha1.SecretKeyRef{Name: "ai-api"},
+			},
+		},
+	}
+	reconciler := &CellenzaReconciler{
+		Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret).Build(),
+		Scheme:       scheme,
+		AIAPIBaseURL: "", // not configured
+	}
+
+	_, err := reconciler.generateAndStoreAIContent(context.Background(), c, "preview-pr-21")
+	if err == nil {
+		t.Fatal("expected error when AI API URL is not configured")
+	}
+	if !strings.Contains(err.Error(), "AI API URL") {
+		t.Errorf("error should mention AI API URL, got: %v", err)
+	}
+}
+
 func testAIScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	scheme := runtime.NewScheme()
