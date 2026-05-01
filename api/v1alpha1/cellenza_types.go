@@ -186,10 +186,12 @@ type AIEnrichmentSpec struct {
 	Model string `json:"model,omitempty"`
 
 	// Seed configures AI seed data generation and execution.
+	// When omitted while AI enrichment is enabled, the operator treats this task as enabled.
 	// +optional
 	Seed *AIEnrichmentTaskSpec `json:"seed,omitempty"`
 
 	// Tests configures AI test generation and execution.
+	// When omitted while AI enrichment is enabled, the operator treats this task as enabled.
 	// +optional
 	Tests *AIEnrichmentTaskSpec `json:"tests,omitempty"`
 }
@@ -197,6 +199,7 @@ type AIEnrichmentSpec struct {
 // AIEnrichmentTaskSpec configures one AI enrichment task (seed or tests).
 type AIEnrichmentTaskSpec struct {
 	// Enabled controls whether this task runs.
+	// Explicitly set it to false to disable a task while keeping AI enrichment enabled.
 	// +kubebuilder:default=false
 	Enabled bool `json:"enabled,omitempty"`
 

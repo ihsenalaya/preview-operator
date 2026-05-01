@@ -51,6 +51,14 @@ func (d *CellenzaCustomDefaulter) Default(ctx context.Context, r *apiv1alpha1.Ce
 			r.Spec.Database.DatabaseName = "appdb"
 		}
 	}
+	if r.Spec.AIEnrichment != nil && r.Spec.AIEnrichment.Enabled {
+		if r.Spec.AIEnrichment.Seed == nil {
+			r.Spec.AIEnrichment.Seed = &apiv1alpha1.AIEnrichmentTaskSpec{Enabled: true}
+		}
+		if r.Spec.AIEnrichment.Tests == nil {
+			r.Spec.AIEnrichment.Tests = &apiv1alpha1.AIEnrichmentTaskSpec{Enabled: true}
+		}
+	}
 	return nil
 }
 

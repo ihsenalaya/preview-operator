@@ -10,6 +10,7 @@ import (
 	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -83,6 +84,9 @@ func TestAISchemaDumpJobBuildsExpectedSpec(t *testing.T) {
 	if len(job.Spec.Template.Spec.Containers[0].EnvFrom) != 1 {
 		t.Fatalf("expected EnvFrom secret wiring")
 	}
+	if len(job.Spec.Template.Spec.Containers[0].Env) != 1 || job.Spec.Template.Spec.Containers[0].Env[0].Name != "PGPASSWORD" {
+		t.Fatalf("expected PGPASSWORD env wiring for schema dump job")
+	}
 }
 
 func TestFetchDBSchemaCreatesJobWhenMissing(t *testing.T) {
@@ -110,6 +114,51 @@ func TestFetchDBSchemaCreatesJobWhenMissing(t *testing.T) {
 	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: aiSchemaJobName, Namespace: "preview-pr-21"}, job); err != nil {
 		t.Fatalf("expected schema dump job to be created: %v", err)
 	}
+}
+
+func TestReconcileResourceQuotaAddsAIHeadroom(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-23"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			ResourceTier: platformv1alpha1.TierMedium,
+			Database: &platformv1alpha1.DatabaseSpec{
+				Enabled: true,
+			},
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled: true,
+			},
+		},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
+		Scheme: scheme,
+	}
+
+	if err := reconciler.reconcileResourceQuota(context.Background(), c, "preview-pr-23"); err != nil {
+		t.Fatalf("reconcileResourceQuota returned error: %v", err)
+	}
+
+	quota := &corev1.ResourceQuota{}
+	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: "cellenza-quota", Namespace: "preview-pr-23"}, quota); err != nil {
+		t.Fatalf("expected resourcequota to be created: %v", err)
+	}
+
+	assertQuantity := func(name corev1.ResourceName, want string) {
+		t.Helper()
+		got, ok := quota.Spec.Hard[name]
+		if !ok {
+			t.Fatalf("missing quota entry for %s", name)
+		}
+		if got.Cmp(resource.MustParse(want)) != 0 {
+			t.Fatalf("%s = %s, want %s", name, got.String(), want)
+		}
+	}
+
+	assertQuantity(corev1.ResourceLimitsCPU, "1200m")
+	assertQuantity(corev1.ResourceLimitsMemory, "1152Mi")
+	assertQuantity(corev1.ResourceRequestsCPU, "350m")
+	assertQuantity(corev1.ResourceRequestsMemory, "448Mi")
 }
 
 func TestGenerateAndStoreAIContentSkipsWhenConfigMapExists(t *testing.T) {
@@ -252,6 +301,36 @@ func TestAIEnrichmentEnabled(t *testing.T) {
 	}
 }
 
+func TestAIEnrichmentTaskDefaults(t *testing.T) {
+	enabled := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+		},
+	}
+	if !aiSeedEnabled(enabled) {
+		t.Fatal("expected seed task to default to enabled when omitted")
+	}
+	if !aiTestsEnabled(enabled) {
+		t.Fatal("expected test task to default to enabled when omitted")
+	}
+
+	disabled := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled: true,
+				Seed:    &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: false},
+				Tests:   &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: false},
+			},
+		},
+	}
+	if aiSeedEnabled(disabled) {
+		t.Fatal("expected explicit seed=false to be honored")
+	}
+	if aiTestsEnabled(disabled) {
+		t.Fatal("expected explicit tests=false to be honored")
+	}
+}
+
 func TestAITestJobSpec(t *testing.T) {
 	c := &platformv1alpha1.Cellenza{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
@@ -309,6 +388,9 @@ func TestAISeedJobSpec(t *testing.T) {
 	if container.EnvFrom[0].SecretRef == nil || container.EnvFrom[0].SecretRef.Name != postgresSecretName {
 		t.Errorf("expected postgres-credentials secret, got %v", container.EnvFrom)
 	}
+	if len(container.Env) != 1 || container.Env[0].Name != "PGPASSWORD" {
+		t.Errorf("expected PGPASSWORD env var on seed job, got %v", container.Env)
+	}
 
 	// Must mount ConfigMap volume
 	if len(job.Spec.Template.Spec.Volumes) == 0 {
@@ -331,6 +413,63 @@ func TestReconcileAISeedJobSkipsWhenDisabled(t *testing.T) {
 	}
 	if state != "Skipped" {
 		t.Errorf("expected Skipped, got %q", state)
+	}
+}
+
+func TestReconcileAISeedJobRunsWhenTaskSpecOmitted(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+		},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
+		Scheme: scheme,
+	}
+
+	state, err := reconciler.reconcileAISeedJob(context.Background(), c, "preview-pr-21")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != "Running" {
+		t.Fatalf("expected Running, got %q", state)
+	}
+
+	job := &batchv1.Job{}
+	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: aiSeedJobName, Namespace: "preview-pr-21"}, job); err != nil {
+		t.Fatalf("expected ai-seed job to be created: %v", err)
+	}
+}
+
+func TestReconcileAITestJobRunsWhenTaskSpecOmitted(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+		},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
+		Scheme: scheme,
+	}
+
+	state, results, err := reconciler.reconcileAITestJob(context.Background(), c, "preview-pr-21")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != "Running" {
+		t.Fatalf("expected Running, got %q", state)
+	}
+	if len(results) != 0 {
+		t.Fatalf("expected no results while job is starting, got %v", results)
+	}
+
+	job := &batchv1.Job{}
+	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: aiTestJobName, Namespace: "preview-pr-21"}, job); err != nil {
+		t.Fatalf("expected ai-tests job to be created: %v", err)
 	}
 }
 

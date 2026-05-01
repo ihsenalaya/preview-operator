@@ -36,6 +36,10 @@ const (
 	postgresHost       = "postgres"
 	migrationJobName   = "postgres-migrate"
 	seedJobName        = "postgres-seed"
+	aiJobCPURequest    = "50m"
+	aiJobMemoryRequest = "64Mi"
+	aiJobCPULimit      = "200m"
+	aiJobMemoryLimit   = "128Mi"
 )
 
 // CellenzaReconciler reconciles Cellenza objects
@@ -455,6 +459,14 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 		memLimit.Add(resource.MustParse("512Mi"))
 		cpuReq.Add(resource.MustParse("100m"))
 		memReq.Add(resource.MustParse("128Mi"))
+	}
+
+	if aiEnrichmentEnabled(c) {
+		// AI enrichment jobs run sequentially, so the quota only needs headroom for one job at a time.
+		cpuLimit.Add(resource.MustParse(aiJobCPULimit))
+		memLimit.Add(resource.MustParse(aiJobMemoryLimit))
+		cpuReq.Add(resource.MustParse(aiJobCPURequest))
+		memReq.Add(resource.MustParse(aiJobMemoryRequest))
 	}
 
 	quota := &corev1.ResourceQuota{

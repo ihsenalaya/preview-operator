@@ -38,6 +38,26 @@ func aiEnrichmentEnabled(c *platformv1alpha1.Cellenza) bool {
 	return c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Enabled
 }
 
+func aiSeedEnabled(c *platformv1alpha1.Cellenza) bool {
+	if !aiEnrichmentEnabled(c) {
+		return false
+	}
+	if c.Spec.AIEnrichment.Seed == nil {
+		return true
+	}
+	return c.Spec.AIEnrichment.Seed.Enabled
+}
+
+func aiTestsEnabled(c *platformv1alpha1.Cellenza) bool {
+	if !aiEnrichmentEnabled(c) {
+		return false
+	}
+	if c.Spec.AIEnrichment.Tests == nil {
+		return true
+	}
+	return c.Spec.AIEnrichment.Tests.Enabled
+}
+
 func (r *CellenzaReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha1.Cellenza, token string) (string, error) {
 	if !githubEnabled(c) || c.Spec.GitHub == nil || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
 		return "", nil
@@ -288,14 +308,25 @@ func (r *CellenzaReconciler) aiSchemaDumpJob(c *platformv1alpha1.Cellenza, nsNam
 									},
 								},
 							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "PGPASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName},
+											Key:                  "POSTGRES_PASSWORD",
+										},
+									},
+								},
+							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("50m"),
-									corev1.ResourceMemory: resource.MustParse("64Mi"),
+									corev1.ResourceCPU:    resource.MustParse(aiJobCPURequest),
+									corev1.ResourceMemory: resource.MustParse(aiJobMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("200m"),
-									corev1.ResourceMemory: resource.MustParse("128Mi"),
+									corev1.ResourceCPU:    resource.MustParse(aiJobCPULimit),
+									corev1.ResourceMemory: resource.MustParse(aiJobMemoryLimit),
 								},
 							},
 						},
@@ -340,7 +371,7 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	}
 
 	seedDone := true
-	if c.Spec.AIEnrichment.Seed != nil && c.Spec.AIEnrichment.Seed.Enabled {
+	if aiSeedEnabled(c) {
 		state, seedErr := r.reconcileAISeedJob(ctx, c, nsName)
 		aiStatus.SeedStatus = state
 		if seedErr != nil {
@@ -351,7 +382,7 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	}
 
 	testsDone := true
-	if c.Spec.AIEnrichment.Tests != nil && c.Spec.AIEnrichment.Tests.Enabled {
+	if aiTestsEnabled(c) {
 		state, results, testErr := r.reconcileAITestJob(ctx, c, nsName)
 		aiStatus.TestsStatus = state
 		if len(results) > 0 {
@@ -395,14 +426,14 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 }
 
 func (r *CellenzaReconciler) reconcileAISeedJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, error) {
-	if c.Spec.AIEnrichment == nil || c.Spec.AIEnrichment.Seed == nil || !c.Spec.AIEnrichment.Seed.Enabled {
+	if !aiSeedEnabled(c) {
 		return "Skipped", nil
 	}
 	return r.reconcileAIJob(ctx, c, nsName, aiSeedJobName, r.aiSeedJob(c, nsName), false)
 }
 
 func (r *CellenzaReconciler) reconcileAITestJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, []string, error) {
-	if c.Spec.AIEnrichment == nil || c.Spec.AIEnrichment.Tests == nil || !c.Spec.AIEnrichment.Tests.Enabled {
+	if !aiTestsEnabled(c) {
 		return "Skipped", nil, nil
 	}
 
@@ -508,6 +539,15 @@ func (r *CellenzaReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Cellenza, 
 				LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName},
 			},
 		}}
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name: "PGPASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName},
+					Key:                  "POSTGRES_PASSWORD",
+				},
+			},
+		})
 	}
 
 	return &batchv1.Job{
@@ -573,10 +613,10 @@ func buildAIEnrichmentSummary(c *platformv1alpha1.Cellenza) string {
 		return "AI enrichment not started"
 	}
 	var parts []string
-	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Seed != nil && c.Spec.AIEnrichment.Seed.Enabled {
+	if aiSeedEnabled(c) {
 		parts = append(parts, fmt.Sprintf("seed=%s", defaultStatus(aiStatus.SeedStatus)))
 	}
-	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Tests != nil && c.Spec.AIEnrichment.Tests.Enabled {
+	if aiTestsEnabled(c) {
 		parts = append(parts, fmt.Sprintf("tests=%s", defaultStatus(aiStatus.TestsStatus)))
 	}
 	if len(parts) == 0 {
