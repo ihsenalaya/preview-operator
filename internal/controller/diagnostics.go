@@ -445,16 +445,3 @@ func truncateDiagnosticLine(line string) string {
 	return line[:237] + "..."
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}

@@ -32,6 +32,13 @@ const (
 	defaultAISchemaDumpImage = "postgres:15-alpine"
 	defaultAIInternalAppURL  = "http://app:80"
 	defaultAITestImage       = "python:3.12-slim"
+
+	phaseSucceeded  = "Succeeded"
+	phaseFailed     = "Failed"
+	phaseRunning    = "Running"
+	phaseSkipped    = "Skipped"
+	phaseGenerating = "Generating"
+	phasePending    = "Pending"
 )
 
 func aiEnrichmentEnabled(c *platformv1alpha1.Cellenza) bool {
@@ -80,12 +87,12 @@ func (r *CellenzaReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/vnd.github.diff")
 
-	client := r.GitHubHTTPClient
-	if client == nil {
-		client = http.DefaultClient
+	httpClient := r.GitHubHTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
 	}
 
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -343,14 +350,14 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	}
 
 	aiStatus := ensureAIEnrichmentStatus(c)
-	if aiStatus.Phase == "Succeeded" {
+	if aiStatus.Phase == phaseSucceeded {
 		return ctrl.Result{}, nil
 	}
 
 	configMap := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: aiEnrichmentConfigMap, Namespace: nsName}, configMap)
 	if errors.IsNotFound(err) {
-		aiStatus.Phase = "Generating"
+		aiStatus.Phase = phaseGenerating
 		aiStatus.Error = ""
 		if err := r.Status().Update(ctx, c); err != nil {
 			return ctrl.Result{}, err
@@ -375,10 +382,10 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 		state, seedErr := r.reconcileAISeedJob(ctx, c, nsName)
 		aiStatus.SeedStatus = state
 		if seedErr != nil {
-			aiStatus.SeedStatus = "Failed"
+			aiStatus.SeedStatus = phaseFailed
 			aiStatus.Error = seedErr.Error()
 		}
-		seedDone = state == "Succeeded" || state == "Skipped" || state == "Failed"
+		seedDone = state == phaseSucceeded || state == phaseSkipped || state == phaseFailed
 	}
 
 	testsDone := true
@@ -389,24 +396,24 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 			aiStatus.TestResults = results
 		}
 		if testErr != nil {
-			aiStatus.TestsStatus = "Failed"
+			aiStatus.TestsStatus = phaseFailed
 			aiStatus.Error = testErr.Error()
 		}
-		testsDone = state == "Succeeded" || state == "Skipped" || state == "Failed"
+		testsDone = state == phaseSucceeded || state == phaseSkipped || state == phaseFailed
 	}
 
 	if !seedDone || !testsDone {
-		aiStatus.Phase = "Running"
+		aiStatus.Phase = phaseRunning
 		if err := r.Status().Update(ctx, c); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	if aiStatus.Error != "" || aiStatus.SeedStatus == "Failed" || aiStatus.TestsStatus == "Failed" {
-		aiStatus.Phase = "Failed"
+	if aiStatus.Error != "" || aiStatus.SeedStatus == phaseFailed || aiStatus.TestsStatus == phaseFailed {
+		aiStatus.Phase = phaseFailed
 	} else {
-		aiStatus.Phase = "Succeeded"
+		aiStatus.Phase = phaseSucceeded
 	}
 	now := metav1.Now()
 	aiStatus.CompletedAt = &now
@@ -427,21 +434,21 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 
 func (r *CellenzaReconciler) reconcileAISeedJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, error) {
 	if !aiSeedEnabled(c) {
-		return "Skipped", nil
+		return phaseSkipped, nil
 	}
 	return r.reconcileAIJob(ctx, c, nsName, aiSeedJobName, r.aiSeedJob(c, nsName), false)
 }
 
 func (r *CellenzaReconciler) reconcileAITestJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, []string, error) {
 	if !aiTestsEnabled(c) {
-		return "Skipped", nil, nil
+		return phaseSkipped, nil, nil
 	}
 
 	state, err := r.reconcileAIJob(ctx, c, nsName, aiTestJobName, r.aiTestJob(c, nsName), true)
 	if err != nil {
 		return state, nil, err
 	}
-	if state != "Succeeded" {
+	if state != phaseSucceeded {
 		return state, nil, nil
 	}
 
@@ -463,7 +470,7 @@ func (r *CellenzaReconciler) reconcileAIJob(ctx context.Context, c *platformv1al
 		if err := r.Create(ctx, desired); err != nil {
 			return "", err
 		}
-		return "Running", nil
+		return phaseRunning, nil
 	}
 	if err != nil {
 		return "", err
@@ -478,15 +485,15 @@ func (r *CellenzaReconciler) reconcileAIJob(ctx context.Context, c *platformv1al
 				return "", err
 			}
 		}
-		return "Succeeded", nil
+		return phaseSucceeded, nil
 	}
 
 	for _, cond := range job.Status.Conditions {
 		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
-			return "Failed", fmt.Errorf("AI job %s/%s failed: %s", nsName, jobName, cond.Message)
+			return phaseFailed, fmt.Errorf("AI job %s/%s failed: %s", nsName, jobName, cond.Message)
 		}
 	}
-	return "Running", nil
+	return phaseRunning, nil
 }
 
 func (r *CellenzaReconciler) aiSeedJob(c *platformv1alpha1.Cellenza, nsName string) *batchv1.Job {
@@ -602,7 +609,7 @@ func ensureAIEnrichmentStatus(c *platformv1alpha1.Cellenza) *platformv1alpha1.AI
 
 func (r *CellenzaReconciler) markAIEnrichmentFailed(c *platformv1alpha1.Cellenza, msg string) {
 	aiStatus := ensureAIEnrichmentStatus(c)
-	aiStatus.Phase = "Failed"
+	aiStatus.Phase = phaseFailed
 	aiStatus.Error = msg
 	aiStatus.Summary = buildAIEnrichmentSummary(c)
 }

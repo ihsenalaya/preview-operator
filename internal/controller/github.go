@@ -275,11 +275,11 @@ func buildAIEnrichmentSection(c *platformv1alpha1.Cellenza) string {
 
 func statusIcon(status string) string {
 	switch status {
-	case "Succeeded":
+	case phaseSucceeded:
 		return "SUCCESS"
-	case "Failed":
+	case phaseFailed:
 		return "FAIL"
-	case "Running", "Generating":
+	case phaseRunning, phaseGenerating:
 		return "RUN"
 	default:
 		return "SKIP"

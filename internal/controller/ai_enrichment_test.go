@@ -411,7 +411,7 @@ func TestReconcileAISeedJobSkipsWhenDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if state != "Skipped" {
+	if state != phaseSkipped {
 		t.Errorf("expected Skipped, got %q", state)
 	}
 }
@@ -433,7 +433,7 @@ func TestReconcileAISeedJobRunsWhenTaskSpecOmitted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if state != "Running" {
+	if state != phaseRunning {
 		t.Fatalf("expected Running, got %q", state)
 	}
 
@@ -460,7 +460,7 @@ func TestReconcileAITestJobRunsWhenTaskSpecOmitted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if state != "Running" {
+	if state != phaseRunning {
 		t.Fatalf("expected Running, got %q", state)
 	}
 	if len(results) != 0 {
@@ -489,7 +489,7 @@ func TestReconcileAIJobReturnsRunningOnCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if state != "Running" {
+	if state != phaseRunning {
 		t.Errorf("expected Running on job creation, got %q", state)
 	}
 }
@@ -513,7 +513,7 @@ func TestReconcileAIJobReturnsSucceededWhenJobDone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if state != "Succeeded" {
+	if state != phaseSucceeded {
 		t.Errorf("expected Succeeded, got %q", state)
 	}
 }
@@ -541,7 +541,7 @@ func TestReconcileAIJobReturnsFailedWhenJobFailed(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for failed job, got nil")
 	}
-	if state != "Failed" {
+	if state != phaseFailed {
 		t.Errorf("expected Failed, got %q", state)
 	}
 }

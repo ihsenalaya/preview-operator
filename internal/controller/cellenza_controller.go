@@ -240,7 +240,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if aiEnrichmentEnabled(cellenza) {
-		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 || result.Requeue {
+		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
 	}
@@ -995,7 +995,7 @@ func (r *CellenzaReconciler) reconcileDatabaseTask(ctx context.Context, c *platf
 	}
 
 	if task == nil || !task.Enabled {
-		r.setDatabaseTaskStatus(c, taskName, "Skipped")
+		r.setDatabaseTaskStatus(c, taskName, phaseSkipped)
 		c.SetCondition(metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionTrue,
@@ -1005,7 +1005,7 @@ func (r *CellenzaReconciler) reconcileDatabaseTask(ctx context.Context, c *platf
 		})
 		return true, nil
 	}
-	if r.databaseTaskStatus(c, taskName) == "Succeeded" {
+	if r.databaseTaskStatus(c, taskName) == phaseSucceeded {
 		c.SetCondition(metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionTrue,
@@ -1037,7 +1037,7 @@ func (r *CellenzaReconciler) reconcileDatabaseTask(ctx context.Context, c *platf
 	}
 
 	if job.Status.Succeeded > 0 {
-		r.setDatabaseTaskStatus(c, taskName, "Succeeded")
+		r.setDatabaseTaskStatus(c, taskName, phaseSucceeded)
 		c.SetCondition(metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionTrue,
@@ -1050,7 +1050,7 @@ func (r *CellenzaReconciler) reconcileDatabaseTask(ctx context.Context, c *platf
 
 	for _, cond := range job.Status.Conditions {
 		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
-			r.setDatabaseTaskStatus(c, taskName, "Failed")
+			r.setDatabaseTaskStatus(c, taskName, phaseFailed)
 			return false, fmt.Errorf("database %s job %s/%s failed: %s", taskName, nsName, jobName, cond.Message)
 		}
 	}
@@ -1139,7 +1139,7 @@ func (r *CellenzaReconciler) databaseTaskJob(c *platformv1alpha1.Cellenza, nsNam
 }
 
 func (r *CellenzaReconciler) markDatabaseTaskRunning(c *platformv1alpha1.Cellenza, taskName, conditionType, jobName string) {
-	r.setDatabaseTaskStatus(c, taskName, "Running")
+	r.setDatabaseTaskStatus(c, taskName, phaseRunning)
 	c.SetCondition(metav1.Condition{
 		Type:               conditionType,
 		Status:             metav1.ConditionFalse,
