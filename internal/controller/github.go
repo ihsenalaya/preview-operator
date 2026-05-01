@@ -135,6 +135,14 @@ func (r *CellenzaReconciler) githubToken(ctx context.Context, c *platformv1alpha
 		return "", fmt.Errorf("spec.github.tokenSecretRef.name is required when GitHub integration is enabled")
 	}
 
+	return r.githubTokenFromRef(ctx, ref)
+}
+
+func (r *CellenzaReconciler) githubTokenFromRef(ctx context.Context, ref *platformv1alpha1.GitHubTokenSecretRef) (string, error) {
+	if ref == nil || ref.Name == "" {
+		return "", fmt.Errorf("github token secret reference is required")
+	}
+
 	namespace := ref.Namespace
 	if namespace == "" {
 		namespace = defaultGitHubSecretNamespace

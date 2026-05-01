@@ -33,6 +33,11 @@ func (in *AIEnrichmentSpec) DeepCopyInto(out *AIEnrichmentSpec) {
 		*out = new(SecretKeyRef)
 		**out = **in
 	}
+	if in.GitHubTokenSecretRef != nil {
+		in, out := &in.GitHubTokenSecretRef, &out.GitHubTokenSecretRef
+		*out = new(GitHubTokenSecretRef)
+		**out = **in
+	}
 	if in.Seed != nil {
 		in, out := &in.Seed, &out.Seed
 		*out = new(AIEnrichmentTaskSpec)

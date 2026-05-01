@@ -70,6 +70,80 @@ func TestFetchPRDiffSkipsWhenGitHubDisabled(t *testing.T) {
 	}
 }
 
+func TestAIGitHubTokenUsesDedicatedSecretWhenConfigured(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled: true,
+				GitHubTokenSecretRef: &platformv1alpha1.GitHubTokenSecretRef{
+					Name:      "ai-github-token",
+					Namespace: defaultGitHubSecretNamespace,
+				},
+			},
+			GitHub: &platformv1alpha1.GitHubIntegrationSpec{
+				Enabled: true,
+				TokenSecretRef: &platformv1alpha1.GitHubTokenSecretRef{
+					Name:      "controller-github-token",
+					Namespace: defaultGitHubSecretNamespace,
+				},
+			},
+		},
+	}
+	aiSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "ai-github-token", Namespace: defaultGitHubSecretNamespace},
+		Data:       map[string][]byte{defaultGitHubTokenSecretKey: []byte("ai-token")},
+	}
+	controllerSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "controller-github-token", Namespace: defaultGitHubSecretNamespace},
+		Data:       map[string][]byte{defaultGitHubTokenSecretKey: []byte("controller-token")},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, aiSecret, controllerSecret).Build(),
+		Scheme: scheme,
+	}
+
+	token, err := reconciler.aiGitHubToken(context.Background(), c)
+	if err != nil {
+		t.Fatalf("aiGitHubToken returned error: %v", err)
+	}
+	if token != "ai-token" {
+		t.Fatalf("aiGitHubToken = %q, want %q", token, "ai-token")
+	}
+}
+
+func TestAIGitHubTokenFallsBackToControllerSecret(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+			GitHub: &platformv1alpha1.GitHubIntegrationSpec{
+				Enabled: true,
+				TokenSecretRef: &platformv1alpha1.GitHubTokenSecretRef{
+					Name:      "controller-github-token",
+					Namespace: defaultGitHubSecretNamespace,
+				},
+			},
+		},
+	}
+	controllerSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "controller-github-token", Namespace: defaultGitHubSecretNamespace},
+		Data:       map[string][]byte{defaultGitHubTokenSecretKey: []byte("controller-token")},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, controllerSecret).Build(),
+		Scheme: scheme,
+	}
+
+	token, err := reconciler.aiGitHubToken(context.Background(), c)
+	if err != nil {
+		t.Fatalf("aiGitHubToken returned error: %v", err)
+	}
+	if token != "controller-token" {
+		t.Fatalf("aiGitHubToken = %q, want %q", token, "controller-token")
+	}
+}
+
 func TestAISchemaDumpJobBuildsExpectedSpec(t *testing.T) {
 	c := &platformv1alpha1.Cellenza{ObjectMeta: metav1.ObjectMeta{Name: "pr-21"}}
 	reconciler := &CellenzaReconciler{}

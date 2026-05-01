@@ -470,14 +470,16 @@ Use the returned `id` as `spec.github.deploymentId` in the Cellenza resource.
 #### 2. Create the token Secret
 
 ```bash
-kubectl create secret generic github-token-pr-42 \
+kubectl create secret generic cellenza-github-token \
   --namespace=cellenza-operator-system \
-  --from-literal=token="$GITHUB_TOKEN"
+  --from-literal=token="$GITHUB_PAT"
 ```
 
-> **Token expiry** — GitHub Apps issue short-lived tokens. If the controller logs `401 Unauthorized`, regenerate the token and replace the Secret:
+> Use a long-lived token here. Do not use the GitHub Actions workflow `GITHUB_TOKEN` or other short-lived installation tokens, because the controller may need to update GitHub and fetch PR diffs long after the workflow has finished.
+>
+> If you rotate the token, replace the Secret in place:
 > ```bash
-> kubectl create secret generic github-token-pr-42 \
+> kubectl create secret generic cellenza-github-token \
 >   --namespace=cellenza-operator-system \
 >   --from-literal=token="$NEW_TOKEN" \
 >   --dry-run=client -o yaml | kubectl apply -f -
@@ -505,10 +507,12 @@ spec:
     environment: pr-42
     commentOnReady: true
     tokenSecretRef:
-      name: github-token-pr-42
+      name: cellenza-github-token
       namespace: cellenza-operator-system
       key: token
 ```
+
+Use a long-lived GitHub credential for `github.tokenSecretRef`. Do not point the controller at the workflow `GITHUB_TOKEN`, because GitHub Actions job tokens expire shortly after the workflow completes while the preview and AI enrichment continue running.
 
 When the preview reaches `Running`, the controller sends a GitHub Deployment `success` status with `status.url` as the environment URL and creates one PR comment when `commentOnReady` is true. That comment includes preview evidence such as app readiness, PostgreSQL readiness, migration status, seed status, telemetry state, namespace, URL, expiry, and an AI-assisted health summary.
 
@@ -680,12 +684,18 @@ spec:
     apiSecretRef:
       name: ai-api-key
       key: api-key
+    githubTokenSecretRef:
+      name: cellenza-github-token
+      namespace: cellenza-operator-system
+      key: token
     model: gpt-4o-mini   # default, can be gpt-4o, etc.
     seed:
       enabled: true      # default: true when omitted
     tests:
       enabled: true      # default: true when omitted
 ```
+
+`aiEnrichment.githubTokenSecretRef` is optional. When set, AI enrichment uses that GitHub token specifically to fetch the PR diff. When omitted, it falls back to `github.tokenSecretRef` for backward compatibility.
 
 #### 3. What happens
 
@@ -799,6 +809,9 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `aiEnrichment.apiSecretRef.name` | string | — | Secret containing the AI API key (`api-key` key by default) |
 | `aiEnrichment.apiSecretRef.namespace` | string | `cellenza-operator-system` | Namespace of the API key secret |
 | `aiEnrichment.apiSecretRef.key` | string | `api-key` | Secret data key |
+| `aiEnrichment.githubTokenSecretRef.name` | string | — | Optional dedicated GitHub token Secret for fetching the PR diff |
+| `aiEnrichment.githubTokenSecretRef.namespace` | string | `cellenza-operator-system` | Namespace of the AI GitHub token Secret |
+| `aiEnrichment.githubTokenSecretRef.key` | string | `token` | Secret data key for the AI GitHub token |
 | `aiEnrichment.model` | string | `gpt-4o-mini` | AI model name (e.g. `gpt-4o`, `gpt-4o-mini`) |
 | `aiEnrichment.seed.enabled` | bool | `true` | Run the `ai-seed` Job (psql the generated seed.sql) |
 | `aiEnrichment.seed.image` | string | `postgres:15-alpine` | Image override for the seed Job |

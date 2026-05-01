@@ -180,6 +180,12 @@ type AIEnrichmentSpec struct {
 	// +optional
 	APISecretRef *SecretKeyRef `json:"apiSecretRef,omitempty"`
 
+	// GitHubTokenSecretRef points to a Secret containing a long-lived GitHub token used
+	// by AI enrichment to fetch the pull request diff. When omitted, the controller falls
+	// back to spec.github.tokenSecretRef for backward compatibility.
+	// +optional
+	GitHubTokenSecretRef *GitHubTokenSecretRef `json:"githubTokenSecretRef,omitempty"`
+
 	// Model is the AI model to use (e.g. "gpt-4o-mini", "gpt-4o").
 	// +kubebuilder:default="gpt-4o-mini"
 	// +optional

@@ -43,9 +43,20 @@ spec:
     environment: pr-42
     commentOnReady: true
     tokenSecretRef:
-      name: github-token-pr-42
+      name: cellenza-github-token
       namespace: cellenza-operator-system
       key: token
+  # Optional: AI enrichment can use a dedicated long-lived GitHub token to fetch PR diffs.
+  # aiEnrichment:
+  #   enabled: true
+  #   apiSecretRef:
+  #     name: ai-api-key
+  #     namespace: cellenza-operator-system
+  #     key: api-key
+  #   githubTokenSecretRef:
+  #     name: cellenza-github-token
+  #     namespace: cellenza-operator-system
+  #     key: token
 ---
 # Minimal example without database
 apiVersion: platform.company.io/v1alpha1

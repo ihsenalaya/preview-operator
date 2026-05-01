@@ -87,17 +87,42 @@ spec:
                     description: Enabled controls whether AI enrichment runs after
                       the environment is ready.
                     type: boolean
+                  githubTokenSecretRef:
+                    description: |-
+                      GitHubTokenSecretRef points to a Secret containing a long-lived GitHub token used
+                      by AI enrichment to fetch the pull request diff. When omitted, the controller falls
+                      back to spec.github.tokenSecretRef for backward compatibility.
+                    properties:
+                      key:
+                        description: Key is the Secret data key containing the token.
+                          Defaults to "token".
+                        type: string
+                      name:
+                        description: Name is the Secret name.
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: Namespace is the Secret namespace. When empty,
+                          the controller namespace is used.
+                        type: string
+                    required:
+                    - name
+                    type: object
                   model:
                     default: gpt-4o-mini
                     description: Model is the AI model to use (e.g. "gpt-4o-mini",
                       "gpt-4o").
                     type: string
                   seed:
-                    description: Seed configures AI seed data generation and execution.
+                    description: |-
+                      Seed configures AI seed data generation and execution.
+                      When omitted while AI enrichment is enabled, the operator treats this task as enabled.
                     properties:
                       enabled:
                         default: false
-                        description: Enabled controls whether this task runs.
+                        description: |-
+                          Enabled controls whether this task runs.
+                          Explicitly set it to false to disable a task while keeping AI enrichment enabled.
                         type: boolean
                       image:
                         description: |-
@@ -106,11 +131,15 @@ spec:
                         type: string
                     type: object
                   tests:
-                    description: Tests configures AI test generation and execution.
+                    description: |-
+                      Tests configures AI test generation and execution.
+                      When omitted while AI enrichment is enabled, the operator treats this task as enabled.
                     properties:
                       enabled:
                         default: false
-                        description: Enabled controls whether this task runs.
+                        description: |-
+                          Enabled controls whether this task runs.
+                          Explicitly set it to false to disable a task while keeping AI enrichment enabled.
                         type: boolean
                       image:
                         description: |-

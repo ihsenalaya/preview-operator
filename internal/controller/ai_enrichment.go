@@ -184,7 +184,7 @@ func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *p
 
 	var diff string
 	if githubEnabled(c) {
-		token, err := r.githubToken(ctx, c)
+		token, err := r.aiGitHubToken(ctx, c)
 		if err != nil {
 			return false, err
 		}
@@ -243,6 +243,13 @@ func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *p
 	}
 
 	return true, nil
+}
+
+func (r *CellenzaReconciler) aiGitHubToken(ctx context.Context, c *platformv1alpha1.Cellenza) (string, error) {
+	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.GitHubTokenSecretRef != nil && c.Spec.AIEnrichment.GitHubTokenSecretRef.Name != "" {
+		return r.githubTokenFromRef(ctx, c.Spec.AIEnrichment.GitHubTokenSecretRef)
+	}
+	return r.githubToken(ctx, c)
 }
 
 func (r *CellenzaReconciler) aiAPIKey(ctx context.Context, c *platformv1alpha1.Cellenza) (string, error) {
