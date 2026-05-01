@@ -734,7 +734,7 @@ kubectl get cz pr-42 -o jsonpath='{.status.aiEnrichment}' | jq .
 {
   "phase": "Succeeded",
   "seedStatus": "Succeeded",
-  "testStatus": "Succeeded",
+  "testsStatus": "Succeeded",
   "testResults": ["PASS: test_health", "PASS: test_create_product", "FAIL: test_order_stock — 409 expected"],
   "completedAt": "2026-05-01T12:00:00Z"
 }
@@ -977,7 +977,7 @@ kubectl describe cellenza pr-42
 | `status.github.lastError` | Latest non-blocking GitHub notification error |
 | `status.aiEnrichment.phase` | AI enrichment lifecycle phase: `Pending`, `Generating`, `Running`, `Succeeded`, `Failed`, `Skipped` |
 | `status.aiEnrichment.seedStatus` | State of the `ai-seed` Job: `Pending`, `Running`, `Succeeded`, `Failed`, `Skipped` |
-| `status.aiEnrichment.testStatus` | State of the `ai-tests` Job: `Pending`, `Running`, `Succeeded`, `Failed`, `Skipped` |
+| `status.aiEnrichment.testsStatus` | State of the `ai-tests` Job: `Pending`, `Running`, `Succeeded`, `Failed`, `Skipped` |
 | `status.aiEnrichment.testResults` | Array of test result lines extracted from `ai-tests` output (`PASS: …` / `FAIL: …`) |
 | `status.aiEnrichment.summary` | Human-readable summary of what the AI generated |
 | `status.aiEnrichment.error` | Error message if the enrichment failed |

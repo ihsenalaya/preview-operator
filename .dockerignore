@@ -2,6 +2,14 @@
 # Ignore everything by default and re-include only needed files
 **
 
+# Re-include directories so allowed files below remain reachable
+!**/
+
+# Exclude bulky/generated directories from the build context
+.git/
+bin/
+dist/
+
 # Re-include Go source files (but not *_test.go)
 !**/*.go
 **/*_test.go

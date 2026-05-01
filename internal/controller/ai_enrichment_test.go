@@ -10,6 +10,7 @@ import (
 	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -405,6 +406,62 @@ func TestAIEnrichmentTaskDefaults(t *testing.T) {
 	}
 }
 
+func TestSetAIEnrichmentConditionReflectsFailure(t *testing.T) {
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+		},
+		Status: platformv1alpha1.CellenzaStatus{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
+				Phase:       phaseFailed,
+				SeedStatus:  phaseSucceeded,
+				TestsStatus: phaseFailed,
+				Error:       "AI test job failed",
+			},
+		},
+	}
+
+	setAIEnrichmentCondition(c)
+
+	condition := meta.FindStatusCondition(c.Status.Conditions, platformv1alpha1.ConditionAIEnrichmentReady)
+	if condition == nil {
+		t.Fatal("expected AIEnrichmentReady condition to be set")
+	}
+	if condition.Status != metav1.ConditionFalse {
+		t.Fatalf("condition status = %s, want %s", condition.Status, metav1.ConditionFalse)
+	}
+	if condition.Reason != "AIEnrichmentFailed" {
+		t.Fatalf("condition reason = %q, want %q", condition.Reason, "AIEnrichmentFailed")
+	}
+}
+
+func TestBuildAIEnrichmentSectionShowsDefaultTasks(t *testing.T) {
+	c := &platformv1alpha1.Cellenza{
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+		},
+		Status: platformv1alpha1.CellenzaStatus{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
+				SeedStatus:  phaseSucceeded,
+				TestsStatus: phaseFailed,
+				TestResults: []string{"FAIL GET /messages - 500"},
+			},
+		},
+	}
+
+	section := buildAIEnrichmentSection(c)
+	for _, want := range []string{
+		"### AI Enrichment",
+		"- Seed: SUCCESS `Succeeded`",
+		"- Tests: FAIL `Failed`",
+		"`FAIL GET /messages - 500`",
+	} {
+		if !strings.Contains(section, want) {
+			t.Fatalf("buildAIEnrichmentSection missing %q:\n%s", want, section)
+		}
+	}
+}
+
 func TestAITestJobSpec(t *testing.T) {
 	c := &platformv1alpha1.Cellenza{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
@@ -589,6 +646,37 @@ func TestReconcileAIJobReturnsSucceededWhenJobDone(t *testing.T) {
 	}
 	if state != phaseSucceeded {
 		t.Errorf("expected Succeeded, got %q", state)
+	}
+}
+
+func TestReconcileAISeedJobKeepsCompletedJobUntilTTL(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
+		},
+	}
+	existingJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: aiSeedJobName, Namespace: "preview-pr-21"},
+		Status:     batchv1.JobStatus{Succeeded: 1},
+	}
+	reconciler := &CellenzaReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, existingJob).Build(),
+		Scheme: scheme,
+	}
+
+	state, err := reconciler.reconcileAISeedJob(context.Background(), c, "preview-pr-21")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != phaseSucceeded {
+		t.Fatalf("expected Succeeded, got %q", state)
+	}
+
+	job := &batchv1.Job{}
+	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: aiSeedJobName, Namespace: "preview-pr-21"}, job); err != nil {
+		t.Fatalf("expected completed ai-seed job to remain until TTL cleanup: %v", err)
 	}
 }
 

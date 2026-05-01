@@ -265,10 +265,10 @@ func buildAIEnrichmentSection(c *platformv1alpha1.Cellenza) string {
 
 	var b strings.Builder
 	b.WriteString("\n### AI Enrichment\n\n")
-	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Seed != nil && c.Spec.AIEnrichment.Seed.Enabled {
+	if aiSeedEnabled(c) {
 		b.WriteString(fmt.Sprintf("- Seed: %s `%s`\n", statusIcon(aiStatus.SeedStatus), defaultStatus(aiStatus.SeedStatus)))
 	}
-	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Tests != nil && c.Spec.AIEnrichment.Tests.Enabled {
+	if aiTestsEnabled(c) {
 		b.WriteString(fmt.Sprintf("- Tests: %s `%s`\n", statusIcon(aiStatus.TestsStatus), defaultStatus(aiStatus.TestsStatus)))
 		for _, line := range aiStatus.TestResults {
 			b.WriteString(fmt.Sprintf("  - `%s`\n", line))

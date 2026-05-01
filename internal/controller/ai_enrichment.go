@@ -364,10 +364,16 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	configMap := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: aiEnrichmentConfigMap, Namespace: nsName}, configMap)
 	if errors.IsNotFound(err) {
-		aiStatus.Phase = phaseGenerating
-		aiStatus.Error = ""
-		if err := r.Status().Update(ctx, c); err != nil {
-			return ctrl.Result{}, err
+		if aiStatus.Phase != phaseGenerating || aiStatus.Error != "" {
+			aiStatus.Phase = phaseGenerating
+			aiStatus.Error = ""
+			if err := r.Status().Update(ctx, c); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.refreshCellenza(ctx, types.NamespacedName{Name: c.Name, Namespace: c.Namespace}, c); err != nil {
+				return ctrl.Result{}, err
+			}
+			aiStatus = ensureAIEnrichmentStatus(c)
 		}
 		ready, genErr := r.generateAndStoreAIContent(ctx, c, nsName)
 		if genErr != nil {
@@ -425,13 +431,7 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	now := metav1.Now()
 	aiStatus.CompletedAt = &now
 	aiStatus.Summary = buildAIEnrichmentSummary(c)
-	c.SetCondition(metav1.Condition{
-		Type:               platformv1alpha1.ConditionAIEnrichmentReady,
-		Status:             metav1.ConditionTrue,
-		Reason:             "AIEnrichmentCompleted",
-		Message:            aiStatus.Summary,
-		LastTransitionTime: metav1.Now(),
-	})
+	setAIEnrichmentCondition(c)
 	if err := r.Status().Update(ctx, c); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -443,7 +443,7 @@ func (r *CellenzaReconciler) reconcileAISeedJob(ctx context.Context, c *platform
 	if !aiSeedEnabled(c) {
 		return phaseSkipped, nil
 	}
-	return r.reconcileAIJob(ctx, c, nsName, aiSeedJobName, r.aiSeedJob(c, nsName), false)
+	return r.reconcileAIJob(ctx, c, nsName, aiSeedJobName, r.aiSeedJob(c, nsName), true)
 }
 
 func (r *CellenzaReconciler) reconcileAITestJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, []string, error) {
@@ -452,19 +452,16 @@ func (r *CellenzaReconciler) reconcileAITestJob(ctx context.Context, c *platform
 	}
 
 	state, err := r.reconcileAIJob(ctx, c, nsName, aiTestJobName, r.aiTestJob(c, nsName), true)
-	if err != nil {
+	if state != phaseSucceeded && state != phaseFailed {
 		return state, nil, err
-	}
-	if state != phaseSucceeded {
-		return state, nil, nil
 	}
 
 	podName := r.firstPodName(ctx, nsName, client.MatchingLabels{"job-name": aiTestJobName})
 	if podName == "" {
-		return state, nil, nil
+		return state, nil, err
 	}
 	lines := r.fetchPodLogs(ctx, nsName, podName, "ai-tests", 200)
-	return state, extractAITestResults(lines), nil
+	return state, extractAITestResults(lines), err
 }
 
 func (r *CellenzaReconciler) reconcileAIJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, jobName string, desired *batchv1.Job, preserveLogs bool) (string, error) {
@@ -618,7 +615,10 @@ func (r *CellenzaReconciler) markAIEnrichmentFailed(c *platformv1alpha1.Cellenza
 	aiStatus := ensureAIEnrichmentStatus(c)
 	aiStatus.Phase = phaseFailed
 	aiStatus.Error = msg
+	now := metav1.Now()
+	aiStatus.CompletedAt = &now
 	aiStatus.Summary = buildAIEnrichmentSummary(c)
+	setAIEnrichmentCondition(c)
 }
 
 func buildAIEnrichmentSummary(c *platformv1alpha1.Cellenza) string {
@@ -637,6 +637,36 @@ func buildAIEnrichmentSummary(c *platformv1alpha1.Cellenza) string {
 		return "AI enrichment completed"
 	}
 	return "AI enrichment " + strings.Join(parts, ", ")
+}
+
+func setAIEnrichmentCondition(c *platformv1alpha1.Cellenza) {
+	aiStatus := c.Status.AIEnrichment
+	if aiStatus == nil {
+		return
+	}
+
+	status := metav1.ConditionFalse
+	reason := "AIEnrichmentFailed"
+	message := buildAIEnrichmentSummary(c)
+	if aiStatus.Error != "" {
+		message = fmt.Sprintf("%s (%s)", message, aiStatus.Error)
+	}
+
+	switch aiStatus.Phase {
+	case phaseSucceeded:
+		status = metav1.ConditionTrue
+		reason = "AIEnrichmentCompleted"
+	case phaseGenerating, phaseRunning, phasePending:
+		reason = "AIEnrichmentInProgress"
+	}
+
+	c.SetCondition(metav1.Condition{
+		Type:               platformv1alpha1.ConditionAIEnrichmentReady,
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	})
 }
 
 func extractAITestResults(lines []string) []string {

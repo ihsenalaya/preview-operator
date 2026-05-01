@@ -46,6 +46,7 @@ const (
 type CellenzaReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
+	APIReader        client.Reader
 	GitHubAPIBaseURL string
 	GitHubHTTPClient *http.Client
 	AIAPIBaseURL     string
@@ -206,6 +207,9 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if aiEnrichmentEnabled(cellenza) {
+		if err := r.refreshCellenza(ctx, req.NamespacedName, cellenza); err != nil {
+			return ctrl.Result{}, err
+		}
 		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
@@ -256,6 +260,21 @@ func (r *CellenzaReconciler) markRunningStatus(cellenza *platformv1alpha1.Cellen
 		Message:            fmt.Sprintf("Approved by: %s", cellenza.Spec.ApprovedBy),
 		LastTransitionTime: metav1.Now(),
 	})
+}
+
+func (r *CellenzaReconciler) refreshCellenza(ctx context.Context, key types.NamespacedName, cellenza *platformv1alpha1.Cellenza) error {
+	reader := r.APIReader
+	if reader == nil {
+		reader = r.Client
+	}
+
+	latest := &platformv1alpha1.Cellenza{}
+	if err := reader.Get(ctx, key, latest); err != nil {
+		return err
+	}
+
+	*cellenza = *latest
+	return nil
 }
 
 func isTTLExpired(cellenza *platformv1alpha1.Cellenza) bool {

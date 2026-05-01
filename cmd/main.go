@@ -104,6 +104,7 @@ func main() {
 	if err = (&controller.CellenzaReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
+		APIReader:        mgr.GetAPIReader(),
 		GitHubAPIBaseURL: "https://api.github.com",
 		GitHubHTTPClient: &http.Client{Timeout: 15 * time.Second},
 		KubeClient:       kubeClient,

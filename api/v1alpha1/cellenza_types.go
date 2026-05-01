@@ -205,8 +205,9 @@ type AIEnrichmentSpec struct {
 // AIEnrichmentTaskSpec configures one AI enrichment task (seed or tests).
 type AIEnrichmentTaskSpec struct {
 	// Enabled controls whether this task runs.
+	// When omitted, the task runs by default while AI enrichment is enabled.
 	// Explicitly set it to false to disable a task while keeping AI enrichment enabled.
-	// +kubebuilder:default=false
+	// +kubebuilder:default=true
 	Enabled bool `json:"enabled,omitempty"`
 
 	// Image is the container image used to run the task.

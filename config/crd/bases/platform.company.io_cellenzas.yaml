@@ -119,9 +119,10 @@ spec:
                       When omitted while AI enrichment is enabled, the operator treats this task as enabled.
                     properties:
                       enabled:
-                        default: false
+                        default: true
                         description: |-
                           Enabled controls whether this task runs.
+                          When omitted, the task runs by default while AI enrichment is enabled.
                           Explicitly set it to false to disable a task while keeping AI enrichment enabled.
                         type: boolean
                       image:
@@ -136,9 +137,10 @@ spec:
                       When omitted while AI enrichment is enabled, the operator treats this task as enabled.
                     properties:
                       enabled:
-                        default: false
+                        default: true
                         description: |-
                           Enabled controls whether this task runs.
+                          When omitted, the task runs by default while AI enrichment is enabled.
                           Explicitly set it to false to disable a task while keeping AI enrichment enabled.
                         type: boolean
                       image:

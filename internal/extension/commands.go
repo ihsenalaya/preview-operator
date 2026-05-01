@@ -91,6 +91,27 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		b.WriteString(fmt.Sprintf("\n**GitHub Deployment:** `%s`\n", gh.DeploymentState))
 	}
 
+	if aiEnabled(cz) || cz.Status.AIEnrichment != nil {
+		b.WriteString("\n**IA:**\n")
+		if ai := cz.Status.AIEnrichment; ai != nil {
+			b.WriteString(fmt.Sprintf("- Phase: %s\n", defaultAIStatus(ai.Phase, "Pending")))
+			if aiSeedTaskEnabled(cz) {
+				b.WriteString(fmt.Sprintf("- Seed: %s\n", defaultAIStatus(ai.SeedStatus, "Pending")))
+			}
+			if aiTestsTaskEnabled(cz) {
+				b.WriteString(fmt.Sprintf("- Tests: %s\n", defaultAIStatus(ai.TestsStatus, "Pending")))
+			}
+			for _, line := range ai.TestResults {
+				b.WriteString(fmt.Sprintf("- %s\n", line))
+			}
+			if ai.Error != "" {
+				b.WriteString(fmt.Sprintf("- Erreur: %s\n", ai.Error))
+			}
+		} else {
+			b.WriteString("- Phase: Pending\n")
+		}
+	}
+
 	if cz.Status.Phase == platformv1alpha1.PhaseFailed && cz.Status.Diagnostics != nil {
 		diag := cz.Status.Diagnostics
 		b.WriteString(fmt.Sprintf("\n**Erreur:** %s\n", diag.Message))
@@ -385,4 +406,35 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%dh", h)
 	}
 	return fmt.Sprintf("%dm", m)
+}
+
+func aiEnabled(cz *platformv1alpha1.Cellenza) bool {
+	return cz.Spec.AIEnrichment != nil && cz.Spec.AIEnrichment.Enabled
+}
+
+func aiSeedTaskEnabled(cz *platformv1alpha1.Cellenza) bool {
+	if !aiEnabled(cz) {
+		return false
+	}
+	if cz.Spec.AIEnrichment.Seed == nil {
+		return true
+	}
+	return cz.Spec.AIEnrichment.Seed.Enabled
+}
+
+func aiTestsTaskEnabled(cz *platformv1alpha1.Cellenza) bool {
+	if !aiEnabled(cz) {
+		return false
+	}
+	if cz.Spec.AIEnrichment.Tests == nil {
+		return true
+	}
+	return cz.Spec.AIEnrichment.Tests.Enabled
+}
+
+func defaultAIStatus(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
 }
