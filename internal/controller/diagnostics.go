@@ -444,4 +444,3 @@ func truncateDiagnosticLine(line string) string {
 	}
 	return line[:237] + "..."
 }
-

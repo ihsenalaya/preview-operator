@@ -199,6 +199,28 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// 9. Mark as Running
 	previewURL := fmt.Sprintf("http://pr-%d.preview.localtest.me:8080", cellenza.Spec.PRNumber)
+	r.markRunningStatus(cellenza, nsName, previewURL)
+
+	if err := r.Status().Update(ctx, cellenza); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if aiEnrichmentEnabled(cellenza) {
+		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+	}
+	syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
+
+	// Requeue before expiry to handle TTL cleanup
+	remaining := ttlRemaining(cellenza)
+	if remaining > 0 {
+		logger.Info("Requeuing before TTL expiry", "in", remaining)
+	}
+	return ctrl.Result{RequeueAfter: remaining}, nil
+}
+
+func (r *CellenzaReconciler) markRunningStatus(cellenza *platformv1alpha1.Cellenza, nsName, previewURL string) {
 	if cellenza.Status.ReadyAt == nil {
 		now := metav1.Now()
 		cellenza.Status.ReadyAt = &now
@@ -234,24 +256,6 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Message:            fmt.Sprintf("Approved by: %s", cellenza.Spec.ApprovedBy),
 		LastTransitionTime: metav1.Now(),
 	})
-
-	if err := r.Status().Update(ctx, cellenza); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if aiEnrichmentEnabled(cellenza) {
-		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
-			return result, err
-		}
-	}
-	syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
-
-	// Requeue before expiry to handle TTL cleanup
-	remaining := ttlRemaining(cellenza)
-	if remaining > 0 {
-		logger.Info("Requeuing before TTL expiry", "in", remaining)
-	}
-	return ctrl.Result{RequeueAfter: remaining}, nil
 }
 
 func isTTLExpired(cellenza *platformv1alpha1.Cellenza) bool {
