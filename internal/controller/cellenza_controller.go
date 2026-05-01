@@ -37,9 +37,9 @@ const (
 	migrationJobName   = "postgres-migrate"
 	seedJobName        = "postgres-seed"
 	aiJobCPURequest    = "50m"
-	aiJobMemoryRequest = "64Mi"
-	aiJobCPULimit      = "200m"
-	aiJobMemoryLimit   = "128Mi"
+	aiJobMemoryRequest = "128Mi"
+	aiJobCPULimit      = "500m"
+	aiJobMemoryLimit   = "512Mi"
 )
 
 // CellenzaReconciler reconciles Cellenza objects
@@ -570,6 +570,7 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 		deploy.Spec = appsv1.DeploymentSpec{
 			Replicas:                &replicas,
 			ProgressDeadlineSeconds: &progressDeadlineSeconds,
+			Strategy:                appsv1.DeploymentStrategy{Type: appsv1.RecreateDeploymentStrategyType},
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": "cellenza-preview"},
 			},

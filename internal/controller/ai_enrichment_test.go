@@ -155,10 +155,10 @@ func TestReconcileResourceQuotaAddsAIHeadroom(t *testing.T) {
 		}
 	}
 
-	assertQuantity(corev1.ResourceLimitsCPU, "1200m")
-	assertQuantity(corev1.ResourceLimitsMemory, "1152Mi")
+	assertQuantity(corev1.ResourceLimitsCPU, "1500m")
+	assertQuantity(corev1.ResourceLimitsMemory, "1536Mi")
 	assertQuantity(corev1.ResourceRequestsCPU, "350m")
-	assertQuantity(corev1.ResourceRequestsMemory, "448Mi")
+	assertQuantity(corev1.ResourceRequestsMemory, "512Mi")
 }
 
 func TestGenerateAndStoreAIContentSkipsWhenConfigMapExists(t *testing.T) {
