@@ -384,6 +384,17 @@ func (r *CellenzaReconciler) handleDeletion(ctx context.Context, cellenza *platf
 		return ctrl.Result{}, err
 	}
 
+	// Clean up AI prompt ConfigMap stored outside the preview namespace.
+	promptCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      aiPromptConfigMapName(cellenza.Name),
+			Namespace: defaultAISecretNamespace,
+		},
+	}
+	if err := r.Delete(ctx, promptCM); err != nil && !errors.IsNotFound(err) {
+		logger.Error(err, "Failed to delete AI prompt ConfigMap", "name", promptCM.Name)
+	}
+
 	ns := &corev1.Namespace{}
 	if err := r.Get(ctx, types.NamespacedName{Name: nsName}, ns); err == nil {
 		if ns.DeletionTimestamp.IsZero() {

@@ -175,6 +175,10 @@ func (s *Server) execute(ctx context.Context, msg string) string {
 		return s.cmdResetDB(ctx, args)
 	case "enrich":
 		return s.cmdEnrich(ctx, args)
+	case "set-prompt", "setprompt":
+		return s.cmdSetPrompt(ctx, args)
+	case "show-prompt", "showprompt":
+		return s.cmdShowPrompt(ctx, args)
 	case "list":
 		return s.cmdList(ctx)
 	case "help", "":

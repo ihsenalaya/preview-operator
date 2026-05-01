@@ -240,7 +240,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.11.4 \
+  --version 0.11.5 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -751,6 +751,33 @@ kubectl patch cz pr-42 --type=json \
 @cellenza enrich pr-42
 ```
 
+#### 6. Customize AI instructions per environment
+
+You can store custom prompt instructions directly in the cluster without touching the operator code:
+
+```
+@cellenza set-prompt pr-42 Generate at least 15 products across 5 categories. Only test /api/ endpoints.
+```
+
+The extension creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically on the next enrichment. Run `@cellenza enrich pr-42` afterward to regenerate with the new instructions.
+
+To check current instructions:
+
+```
+@cellenza show-prompt pr-42
+```
+
+The prompt ConfigMap follows the Cellenza lifecycle — it is automatically deleted when the environment is removed.
+
+To update via `kubectl` directly:
+
+```bash
+kubectl create configmap ai-prompt-pr-42 \
+  --namespace=cellenza-operator-system \
+  --from-literal=instructions="Generate at least 15 products across 5 categories." \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
 Apply it:
 
 ```bash
@@ -1018,6 +1045,7 @@ The extension server is a separate binary (`cmd/extension/`) deployed in `cellen
 | `cellenzas/status` | `get`, `patch`, `update` |
 | `pods` | `get`, `list`, `watch` |
 | `pods/log` | `get` |
+| `configmaps` (namespace `cellenza-operator-system`) | `get`, `create`, `patch` |
 
 ### Available commands
 
@@ -1032,6 +1060,8 @@ All responses are in French. Arguments accept `pr-42`, `42`, or `#42`.
 | `@cellenza wake pr-42` | Sets `spec.replicas` to `1` to restart a scaled-down environment |
 | `@cellenza reset-db pr-42` | Sets `spec.database.resetRequested: true` — operator deletes migration/seed jobs and re-runs them on next reconcile |
 | `@cellenza enrich pr-42` | Resets AI enrichment state, deletes generated artifacts, and asks the operator to regenerate seed + tests |
+| `@cellenza set-prompt pr-42 <instructions>` | Stores custom AI instructions for this environment in the cluster (no operator redeploy needed) |
+| `@cellenza show-prompt pr-42` | Displays the current custom prompt for this environment |
 | `@cellenza help` | Shows the command list |
 
 ### Setup from scratch
@@ -1139,6 +1169,21 @@ The extension patches `spec.database.resetRequested: true`. The controller detec
 
 The extension clears `status.aiEnrichment`, deletes `ai-enrichment`, `ai-seed`, `ai-tests`, and `ai-schema-dump` in the preview namespace, then lets the operator regenerate seed and tests on the next reconcile.
 
+### Customize AI instructions without redeploying
+
+```
+@cellenza set-prompt pr-42 Only test /api/ endpoints. Generate 20 products with realistic prices.
+@cellenza enrich pr-42
+```
+
+`set-prompt` creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically when generating seed and tests. No operator redeploy needed — the instructions take effect on the next `enrich` call. The ConfigMap is deleted automatically when the environment is removed.
+
+```
+@cellenza show-prompt pr-42
+```
+
+Returns the current custom instructions for that environment.
+
 ### Read pod logs from a failed environment
 
 ```
@@ -1174,7 +1219,7 @@ Failed to pull image "ghcr.io/acme/myapp:does-not-exist": not found
 ```
 
 ---
-`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42` · `@cellenza enrich pr-42`
+`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42` · `@cellenza enrich pr-42` · `@cellenza set-prompt pr-42 <instructions>`
 ```
 
 They can request the raw pod logs:
@@ -1444,7 +1489,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.11.4/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.11.5/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1548,8 +1593,8 @@ kubectl patch cellenza demo --type merge \
 ### Release a new version
 
 ```bash
-git tag v0.11.4
-git push origin v0.11.4
+git tag v0.11.5
+git push origin v0.11.5
 ```
 
 GitHub Actions will automatically:
@@ -1595,6 +1640,7 @@ The controller watches `Cellenza` resources cluster-wide and reconciles the foll
 - `ConfigMap` `ai-enrichment` — holds `seed.sql` (AI-generated INSERT statements) and `test.py` (AI-generated integration tests)
 - `Job` `ai-seed` — runs `psql -f /data/seed.sql` against the preview PostgreSQL
 - `Job` `ai-tests` — runs `pip install requests && python /data/test.py` with `APP_URL=http://app:80`
+- `ConfigMap` `ai-prompt-<name>` (in `cellenza-operator-system`) — optional custom AI instructions stored via `@cellenza set-prompt`; deleted automatically when the environment is removed
 
 A **finalizer** ensures all child resources (including the PostgreSQL deployment and credentials secret) are cleaned up even when the `Cellenza` is force-deleted.
 

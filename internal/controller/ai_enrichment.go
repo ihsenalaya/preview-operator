@@ -32,6 +32,7 @@ const (
 	defaultAISchemaDumpImage = "postgres:15-alpine"
 	defaultAIInternalAppURL  = "http://app:80"
 	defaultAITestImage       = "python:3.12-slim"
+	aiPromptConfigMapKey     = "instructions"
 
 	phaseSucceeded  = "Succeeded"
 	phaseFailed     = "Failed"
@@ -40,6 +41,19 @@ const (
 	phaseGenerating = "Generating"
 	phasePending    = "Pending"
 )
+
+func aiPromptConfigMapName(czName string) string {
+	return "ai-prompt-" + czName
+}
+
+func (r *CellenzaReconciler) fetchExtraInstructions(ctx context.Context, c *platformv1alpha1.Cellenza) string {
+	cm := &corev1.ConfigMap{}
+	key := types.NamespacedName{Name: aiPromptConfigMapName(c.Name), Namespace: defaultAISecretNamespace}
+	if err := r.Get(ctx, key, cm); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(cm.Data[aiPromptConfigMapKey])
+}
 
 func aiEnrichmentEnabled(c *platformv1alpha1.Cellenza) bool {
 	return c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Enabled
@@ -215,11 +229,12 @@ func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *p
 		aiClient.HTTPClient = r.AIHTTPClient
 	}
 	generated, err := aiClient.Generate(ctx, ai.GenerateRequest{
-		PRDiff:   diff,
-		DBSchema: schema,
-		AppURL:   defaultAIInternalAppURL,
-		Branch:   c.Spec.Branch,
-		PRNumber: c.Spec.PRNumber,
+		PRDiff:            diff,
+		DBSchema:          schema,
+		AppURL:            defaultAIInternalAppURL,
+		Branch:            c.Spec.Branch,
+		PRNumber:          c.Spec.PRNumber,
+		ExtraInstructions: r.fetchExtraInstructions(ctx, c),
 	})
 	if err != nil {
 		return false, err

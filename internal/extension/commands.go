@@ -122,7 +122,7 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza enrich %s`", name, name, name, name))
+	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza enrich %s` · `@cellenza set-prompt %s <instructions>`", name, name, name, name, name))
 	return b.String()
 }
 
@@ -281,6 +281,78 @@ func (s *Server) cmdResetDB(ctx context.Context, args []string) string {
 	return fmt.Sprintf("**Reset DB lancé** pour `%s`\n\nL'opérateur va:\n1. Supprimer les jobs migration et seed\n2. Recréer la base de données\n3. Rejouer les migrations\n4. Rejouer le seed\n\nSuivi: `@cellenza status %s`", name, name)
 }
 
+const (
+	aiPromptNamespace = "cellenza-operator-system"
+	aiPromptKey       = "instructions"
+)
+
+func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
+	name := parsePRArg(args)
+	if name == "" || len(args) < 2 {
+		return "Usage: `@cellenza set-prompt pr-<N> <instructions>`\n\nExemple: `@cellenza set-prompt pr-42 Ne génère pas de tests pour les endpoints HTML`"
+	}
+
+	if _, err := s.getCellenza(ctx, name); err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.\n\nUtilise `@cellenza list` pour voir les environnements actifs.", name)
+	}
+
+	instructions := strings.Join(args[1:], " ")
+	cmName := "ai-prompt-" + name
+
+	existing := &corev1.ConfigMap{}
+	err := s.crClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: aiPromptNamespace}, existing)
+	if errors.IsNotFound(err) {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cmName,
+				Namespace: aiPromptNamespace,
+				Labels: map[string]string{
+					"app.kubernetes.io/managed-by":      "cellenza-operator",
+					"platform.company.io/cellenza-name": name,
+					"app.kubernetes.io/component":       "ai-prompt",
+				},
+			},
+			Data: map[string]string{aiPromptKey: instructions},
+		}
+		if err := s.crClient.Create(ctx, cm); err != nil {
+			return fmt.Sprintf("Erreur lors de la création du prompt: %v", err)
+		}
+	} else if err != nil {
+		return fmt.Sprintf("Erreur: %v", err)
+	} else {
+		patch := client.MergeFrom(existing.DeepCopy())
+		existing.Data = map[string]string{aiPromptKey: instructions}
+		if err := s.crClient.Patch(ctx, existing, patch); err != nil {
+			return fmt.Sprintf("Erreur lors de la mise à jour du prompt: %v", err)
+		}
+	}
+
+	return fmt.Sprintf("**Prompt IA mis à jour** pour `%s`\n\nInstructions enregistrées:\n```\n%s\n```\n\nLance `@cellenza enrich %s` pour régénérer avec le nouveau prompt.", name, instructions, name)
+}
+
+func (s *Server) cmdShowPrompt(ctx context.Context, args []string) string {
+	name := parsePRArg(args)
+	if name == "" {
+		return "Usage: `@cellenza show-prompt pr-<N>`"
+	}
+
+	cmName := "ai-prompt-" + name
+	cm := &corev1.ConfigMap{}
+	err := s.crClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: aiPromptNamespace}, cm)
+	if errors.IsNotFound(err) {
+		return fmt.Sprintf("Aucun prompt personnalisé pour `%s`.\n\nUtilise `@cellenza set-prompt %s <instructions>` pour en définir un.", name, name)
+	}
+	if err != nil {
+		return fmt.Sprintf("Erreur: %v", err)
+	}
+
+	instructions := cm.Data[aiPromptKey]
+	if instructions == "" {
+		return fmt.Sprintf("Le prompt de `%s` est vide.", name)
+	}
+	return fmt.Sprintf("**Prompt IA — %s**\n\n```\n%s\n```", name, instructions)
+}
+
 func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
@@ -368,6 +440,8 @@ func cmdHelp() string { //nolint:misspell
 | ` + "`@cellenza wake pr-42`" + ` | Redémarre un environnement mis en veille |
 | ` + "`@cellenza reset-db pr-42`" + ` | Recrée la base de données + rejoue seed |
 | ` + "`@cellenza enrich pr-42`" + ` | Relance la génération IA de seed et de tests |
+| ` + "`@cellenza set-prompt pr-42 <instructions>`" + ` | Définit les instructions IA pour cet environnement |
+| ` + "`@cellenza show-prompt pr-42`" + ` | Affiche le prompt IA actuel |
 | ` + "`@cellenza help`" + ` | Affiche cette aide |`
 }
 

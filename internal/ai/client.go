@@ -36,11 +36,12 @@ func NewClient(baseURL, apiKey, model string) *Client {
 
 // GenerateRequest holds the context sent to the AI.
 type GenerateRequest struct {
-	PRDiff   string // git diff of the pull request (truncated to 8000 chars)
-	DBSchema string // pg_dump --schema-only output (empty if no database)
-	AppURL   string // preview app URL (e.g. http://app:8080)
-	Branch   string
-	PRNumber int
+	PRDiff            string // git diff of the pull request (truncated to 8000 chars)
+	DBSchema          string // pg_dump --schema-only output (empty if no database)
+	AppURL            string // preview app URL (e.g. http://app:8080)
+	Branch            string
+	PRNumber          int
+	ExtraInstructions string // custom instructions from the ai-prompt ConfigMap (optional)
 }
 
 // GenerateResponse holds the AI-generated content.
@@ -58,10 +59,18 @@ Given a pull request diff and optionally a database schema, generate:
    If no schema is provided, return an empty string.
 2. test_script: A Python script using the 'requests' library that tests the HTTP endpoints
    modified or added by the PR. The script must use the APP_URL environment variable as base URL.
+   IMPORTANT: Only test JSON/API endpoints (endpoints that call jsonify() or return JSON).
+   Skip form-based endpoints that render HTML templates or return redirects — do not test those.
+   Inspect the diff carefully: if a route uses render_template, redirect, or returns plain HTML,
+   exclude it from the test script entirely.
    Print each test result on a separate line as: "PASS <method> <path>" or "FAIL <method> <path> - <reason>".
    Exit with code 1 if any test fails.
 
 Respond ONLY with valid JSON: {"seed_sql": "...", "test_script": "..."}`
+
+	if req.ExtraInstructions != "" {
+		systemPrompt += "\n\nAdditional instructions:\n" + req.ExtraInstructions
+	}
 
 	userPrompt := fmt.Sprintf(
 		"Branch: %s\nPR #%d\n\nDiff:\n%s\n\nDB Schema:\n%s\n\nApp URL env var: APP_URL=%s",
