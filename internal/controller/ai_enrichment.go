@@ -114,6 +114,14 @@ func (r *CellenzaReconciler) fetchDBSchema(ctx context.Context, c *platformv1alp
 		return "", true, nil
 	}
 
+	// Explicit guard: schema dump must wait for migration to complete so the
+	// dumped schema reflects the post-migration state, not a stale snapshot.
+	if c.Spec.Database.Migration != nil && c.Spec.Database.Migration.Enabled {
+		if r.databaseTaskStatus(c, componentMigration) != phaseSucceeded {
+			return "", false, nil
+		}
+	}
+
 	job := &batchv1.Job{}
 	err := r.Get(ctx, types.NamespacedName{Name: aiSchemaJobName, Namespace: nsName}, job)
 	if errors.IsNotFound(err) {
