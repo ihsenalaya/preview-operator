@@ -1,7 +1,5 @@
 # cellenza-operator
 
-> test PR
-
 A Kubernetes operator that provisions **ephemeral preview environments** for pull requests. Each `Cellenza` resource creates a dedicated namespace with its own deployment, service, ingress, resource quota — and optionally a **PostgreSQL database with auto-generated credentials**, **OpenTelemetry auto-instrumentation**, and **GitHub Deployment/PR status updates** — and tears it all down automatically when the TTL expires.
 
 ## How it works
@@ -16,11 +14,11 @@ creates a Cellenza resource
       ▼
 Operator creates:
   • Namespace      preview-pr-42
-  • ResourceQuota  (based on resourceTier)
+  • ResourceQuota  (based on resourceTier, +headroom for DB and AI jobs)
   • Secret         postgres-credentials  (unique credentials, generated once)
   • Deployment     postgres              (optional, when database.enabled=true)
   • Service        postgres
-  • Deployment     app  (waits for postgres via init container)
+  • Deployment     app  (Recreate strategy, waits for postgres via init container)
   • Service        app
   • Ingress        →  pr-42.preview.localtest.me
   • OTEL annotations/env vars (optional, when telemetry.enabled=true)
@@ -28,6 +26,14 @@ Operator creates:
       ▼
 Operator updates GitHub Deployment / PR comment
 when github.enabled=true
+      │
+      ▼
+AI enrichment (when aiEnrichment.enabled=true):
+  • Fetches PR diff + dumps DB schema
+  • Calls AI API → generates seed.sql + test.py
+  • Job ai-seed  → psql seed.sql against the preview DB
+  • Job ai-tests → pip install requests && python test.py
+  • Results posted to PR comment and visible via @cellenza status
       │
       ▼
 Environment runs until TTL expires
@@ -234,7 +240,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.10.0 \
+  --version 0.11.1 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -645,6 +651,96 @@ kubectl get secret postgres-credentials -n preview-pr-42 \
   -o jsonpath='{.data.DATABASE_URL}' | base64 -d
 ```
 
+### With AI Enrichment
+
+After the preview reaches `Running`, the operator automatically generates context-aware seed data and integration tests by sending the PR diff and the live database schema to an AI API.
+
+#### 1. Create the API key Secret
+
+```bash
+# OpenAI
+kubectl create secret generic ai-api-key \
+  --namespace=cellenza-operator-system \
+  --from-literal=api-key=sk-...
+
+# GitHub Models (free tier)
+kubectl create secret generic ai-api-key \
+  --namespace=cellenza-operator-system \
+  --from-literal=api-key="$GITHUB_TOKEN"
+# Also override the API URL when using GitHub Models:
+helm upgrade cellenza-operator ... --set ai.apiURL=https://models.inference.ai.azure.com
+```
+
+#### 2. Enable in the Cellenza resource
+
+```yaml
+spec:
+  aiEnrichment:
+    enabled: true
+    apiSecretRef:
+      name: ai-api-key
+      key: api-key
+    model: gpt-4o-mini   # default, can be gpt-4o, etc.
+    seed:
+      enabled: true      # default: true when omitted
+    tests:
+      enabled: true      # default: true when omitted
+```
+
+#### 3. What happens
+
+```
+Preview Running
+      │
+      ▼
+ai-schema-dump Job  →  pg_dump --schema-only  →  ConfigMap ai-enrichment (schema)
+      │
+      ▼
+Operator calls AI API with:
+  • PR diff (GitHub API)          → what changed in this PR
+  • DB schema (from ConfigMap)    → table structure
+  • App URL (http://app:80)       → where to send HTTP requests
+      │
+      ▼
+AI generates:
+  • seed.sql  → INSERT statements with realistic, schema-aware data
+  • test.py   → integration tests targeting the modified code paths
+      │
+      ▼
+ai-seed Job   →  psql -f /data/seed.sql
+ai-tests Job  →  pip install requests && python /data/test.py
+      │
+      ▼
+Results in status.aiEnrichment.testResults[] and PR comment
+```
+
+#### 4. Monitor enrichment state
+
+```bash
+kubectl get cz pr-42 -o jsonpath='{.status.aiEnrichment}' | jq .
+```
+
+```json
+{
+  "phase": "Succeeded",
+  "seedStatus": "Succeeded",
+  "testStatus": "Succeeded",
+  "testResults": ["PASS: test_health", "PASS: test_create_product", "FAIL: test_order_stock — 409 expected"],
+  "completedAt": "2026-05-01T12:00:00Z"
+}
+```
+
+#### 5. Re-trigger enrichment
+
+```bash
+# Via kubectl
+kubectl patch cz pr-42 --type=json \
+  -p='[{"op":"remove","path":"/status/aiEnrichment"}]'
+
+# Via Copilot Extension
+@cellenza enrich pr-42
+```
+
 Apply it:
 
 ```bash
@@ -699,10 +795,19 @@ pr-42   Running        feature/my-feature  medium   pr-42.preview.localtest.me  
 | `github.tokenSecretRef.name` | string | — | Secret containing a GitHub token |
 | `github.tokenSecretRef.namespace` | string | `cellenza-operator-system` | Secret namespace |
 | `github.tokenSecretRef.key` | string | `token` | Secret data key |
+| `aiEnrichment.enabled` | bool | `false` | Generate seed SQL and integration tests via AI after the preview reaches Running |
+| `aiEnrichment.apiSecretRef.name` | string | — | Secret containing the AI API key (`api-key` key by default) |
+| `aiEnrichment.apiSecretRef.namespace` | string | `cellenza-operator-system` | Namespace of the API key secret |
+| `aiEnrichment.apiSecretRef.key` | string | `api-key` | Secret data key |
+| `aiEnrichment.model` | string | `gpt-4o-mini` | AI model name (e.g. `gpt-4o`, `gpt-4o-mini`) |
+| `aiEnrichment.seed.enabled` | bool | `true` | Run the `ai-seed` Job (psql the generated seed.sql) |
+| `aiEnrichment.seed.image` | string | `postgres:15-alpine` | Image override for the seed Job |
+| `aiEnrichment.tests.enabled` | bool | `true` | Run the `ai-tests` Job (python the generated test.py) |
+| `aiEnrichment.tests.image` | string | `python:3.12-slim` | Image override for the tests Job |
 
 ### Resource tiers
 
-When `database.enabled: true`, the operator automatically adds PostgreSQL headroom (+500m CPU / +512Mi RAM) to the namespace quota.
+When `database.enabled: true`, the operator automatically adds PostgreSQL headroom (+500m CPU / +512Mi RAM) to the namespace quota. When `aiEnrichment.enabled: true`, an additional +500m CPU / +512Mi RAM is reserved for AI jobs (`ai-seed`, `ai-tests`).
 
 | Tier | CPU request | CPU limit | Memory request | Memory limit |
 |---|---|---|---|---|
@@ -857,7 +962,14 @@ kubectl describe cellenza pr-42
 | `status.github.lastEnvironmentUrl` | Last URL sent to GitHub |
 | `status.github.commentId` | PR comment id created by the controller |
 | `status.github.lastError` | Latest non-blocking GitHub notification error |
-| `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady`, `MigrationReady`, `SeedReady` |
+| `status.aiEnrichment.phase` | AI enrichment lifecycle phase: `Pending`, `Generating`, `Running`, `Succeeded`, `Failed`, `Skipped` |
+| `status.aiEnrichment.seedStatus` | State of the `ai-seed` Job: `Pending`, `Running`, `Succeeded`, `Failed`, `Skipped` |
+| `status.aiEnrichment.testStatus` | State of the `ai-tests` Job: `Pending`, `Running`, `Succeeded`, `Failed`, `Skipped` |
+| `status.aiEnrichment.testResults` | Array of test result lines extracted from `ai-tests` output (`PASS: …` / `FAIL: …`) |
+| `status.aiEnrichment.summary` | Human-readable summary of what the AI generated |
+| `status.aiEnrichment.error` | Error message if the enrichment failed |
+| `status.aiEnrichment.completedAt` | Timestamp of enrichment completion |
+| `status.conditions` | Kubernetes-standard conditions: `Ready`, `Approved`, `Expired`, `DatabaseReady`, `MigrationReady`, `SeedReady`, `AIEnrichmentReady` |
 
 ---
 
@@ -1153,13 +1265,14 @@ The repository ships a ready-to-use Flask demo app (`demo-app/`) that showcases 
 - Displays all operator-injected env vars (`POSTGRES_USER`, `POSTGRES_DB`, `PREVIEW_BRANCH`, `PREVIEW_PR`, `ENVIRONMENT`)
 - Exposes `/healthz` for the readiness probe
 
+> **More advanced demo:** [ihsenalaya/idp-testing](https://github.com/ihsenalaya/idp-testing) is a full product catalogue app (categories, products, reviews, orders) that showcases AI enrichment — the AI generates real product names, prices, discounts, and star ratings from the PR diff and DB schema.
+
 ### Image
 
 Built automatically on every push to `main` or version tag:
 
 ```text
 ghcr.io/ihsenalaya/cellenza-demo-app:latest
-ghcr.io/ihsenalaya/cellenza-demo-app:0.5.1
 ```
 
 ### Deploy with the demo Cellenza manifest
@@ -1318,7 +1431,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.10.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.11.1/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1338,7 +1451,7 @@ helm uninstall cellenza-operator -n cellenza-operator-system
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - Docker
 - `kubectl` with access to a cluster (Kind recommended for local dev)
 - `make`
@@ -1422,8 +1535,8 @@ kubectl patch cellenza demo --type merge \
 ### Release a new version
 
 ```bash
-git tag v0.10.0
-git push origin v0.10.0
+git tag v0.11.1
+git push origin v0.11.1
 ```
 
 GitHub Actions will automatically:
@@ -1465,6 +1578,10 @@ The controller watches `Cellenza` resources cluster-wide and reconciles the foll
 - `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready and optional OpenTelemetry auto-instrumentation annotations
 - `Service` `app` — ClusterIP service for the app
 - `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`
+- `Job` `ai-schema-dump` — dumps the DB schema via `pg_dump --schema-only` and stores it in a ConfigMap
+- `ConfigMap` `ai-enrichment` — holds `seed.sql` (AI-generated INSERT statements) and `test.py` (AI-generated integration tests)
+- `Job` `ai-seed` — runs `psql -f /data/seed.sql` against the preview PostgreSQL
+- `Job` `ai-tests` — runs `pip install requests && python /data/test.py` with `APP_URL=http://app:80`
 
 A **finalizer** ensures all child resources (including the PostgreSQL deployment and credentials secret) are cleaned up even when the `Cellenza` is force-deleted.
 
