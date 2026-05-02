@@ -240,7 +240,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.11.5 \
+  --version 0.11.6 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -1045,7 +1045,7 @@ The extension server is a separate binary (`cmd/extension/`) deployed in `cellen
 | `cellenzas/status` | `get`, `patch`, `update` |
 | `pods` | `get`, `list`, `watch` |
 | `pods/log` | `get` |
-| `configmaps` (namespace `cellenza-operator-system`) | `get`, `create`, `patch` |
+| `configmaps` (namespace `cellenza-operator-system`) | `get`, `create`, `patch`, `update`, `delete` |
 
 ### Available commands
 
@@ -1489,7 +1489,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.11.5/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.11.6/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1593,8 +1593,8 @@ kubectl patch cellenza demo --type merge \
 ### Release a new version
 
 ```bash
-git tag v0.11.5
-git push origin v0.11.5
+git tag v0.11.6
+git push origin v0.11.6
 ```
 
 GitHub Actions will automatically:

@@ -50,6 +50,79 @@ func TestGenerateParsesResponse(t *testing.T) {
 	}
 }
 
+func TestBuildSystemPromptGuidesTestsToAPIEndpoints(t *testing.T) {
+	prompt := buildSystemPrompt("Only test stable product endpoints.")
+
+	for _, want := range []string{
+		"Only test JSON/API endpoints",
+		"/api/",
+		"request.form",
+		"redirect()",
+		"/add-product",
+		"requests.post(..., json=...)",
+		"Only test stable product endpoints.",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("system prompt missing %q:\n%s", want, prompt)
+		}
+	}
+}
+
+func TestSummarizeRoutesFromDiffClassifiesBrowserAndAPIEndpoints(t *testing.T) {
+	diff := `diff --git a/app.py b/app.py
+@@
++@app.route("/add-product", methods=["POST"])
++def add_product():
++    name = request.form.get("name")
++    return redirect("/")
++
++@app.route("/api/products", methods=["POST"])
++def api_create_product():
++    data = request.get_json(silent=True) or {}
++    return jsonify({"id": 1}), 201
++
++@app.route("/healthz")
++def healthz():
++    return "ok", 200
+-@app.route("/old-form", methods=["POST"])
+-def old_form():
+-    return redirect("/")
+`
+
+	summary := summarizeRoutesFromDiff(diff)
+	for _, want := range []string{
+		"/add-product: browser/form HTML or redirect endpoint",
+		"/api/products: JSON/API candidate",
+		"/healthz: health endpoint",
+	} {
+		if !strings.Contains(summary, want) {
+			t.Fatalf("route summary missing %q:\n%s", want, summary)
+		}
+	}
+	if strings.Contains(summary, "/old-form") {
+		t.Fatalf("route summary should ignore removed routes:\n%s", summary)
+	}
+}
+
+func TestBuildUserPromptIncludesRouteHints(t *testing.T) {
+	prompt := buildUserPrompt(GenerateRequest{
+		PRDiff: `+@app.route("/add-product", methods=["POST"])
++def add_product():
++    name = request.form.get("name")
++    return redirect("/")`,
+		AppURL:   "http://app:80",
+		Branch:   "feature/test",
+		PRNumber: 25,
+	})
+
+	if !strings.Contains(prompt, "Route hints from the PR diff") {
+		t.Fatalf("expected user prompt to include route hints:\n%s", prompt)
+	}
+	if !strings.Contains(prompt, "/add-product: browser/form HTML or redirect endpoint") {
+		t.Fatalf("expected user prompt to classify /add-product as browser/form:\n%s", prompt)
+	}
+}
+
 func TestTruncateAppendsSuffix(t *testing.T) {
 	got := truncate(strings.Repeat("a", 10), 5)
 	if !strings.Contains(got, "... (truncated)") {

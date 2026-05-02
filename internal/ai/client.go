@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const defaultModel = "gpt-4o-mini"
+
+var routeDecoratorRE = regexp.MustCompile(`@\w+\.(?:route|get|post|put|patch|delete)\(\s*["']([^"']+)["']`)
 
 // Client is an OpenAI-compatible AI client.
 type Client struct {
@@ -52,34 +55,8 @@ type GenerateResponse struct {
 
 // Generate calls the AI API and returns seed SQL and a test script.
 func (c *Client) Generate(ctx context.Context, req GenerateRequest) (*GenerateResponse, error) {
-	systemPrompt := `You are a developer tool for Kubernetes preview environments.
-Given a pull request diff and optionally a database schema, generate:
-1. seed_sql: SQL INSERT statements that populate the preview database with realistic data
-   relevant to the PR changes. Use only tables that exist in the schema.
-   If no schema is provided, return an empty string.
-2. test_script: A Python script using the 'requests' library that tests the HTTP endpoints
-   modified or added by the PR. The script must use the APP_URL environment variable as base URL.
-   IMPORTANT: Only test JSON/API endpoints (endpoints that call jsonify() or return JSON).
-   Skip form-based endpoints that render HTML templates or return redirects — do not test those.
-   Inspect the diff carefully: if a route uses render_template, redirect, or returns plain HTML,
-   exclude it from the test script entirely.
-   Print each test result on a separate line as: "PASS <method> <path>" or "FAIL <method> <path> - <reason>".
-   Exit with code 1 if any test fails.
-
-Respond ONLY with valid JSON: {"seed_sql": "...", "test_script": "..."}`
-
-	if req.ExtraInstructions != "" {
-		systemPrompt += "\n\nAdditional instructions:\n" + req.ExtraInstructions
-	}
-
-	userPrompt := fmt.Sprintf(
-		"Branch: %s\nPR #%d\n\nDiff:\n%s\n\nDB Schema:\n%s\n\nApp URL env var: APP_URL=%s",
-		req.Branch,
-		req.PRNumber,
-		truncate(req.PRDiff, 8000),
-		truncate(req.DBSchema, 4000),
-		req.AppURL,
-	)
+	systemPrompt := buildSystemPrompt(req.ExtraInstructions)
+	userPrompt := buildUserPrompt(req)
 
 	body, err := json.Marshal(map[string]any{
 		"model": c.Model,
@@ -143,6 +120,147 @@ Respond ONLY with valid JSON: {"seed_sql": "...", "test_script": "..."}`
 		SeedSQL:    generated.SeedSQL,
 		TestScript: generated.TestScript,
 	}, nil
+}
+
+func buildSystemPrompt(extraInstructions string) string {
+	systemPrompt := `You are a developer tool for Kubernetes preview environments.
+Given a pull request diff and optionally a database schema, generate:
+1. seed_sql: SQL INSERT statements that populate the preview database with realistic data
+   relevant to the PR changes. Use only tables that exist in the schema.
+   If no schema is provided, return an empty string.
+2. test_script: A Python script using the 'requests' library that tests the HTTP endpoints
+   modified or added by the PR. The script must use the APP_URL environment variable as base URL.
+   IMPORTANT: Only test JSON/API endpoints.
+   Prefer routes whose path starts with /api/ and whose handler uses jsonify(), request.get_json(),
+   or another explicit JSON response.
+   Health endpoints such as /healthz or /ping may be tested with status or plain-text assertions
+   when they are explicitly present in the diff.
+   Skip browser/form endpoints, even if they use POST. Any route that reads request.form,
+   renders HTML, calls render_template(), calls render_page(), or returns redirect() is not an API
+   test target.
+   Do not invent JSON contracts for form routes. For example, a route like /add-product that reads
+   request.form and redirects must not be tested with requests.post(..., json=...); use an existing
+   /api/... endpoint instead if one is available.
+   Do not assert on root pages or localized/static HTML text.
+   Follow the route hints in the user message over route-name guesses.
+   Print each test result on a separate line as: "PASS <method> <path>" or "FAIL <method> <path> - <reason>".
+   Exit with code 1 if any test fails.
+
+Respond ONLY with valid JSON: {"seed_sql": "...", "test_script": "..."}`
+
+	if strings.TrimSpace(extraInstructions) != "" {
+		systemPrompt += "\n\nAdditional instructions:\n" + strings.TrimSpace(extraInstructions)
+	}
+
+	return systemPrompt
+}
+
+func buildUserPrompt(req GenerateRequest) string {
+	userPrompt := fmt.Sprintf(
+		"Branch: %s\nPR #%d\n\nDiff:\n%s\n\nDB Schema:\n%s\n\nApp URL env var: APP_URL=%s",
+		req.Branch,
+		req.PRNumber,
+		truncate(req.PRDiff, 8000),
+		truncate(req.DBSchema, 4000),
+		req.AppURL,
+	)
+
+	if routeHints := summarizeRoutesFromDiff(req.PRDiff); routeHints != "" {
+		userPrompt += "\n\n" + routeHints
+	}
+
+	return userPrompt
+}
+
+type routeHint struct {
+	path    string
+	json    bool
+	browser bool
+}
+
+func summarizeRoutesFromDiff(diff string) string {
+	routes := map[string]*routeHint{}
+	var order []string
+	var current *routeHint
+
+	for _, raw := range strings.Split(diff, "\n") {
+		line, ok := diffContentLine(raw)
+		if !ok {
+			continue
+		}
+
+		if match := routeDecoratorRE.FindStringSubmatch(line); len(match) == 2 {
+			path := match[1]
+			current = routes[path]
+			if current == nil {
+				current = &routeHint{path: path}
+				routes[path] = current
+				order = append(order, path)
+			}
+			continue
+		}
+		if current == nil {
+			continue
+		}
+
+		lower := strings.ToLower(line)
+		if strings.Contains(lower, "jsonify(") ||
+			strings.Contains(lower, "request.get_json") ||
+			strings.Contains(lower, "application/json") {
+			current.json = true
+		}
+		if strings.Contains(lower, "request.form") ||
+			strings.Contains(lower, "redirect(") ||
+			strings.Contains(lower, "render_template(") ||
+			strings.Contains(lower, "render_page(") ||
+			strings.Contains(lower, "text/html") ||
+			strings.Contains(lower, "<!doctype html") ||
+			strings.Contains(lower, "<html") {
+			current.browser = true
+		}
+	}
+
+	if len(order) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("Route hints from the PR diff:\n")
+	for _, path := range order {
+		hint := routes[path]
+		switch {
+		case hint.browser:
+			fmt.Fprintf(&b, "- %s: browser/form HTML or redirect endpoint; do not create JSON/API tests for this route.\n", path)
+		case hint.json || strings.HasPrefix(path, "/api/"):
+			fmt.Fprintf(&b, "- %s: JSON/API candidate; test it with requests and JSON assertions only if it is relevant to the PR.\n", path)
+		case path == "/healthz" || path == "/ping":
+			fmt.Fprintf(&b, "- %s: health endpoint; status or exact plain-text assertions are acceptable.\n", path)
+		default:
+			fmt.Fprintf(&b, "- %s: no JSON evidence detected; test it only if the handler clearly returns JSON.\n", path)
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func diffContentLine(line string) (string, bool) {
+	if strings.HasPrefix(line, "diff --git ") ||
+		strings.HasPrefix(line, "index ") ||
+		strings.HasPrefix(line, "@@") ||
+		strings.HasPrefix(line, "+++") ||
+		strings.HasPrefix(line, "---") {
+		return "", false
+	}
+	if line == "" {
+		return "", true
+	}
+	switch line[0] {
+	case '+', ' ':
+		return line[1:], true
+	case '-':
+		return "", false
+	default:
+		return line, true
+	}
 }
 
 func truncate(s string, max int) string {
