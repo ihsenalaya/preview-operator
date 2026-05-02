@@ -28,6 +28,14 @@ Operator updates GitHub Deployment / PR comment
 when github.enabled=true
       │
       ▼
+Test Suite (when testSuite.enabled=true):
+  • Job smoke-tests      → tests /health + /api/products (operator-built-in)
+  • Job regression-tests → runs /app/tests/regression.py from the app image
+  • Job e2e-tests        → runs /app/tests/e2e.py from the app image
+  • All three jobs run in parallel
+  • Results posted as a dedicated PR comment with pass/fail table
+      │
+      ▼
 AI enrichment (when aiEnrichment.enabled=true):
   • Fetches PR diff + dumps DB schema
   • Calls AI API → generates seed.sql + test.py
@@ -240,7 +248,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.11.8 \
+  --version 0.12.0 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -447,6 +455,81 @@ kubectl port-forward -n observability svc/jaeger 16686:16686
 ```
 
 For the Flask demo app, Python auto-instrumentation produces HTTP spans for `GET /` and database spans for the PostgreSQL queries.
+
+### With Automated Test Suite
+
+The operator runs **smoke, regression, and E2E tests automatically** after the preview environment is ready — all three jobs run in parallel. Results are posted as a dedicated PR comment.
+
+#### Why this matters vs a classic test environment
+
+| Capability | Classic staging | Cellenza preview |
+|-----------|----------------|-----------------|
+| Isolated per PR | ❌ shared state | ✅ dedicated namespace |
+| Real database | ⚠️ often mocked | ✅ live PostgreSQL |
+| Contextual seed data | ❌ generic fixtures | ✅ AI-generated from PR diff |
+| Parallel PRs | ❌ flaky | ✅ no pollution between PRs |
+| Results on PR | manual | ✅ automatic comment |
+
+#### Required: test scripts in the app image
+
+Add `tests/regression.py` and `tests/e2e.py` to your app repo. The operator mounts them via the app image. Output lines starting with `PASS`/`FAIL` are parsed automatically.
+
+```python
+# tests/regression.py
+import requests, sys, os
+BASE = os.environ.get("APP_URL", "http://app:80")
+
+tests = [
+    ("health", "/health", 200),
+    ("products", "/api/products", 200),
+]
+passed, failed = 0, 0
+for name, path, code in tests:
+    r = requests.get(BASE + path, timeout=10)
+    if r.status_code == code:
+        print(f"PASS regression {name}: {r.status_code}")
+        passed += 1
+    else:
+        print(f"FAIL regression {name}: expected {code} got {r.status_code}")
+        failed += 1
+print(f"Results: {passed} passed, {failed} failed")
+sys.exit(1 if failed else 0)
+```
+
+#### Cellenza spec
+
+```yaml
+spec:
+  testSuite:
+    enabled: true
+    smoke: {}                    # built-in, no config needed
+    regression:
+      enabled: true              # default command: python /app/tests/regression.py
+    e2e:
+      enabled: true              # default command: python /app/tests/e2e.py
+```
+
+#### GitHub PR comment produced
+
+```
+## Cellenza Test Suite Results
+
+**Overall: ✅ Succeeded**
+
+| Suite      | Status        | Passed | Failed |
+|------------|---------------|--------|--------|
+| Smoke      | ✅ Succeeded  | 2      | 0      |
+| Regression | ✅ Succeeded  | 8      | 0      |
+| E2E        | ✅ Succeeded  | 4      | 0      |
+```
+
+#### Check status via CLI
+
+```bash
+kubectl get cz pr-42 -o jsonpath='{.status.tests}'
+```
+
+---
 
 ### With GitHub Deployment automation
 
@@ -1489,7 +1572,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.11.8/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.12.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1593,8 +1676,8 @@ kubectl patch cellenza demo --type merge \
 ### Release a new version
 
 ```bash
-git tag v0.11.8
-git push origin v0.11.8
+git tag v0.12.0
+git push origin v0.12.0
 ```
 
 GitHub Actions will automatically:

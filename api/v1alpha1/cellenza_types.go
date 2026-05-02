@@ -324,6 +324,10 @@ type CellenzaSpec struct {
 	// AIEnrichment configures AI-powered seed data and test generation after deployment.
 	// +optional
 	AIEnrichment *AIEnrichmentSpec `json:"aiEnrichment,omitempty"`
+
+	// TestSuite configures automated smoke, regression, and E2E tests run after deployment.
+	// +optional
+	TestSuite *TestSuiteSpec `json:"testSuite,omitempty"`
 }
 
 // GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.
@@ -344,6 +348,10 @@ type GitHubIntegrationStatus struct {
 	// +optional
 	CommentID int64 `json:"commentId,omitempty"`
 
+	// TestsCommentID is the GitHub issue comment id for the test results comment.
+	// +optional
+	TestsCommentID int64 `json:"testsCommentId,omitempty"`
+
 	// LastError stores the latest non-blocking GitHub notification error.
 	// +optional
 	LastError string `json:"lastError,omitempty"`
@@ -351,6 +359,81 @@ type GitHubIntegrationStatus struct {
 	// LastNotifiedAt is when the latest GitHub notification was sent.
 	// +optional
 	LastNotifiedAt *metav1.Time `json:"lastNotifiedAt,omitempty"`
+}
+
+// TestResult holds the outcome of a single test job.
+type TestResult struct {
+	// Phase: Pending | Running | Succeeded | Failed | Skipped
+	// +optional
+	Phase string `json:"phase,omitempty"`
+
+	// Passed is the number of passing test cases.
+	// +optional
+	Passed int `json:"passed,omitempty"`
+
+	// Failed is the number of failing test cases.
+	// +optional
+	Failed int `json:"failed,omitempty"`
+
+	// Output contains the PASS/FAIL lines from the test job.
+	// +optional
+	Output []string `json:"output,omitempty"`
+}
+
+// TestSuiteStatus describes the observed state of the test suite.
+type TestSuiteStatus struct {
+	// Phase: Pending | Running | Succeeded | Failed
+	// +optional
+	Phase string `json:"phase,omitempty"`
+
+	// Smoke holds the smoke test results.
+	// +optional
+	Smoke TestResult `json:"smoke,omitempty"`
+
+	// Regression holds the regression test results.
+	// +optional
+	Regression TestResult `json:"regression,omitempty"`
+
+	// E2E holds the end-to-end test results.
+	// +optional
+	E2E TestResult `json:"e2e,omitempty"`
+}
+
+// TestRunSpec configures a test job run by the operator.
+type TestRunSpec struct {
+	// Enabled controls whether this test type runs.
+	// +kubebuilder:default=true
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Command overrides the default command used to run the tests.
+	// +optional
+	Command []string `json:"command,omitempty"`
+
+	// Image overrides the container image. Defaults to the app image.
+	// +optional
+	Image string `json:"image,omitempty"`
+}
+
+// TestSuiteSpec configures the automated test suite run by the operator after deployment.
+type TestSuiteSpec struct {
+	// Enabled controls whether the test suite runs after the environment is ready.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Smoke configures the smoke test job (health check endpoints).
+	// +optional
+	Smoke *TestRunSpec `json:"smoke,omitempty"`
+
+	// Regression configures the regression test job (existing endpoints).
+	// Default command: sh -c "pip install requests -q && python /app/tests/regression.py"
+	// +optional
+	Regression *TestRunSpec `json:"regression,omitempty"`
+
+	// E2E configures the end-to-end test job (full user flows).
+	// Default command: sh -c "pip install requests -q && python /app/tests/e2e.py"
+	// +optional
+	E2E *TestRunSpec `json:"e2e,omitempty"`
 }
 
 // CellenzaStatus defines the observed state
@@ -393,6 +476,10 @@ type CellenzaStatus struct {
 	// +optional
 	AIEnrichment *AIEnrichmentStatus `json:"aiEnrichment,omitempty"`
 
+	// Tests describes the observed test suite state.
+	// +optional
+	Tests *TestSuiteStatus `json:"tests,omitempty"`
+
 	// ReadyAt is the timestamp when the environment first reached the Running phase.
 	// +optional
 	ReadyAt *metav1.Time `json:"readyAt,omitempty"`
@@ -407,6 +494,7 @@ const (
 	ConditionMigrationReady    = "MigrationReady"
 	ConditionSeedReady         = "SeedReady"
 	ConditionAIEnrichmentReady = "AIEnrichmentReady"
+	ConditionTestSuiteReady    = "TestSuiteReady"
 )
 
 // DatabaseStatus describes the observed database state for the preview environment.

@@ -210,6 +210,15 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 	}
 
+	if testSuiteEnabled(cellenza) {
+		if err := r.refreshCellenza(ctx, req.NamespacedName, cellenza); err != nil {
+			return ctrl.Result{}, err
+		}
+		if result, err := r.reconcileTestSuite(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+	}
+
 	if aiEnrichmentEnabled(cellenza) {
 		if err := r.refreshCellenza(ctx, req.NamespacedName, cellenza); err != nil {
 			return ctrl.Result{}, err
@@ -427,11 +436,15 @@ func (r *CellenzaReconciler) deleteKnownChildren(ctx context.Context, nsName str
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "postgres", Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: migrationJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: seedJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: regressionJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: e2eJobName, Namespace: nsName}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "postgres", Namespace: nsName}},
 		&networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
 		&corev1.ResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: "cellenza-quota", Namespace: nsName}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: postgresSecretName, Namespace: nsName}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testSuiteConfigMap, Namespace: nsName}},
 	}
 
 	for _, child := range children {
@@ -504,6 +517,16 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 		memLimit.Add(resource.MustParse(aiJobMemoryLimit))
 		cpuReq.Add(resource.MustParse(aiJobCPURequest))
 		memReq.Add(resource.MustParse(aiJobMemoryRequest))
+	}
+
+	if testSuiteEnabled(c) {
+		// Three test jobs run in parallel — reserve headroom for all three simultaneously.
+		for i := 0; i < 3; i++ {
+			cpuLimit.Add(resource.MustParse(testJobCPULimit))
+			memLimit.Add(resource.MustParse(testJobMemoryLimit))
+			cpuReq.Add(resource.MustParse(testJobCPURequest))
+			memReq.Add(resource.MustParse(testJobMemoryRequest))
+		}
 	}
 
 	quota := &corev1.ResourceQuota{

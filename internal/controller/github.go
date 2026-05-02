@@ -376,6 +376,104 @@ func defaultStatus(value string) string {
 	return value
 }
 
+func (r *CellenzaReconciler) postTestResultsComment(ctx context.Context, c *platformv1alpha1.Cellenza) {
+	logger := log.FromContext(ctx)
+	if !githubEnabled(c) || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
+		return
+	}
+	if c.Status.GitHub != nil && c.Status.GitHub.TestsCommentID != 0 {
+		return // already posted
+	}
+
+	token, err := r.githubToken(ctx, c)
+	if err != nil {
+		logger.Error(err, "Failed to read GitHub token for test results comment")
+		return
+	}
+
+	body := buildTestResultsCommentBody(c)
+	var response githubIssueCommentResponse
+	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
+		url.PathEscape(c.Spec.GitHub.Owner),
+		url.PathEscape(c.Spec.GitHub.Repo),
+		c.Spec.PRNumber,
+	)
+	if err := r.githubPost(ctx, token, path, githubIssueCommentRequest{Body: body}, &response); err != nil {
+		logger.Error(err, "Failed to post test results comment")
+		return
+	}
+
+	if c.Status.GitHub == nil {
+		c.Status.GitHub = &platformv1alpha1.GitHubIntegrationStatus{}
+	}
+	if response.ID != 0 {
+		c.Status.GitHub.TestsCommentID = response.ID
+	}
+	_ = r.Status().Update(ctx, c)
+}
+
+func buildTestResultsCommentBody(c *platformv1alpha1.Cellenza) string {
+	tests := c.Status.Tests
+	if tests == nil {
+		return "## Cellenza Test Suite\n\nNo test results available."
+	}
+
+	var b strings.Builder
+	b.WriteString("## Cellenza Test Suite Results\n\n")
+
+	overallIcon := "✅"
+	if tests.Phase == phaseFailed {
+		overallIcon = "❌"
+	}
+	b.WriteString(fmt.Sprintf("**Overall: %s %s**\n\n", overallIcon, tests.Phase))
+
+	b.WriteString("| Suite | Status | Passed | Failed |\n")
+	b.WriteString("|-------|--------|--------|--------|\n")
+	b.WriteString(fmt.Sprintf("| Smoke | %s | %d | %d |\n",
+		testResultBadge(tests.Smoke.Phase), tests.Smoke.Passed, tests.Smoke.Failed))
+	b.WriteString(fmt.Sprintf("| Regression | %s | %d | %d |\n",
+		testResultBadge(tests.Regression.Phase), tests.Regression.Passed, tests.Regression.Failed))
+	b.WriteString(fmt.Sprintf("| E2E | %s | %d | %d |\n",
+		testResultBadge(tests.E2E.Phase), tests.E2E.Passed, tests.E2E.Failed))
+
+	for _, suite := range []struct {
+		name   string
+		result platformv1alpha1.TestResult
+	}{
+		{"Smoke", tests.Smoke},
+		{"Regression", tests.Regression},
+		{"E2E", tests.E2E},
+	} {
+		if len(suite.result.Output) > 0 {
+			b.WriteString(fmt.Sprintf("\n<details>\n<summary>%s Details</summary>\n\n```\n", suite.name))
+			for _, line := range suite.result.Output {
+				b.WriteString(line)
+				b.WriteByte('\n')
+			}
+			b.WriteString("```\n</details>\n")
+		}
+	}
+
+	b.WriteString(fmt.Sprintf("\n**Preview URL:** %s\n", c.Status.URL))
+	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
+	return b.String()
+}
+
+func testResultBadge(phase string) string {
+	switch phase {
+	case phaseSucceeded:
+		return "✅ Succeeded"
+	case phaseFailed:
+		return "❌ Failed"
+	case phaseSkipped:
+		return "⏭️ Skipped"
+	case phaseRunning:
+		return "🔄 Running"
+	default:
+		return "⏳ Pending"
+	}
+}
+
 func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string, payload any, response any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
