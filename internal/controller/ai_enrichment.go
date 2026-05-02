@@ -696,7 +696,7 @@ func extractAITestResults(lines []string) []string {
 	var results []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "PASS ") || strings.HasPrefix(trimmed, "FAIL ") {
+		if strings.HasPrefix(trimmed, "PASS") || strings.HasPrefix(trimmed, "FAIL") {
 			results = append(results, trimmed)
 		}
 	}

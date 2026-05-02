@@ -2,8 +2,8 @@ apiVersion: v2
 name: cellenza-operator
 description: Kubernetes operator for managing ephemeral preview environments with optional PostgreSQL sidecar
 type: application
-version: 0.11.5
-appVersion: "0.11.5"
+version: 0.11.6
+appVersion: "0.11.6"
 keywords:
   - kubernetes
   - operator
