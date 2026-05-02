@@ -10,6 +10,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -353,6 +354,100 @@ func (s *Server) cmdShowPrompt(ctx context.Context, args []string) string {
 	return fmt.Sprintf("**Prompt IA — %s**\n\n```\n%s\n```", name, instructions)
 }
 
+func (s *Server) cmdRunSQL(ctx context.Context, args []string) string {
+	name := parsePRArg(args)
+	if name == "" || len(args) < 2 {
+		return "Usage: `@cellenza run-sql pr-<N> <sql>`\n\nExemple: `@cellenza run-sql pr-42 SELECT COUNT(*) FROM products;`"
+	}
+
+	cz, err := s.getCellenza(ctx, name)
+	if err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.", name)
+	}
+	if cz.Spec.Database == nil || !cz.Spec.Database.Enabled {
+		return fmt.Sprintf("`%s` n'a pas de base de données activée.", name)
+	}
+
+	nsName := cz.Status.NamespaceName
+	if nsName == "" {
+		nsName = fmt.Sprintf("preview-pr-%d", cz.Spec.PRNumber)
+	}
+
+	sql := strings.Join(args[1:], " ")
+	jobName := fmt.Sprintf("run-sql-%d", time.Now().Unix())
+	backoffLimit := int32(0)
+	ttl := int32(120)
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: nsName,
+			Labels:    map[string]string{"app.kubernetes.io/managed-by": "cellenza-extension"},
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{{
+						Name:    "psql",
+						Image:   "postgres:15-alpine",
+						Command: []string{"psql", "-c", sql},
+						Env: []corev1.EnvVar{
+							{Name: "PGHOST", Value: "postgres"},
+							{Name: "PGPORT", Value: "5432"},
+							{
+								Name: "PGUSER",
+								ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: "postgres-credentials"},
+									Key:                  "POSTGRES_USER",
+								}},
+							},
+							{
+								Name: "PGPASSWORD",
+								ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: "postgres-credentials"},
+									Key:                  "POSTGRES_PASSWORD",
+								}},
+							},
+							{
+								Name: "PGDATABASE",
+								ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: "postgres-credentials"},
+									Key:                  "POSTGRES_DB",
+								}},
+							},
+						},
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *mustParseQuantity("50m"),
+								corev1.ResourceMemory: *mustParseQuantity("64Mi"),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *mustParseQuantity("200m"),
+								corev1.ResourceMemory: *mustParseQuantity("128Mi"),
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	if err := s.crClient.Create(ctx, job); err != nil {
+		return fmt.Sprintf("Erreur lors de la création du job: %v", err)
+	}
+
+	return fmt.Sprintf("**SQL lancé** sur `%s`\n\n```sql\n%s\n```\n\nJob: `%s/%s`\n\nRésultat dans ~5s:\n```bash\nkubectl logs -n %s job/%s\n```",
+		name, sql, nsName, jobName, nsName, jobName)
+}
+
+func mustParseQuantity(s string) *resource.Quantity {
+	q := resource.MustParse(s)
+	return &q
+}
+
 func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
@@ -439,6 +534,7 @@ func cmdHelp() string { //nolint:misspell
 | ` + "`@cellenza extend pr-42 [24h]`" + ` | Prolonge le TTL |
 | ` + "`@cellenza wake pr-42`" + ` | Redémarre un environnement mis en veille |
 | ` + "`@cellenza reset-db pr-42`" + ` | Recrée la base de données + rejoue seed |
+| ` + "`@cellenza run-sql pr-42 <sql>`" + ` | Exécute du SQL arbitraire sur la base de données |
 | ` + "`@cellenza enrich pr-42`" + ` | Relance la génération IA de seed et de tests |
 | ` + "`@cellenza set-prompt pr-42 <instructions>`" + ` | Définit les instructions IA pour cet environnement |
 | ` + "`@cellenza show-prompt pr-42`" + ` | Affiche le prompt IA actuel |
