@@ -540,6 +540,9 @@ func (c *Cellenza) SetCondition(cond metav1.Condition) {
 	cond.ObservedGeneration = c.Generation
 	for i, existing := range c.Status.Conditions {
 		if existing.Type == cond.Type {
+			if existing.Status == cond.Status {
+				cond.LastTransitionTime = existing.LastTransitionTime
+			}
 			c.Status.Conditions[i] = cond
 			return
 		}

@@ -200,10 +200,14 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// 9. Mark as Running
 	previewURL := fmt.Sprintf("http://pr-%d.preview.localtest.me:8080", cellenza.Spec.PRNumber)
+	statusChanged := cellenza.Status.Phase != platformv1alpha1.PhaseRunning || cellenza.Status.URL != previewURL
 	r.markRunningStatus(cellenza, nsName, previewURL)
 
-	if err := r.Status().Update(ctx, cellenza); err != nil {
-		return ctrl.Result{}, err
+	if statusChanged {
+		if err := r.Status().Update(ctx, cellenza); err != nil {
+			return ctrl.Result{}, err
+		}
+		syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 	}
 
 	if aiEnrichmentEnabled(cellenza) {
@@ -214,7 +218,6 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return result, err
 		}
 	}
-	syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 
 	// Requeue before expiry to handle TTL cleanup
 	remaining := ttlRemaining(cellenza)
