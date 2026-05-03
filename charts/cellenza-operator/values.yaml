@@ -34,7 +34,7 @@ metrics:
   port: 8443
 
 ai:
-  apiURL: "https://api.openai.com/v1"
+  apiURL: "https://models.inference.ai.azure.com"
 
 nodeSelector: {}
 tolerations: []
