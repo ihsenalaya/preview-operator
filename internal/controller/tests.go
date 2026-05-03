@@ -42,7 +42,7 @@ const (
 	// It tests the health endpoint and the main products endpoint.
 	smokeScript = `import requests,sys
 BASE='http://app:80'
-checks=[('/health',200),('/api/products',200)]
+checks=[('/healthz',200),('/api/products',200)]
 p,f=0,0
 for path,code in checks:
     try:
