@@ -30,6 +30,14 @@ const (
 	testJobCPULimit      = "500m"
 	testJobMemoryLimit   = "512Mi"
 
+	// Playwright/Chromium needs more headroom than a plain Python test runner.
+	e2eJobCPURequest    = "200m"
+	e2eJobMemoryRequest = "512Mi"
+	e2eJobCPULimit      = "1000m"
+	e2eJobMemoryLimit   = "1Gi"
+
+	playwrightImage = "mcr.microsoft.com/playwright/python:v1.44.0-jammy"
+
 	// smokeScript is embedded in the operator — no external file required.
 	// It tests the health endpoint and the main products endpoint.
 	smokeScript = `import requests,sys
@@ -260,23 +268,88 @@ func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsN
 	return job
 }
 
+// e2eTestJob builds a Job that runs real browser tests via Playwright.
+// An init container copies e2e.py from the app image into a shared emptyDir,
+// then the Playwright container (with Chromium pre-installed) executes the tests.
 func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, previewURL string) *batchv1.Job {
-	image := c.Spec.Image
+	appImage := c.Spec.Image
+	pwImage := playwrightImage
 	if c.Spec.TestSuite.E2E != nil && c.Spec.TestSuite.E2E.Image != "" {
-		image = c.Spec.TestSuite.E2E.Image
+		pwImage = c.Spec.TestSuite.E2E.Image
 	}
-	cmd := []string{"sh", "-c", "pip install requests -q 2>/dev/null && python /app/tests/e2e.py"}
+	cmd := []string{"python", "/data/e2e.py"}
 	if c.Spec.TestSuite.E2E != nil && len(c.Spec.TestSuite.E2E.Command) > 0 {
 		cmd = c.Spec.TestSuite.E2E.Command
 	}
 
-	job := r.testJobNoMount(c, nsName, e2eJobName, image, cmd, e2eJobName, true)
-	job.Spec.Template.Spec.Containers[0].Env = append(
-		job.Spec.Template.Spec.Containers[0].Env,
-		corev1.EnvVar{Name: "APP_URL", Value: "http://app:80"},
-		corev1.EnvVar{Name: "PREVIEW_URL", Value: previewURL},
-	)
-	return job
+	backoffLimit := int32(0)
+	ttl := int32(300)
+
+	initContainer := corev1.Container{
+		Name:            "copy-tests",
+		Image:           appImage,
+		Command:         []string{"sh", "-c", "cp /app/tests/e2e.py /data/e2e.py"},
+		ImagePullPolicy: corev1.PullAlways,
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "test-data", MountPath: "/data"},
+		},
+	}
+
+	mainContainer := corev1.Container{
+		Name:            e2eJobName,
+		Image:           pwImage,
+		Command:         cmd,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env: []corev1.EnvVar{
+			{Name: "APP_URL", Value: "http://app:80"},
+			{Name: "PREVIEW_URL", Value: previewURL},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(e2eJobCPURequest),
+				corev1.ResourceMemory: resource.MustParse(e2eJobMemoryRequest),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(e2eJobCPULimit),
+				corev1.ResourceMemory: resource.MustParse(e2eJobMemoryLimit),
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "test-data", MountPath: "/data"},
+		},
+	}
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      e2eJobName,
+			Namespace: nsName,
+			Labels:    testJobLabels(c, e2eJobName),
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						labelManagedBy:             "cellenza-operator",
+						labelCellenzaName:          c.Name,
+						"platform.company.io/task": e2eJobName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy:  corev1.RestartPolicyNever,
+					InitContainers: []corev1.Container{initContainer},
+					Containers:     []corev1.Container{mainContainer},
+					Volumes: []corev1.Volume{{
+						Name: "test-data",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					}},
+				},
+			},
+		},
+	}
 }
 
 // testJob builds a Job that mounts a script from a ConfigMap.

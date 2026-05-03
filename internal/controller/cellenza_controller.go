@@ -520,13 +520,17 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 	}
 
 	if testSuiteEnabled(c) {
-		// Three test jobs run in parallel — reserve headroom for all three simultaneously.
-		for i := 0; i < 3; i++ {
+		// Smoke + regression run with standard test resources; E2E uses more for Chromium.
+		for i := 0; i < 2; i++ {
 			cpuLimit.Add(resource.MustParse(testJobCPULimit))
 			memLimit.Add(resource.MustParse(testJobMemoryLimit))
 			cpuReq.Add(resource.MustParse(testJobCPURequest))
 			memReq.Add(resource.MustParse(testJobMemoryRequest))
 		}
+		cpuLimit.Add(resource.MustParse(e2eJobCPULimit))
+		memLimit.Add(resource.MustParse(e2eJobMemoryLimit))
+		cpuReq.Add(resource.MustParse(e2eJobCPURequest))
+		memReq.Add(resource.MustParse(e2eJobMemoryRequest))
 	}
 
 	quota := &corev1.ResourceQuota{
