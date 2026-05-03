@@ -380,7 +380,7 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	}
 
 	aiStatus := ensureAIEnrichmentStatus(c)
-	if aiStatus.Phase == phaseSucceeded {
+	if aiStatus.Phase == phaseSucceeded || aiStatus.Phase == phaseFailed {
 		return ctrl.Result{}, nil
 	}
 
