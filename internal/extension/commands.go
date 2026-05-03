@@ -290,7 +290,7 @@ const (
 func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" || len(args) < 2 {
-		return "Usage: `@cellenza set-prompt pr-<N> <instructions>`\n\nExemple: `@cellenza set-prompt pr-42 Ne génère pas de tests pour les endpoints HTML`"
+		return "Usage: `@cellenza set-prompt pr-<N> <instructions>`\n\nExample: `@cellenza set-prompt pr-42 Ne génère pas de tests pour les endpoints HTML`"
 	}
 
 	if _, err := s.getCellenza(ctx, name); err != nil {
@@ -357,7 +357,7 @@ func (s *Server) cmdShowPrompt(ctx context.Context, args []string) string {
 func (s *Server) cmdRunSQL(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" || len(args) < 2 {
-		return "Usage: `@cellenza run-sql pr-<N> <sql>`\n\nExemple: `@cellenza run-sql pr-42 SELECT COUNT(*) FROM products;`"
+		return "Usage: `@cellenza run-sql pr-<N> <sql>`\n\nExample: `@cellenza run-sql pr-42 SELECT COUNT(*) FROM products;`"
 	}
 
 	cz, err := s.getCellenza(ctx, name)

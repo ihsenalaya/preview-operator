@@ -149,8 +149,15 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		syncGitHubAfterStatus(ctx, r, cellenza, "")
 	}
 
-	// 8. Reconcile all child resources
+	// 8 & 9. Provision all child resources and run post-deploy jobs
 	nsName := r.namespaceName(cellenza)
+	return r.reconcileProvisioning(ctx, req.NamespacedName, cellenza, nsName)
+}
+
+// reconcileProvisioning handles child resource reconciliation once the Cellenza is approved and ready.
+// Extracted from Reconcile to keep cyclomatic complexity manageable.
+func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key types.NamespacedName, cellenza *platformv1alpha1.Cellenza, nsName string) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
 	if err := r.reconcileNamespace(ctx, cellenza, nsName); err != nil {
 		return r.setFailedStatus(ctx, cellenza, "NamespaceFailed", err)
@@ -164,22 +171,8 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return result, err
 	}
 
-	databaseReady, reason, err := r.reconcileDatabase(ctx, cellenza, nsName)
-	if err != nil {
-		return r.setFailedStatus(ctx, cellenza, reason, err)
-	}
-	if !databaseReady {
-		cellenza.Status.Phase = platformv1alpha1.PhaseProvisioning
-		cellenza.Status.NamespaceName = nsName
-		cellenza.Status.ObservedGeneration = cellenza.Generation
-		if databaseEnabled(cellenza) {
-			r.setDatabaseStatus(cellenza, false)
-		}
-		if err := r.Status().Update(ctx, cellenza); err != nil {
-			return ctrl.Result{}, err
-		}
-		syncGitHubAfterStatus(ctx, r, cellenza, "")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	if result, err := r.reconcileDatabaseWait(ctx, cellenza, nsName); result.RequeueAfter > 0 || err != nil {
+		return result, err
 	}
 
 	if err := r.reconcileDeployment(ctx, cellenza, nsName); err != nil {
@@ -198,12 +191,9 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return result, err
 	}
 
-	// 9. Mark as Running
 	previewURL := fmt.Sprintf("http://pr-%d.preview.localtest.me:8080", cellenza.Spec.PRNumber)
-	statusChanged := cellenza.Status.Phase != platformv1alpha1.PhaseRunning || cellenza.Status.URL != previewURL
-	r.markRunningStatus(cellenza, nsName, previewURL)
-
-	if statusChanged {
+	if statusChanged := cellenza.Status.Phase != platformv1alpha1.PhaseRunning || cellenza.Status.URL != previewURL; statusChanged {
+		r.markRunningStatus(cellenza, nsName, previewURL)
 		if err := r.Status().Update(ctx, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -211,7 +201,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if testSuiteEnabled(cellenza) {
-		if err := r.refreshCellenza(ctx, req.NamespacedName, cellenza); err != nil {
+		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
 		if result, err := r.reconcileTestSuite(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
@@ -220,7 +210,7 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if aiEnrichmentEnabled(cellenza) {
-		if err := r.refreshCellenza(ctx, req.NamespacedName, cellenza); err != nil {
+		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
 		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
@@ -228,12 +218,33 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	// Requeue before expiry to handle TTL cleanup
 	remaining := ttlRemaining(cellenza)
 	if remaining > 0 {
 		logger.Info("Requeuing before TTL expiry", "in", remaining)
 	}
 	return ctrl.Result{RequeueAfter: remaining}, nil
+}
+
+// reconcileDatabaseWait wraps reconcileDatabase and handles the not-ready wait path.
+func (r *CellenzaReconciler) reconcileDatabaseWait(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (ctrl.Result, error) {
+	ready, reason, err := r.reconcileDatabase(ctx, cellenza, nsName)
+	if err != nil {
+		return r.setFailedStatus(ctx, cellenza, reason, err)
+	}
+	if ready {
+		return ctrl.Result{}, nil
+	}
+	cellenza.Status.Phase = platformv1alpha1.PhaseProvisioning
+	cellenza.Status.NamespaceName = nsName
+	cellenza.Status.ObservedGeneration = cellenza.Generation
+	if databaseEnabled(cellenza) {
+		r.setDatabaseStatus(cellenza, false)
+	}
+	if err := r.Status().Update(ctx, cellenza); err != nil {
+		return ctrl.Result{}, err
+	}
+	syncGitHubAfterStatus(ctx, r, cellenza, "")
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 func (r *CellenzaReconciler) markRunningStatus(cellenza *platformv1alpha1.Cellenza, nsName, previewURL string) {
@@ -521,7 +532,7 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 
 	if testSuiteEnabled(c) {
 		// Smoke + regression run with standard test resources; E2E uses more for Chromium.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			cpuLimit.Add(resource.MustParse(testJobCPULimit))
 			memLimit.Add(resource.MustParse(testJobMemoryLimit))
 			cpuReq.Add(resource.MustParse(testJobCPURequest))

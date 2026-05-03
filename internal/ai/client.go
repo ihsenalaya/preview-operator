@@ -183,7 +183,7 @@ func summarizeRoutesFromDiff(diff string) string {
 	var order []string
 	var current *routeHint
 
-	for _, raw := range strings.Split(diff, "\n") {
+	for raw := range strings.SplitSeq(diff, "\n") {
 		line, ok := diffContentLine(raw)
 		if !ok {
 			continue

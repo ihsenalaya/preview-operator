@@ -400,7 +400,7 @@ func (r *CellenzaReconciler) testJob(c *platformv1alpha1.Cellenza, nsName, jobNa
 						VolumeSource: corev1.VolumeSource{
 							ConfigMap: &corev1.ConfigMapVolumeSource{
 								LocalObjectReference: corev1.LocalObjectReference{Name: cmName},
-								Items: []corev1.KeyToPath{{Key: fileName, Path: fileName}},
+								Items:                []corev1.KeyToPath{{Key: fileName, Path: fileName}},
 							},
 						},
 					}},
