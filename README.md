@@ -248,7 +248,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.12.0 \
+  --version 0.12.4 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -470,30 +470,108 @@ The operator runs **smoke, regression, and E2E tests automatically** after the p
 | Parallel PRs | ❌ flaky | ✅ no pollution between PRs |
 | Results on PR | manual | ✅ automatic comment |
 
+#### The three test jobs
+
+**1. Smoke tests** — built into the operator, no file required
+
+The smoke script is embedded in the operator binary. It starts a `python:3.12-slim` pod and runs:
+
+```
+GET /healthz  → expect 200
+GET /api/products  → expect 200
+```
+
+These two checks verify that the deployment itself succeeded: the container started, the network is reachable, and the API responds. If smoke fails, regression and E2E are still launched in parallel.
+
+**2. Regression tests** — `tests/regression.py` from the app image
+
+The regression job runs the app's own test file inside the app image (no extra image needed). It validates every existing HTTP endpoint against the live PostgreSQL instance — catching integration regressions that would be invisible in a mocked unit-test environment.
+
+All output lines starting with `PASS`/`FAIL` are parsed by the operator to build the pass/fail counters.
+
+**3. E2E tests** — `tests/e2e.py` from the app image, run inside Playwright
+
+E2E tests use real headless Chromium (via Playwright) to simulate actual user interactions — clicking, scrolling, filling forms — against the deployed preview URL.
+
+Because the Playwright image (`mcr.microsoft.com/playwright/python:v1.44.0-jammy`) does not contain the app code, the operator uses an **init-container pattern**:
+
+```
+Pod: e2e-tests
+  ├── init container: copy-tests
+  │     Image: <app image>  (same as spec.image)
+  │     Command: cp /app/tests/e2e.py /data/e2e.py
+  │     Volume: emptyDir /data  (shared)
+  │
+  └── main container: e2e-tests
+        Image: mcr.microsoft.com/playwright/python:v1.44.0-jammy
+        Command: python /data/e2e.py
+        Env: APP_URL=http://app:80, PREVIEW_URL=<ingress URL>
+        Volume: emptyDir /data  (shared)
+        Resources: 200m–1 CPU, 512Mi–1Gi RAM  (Chromium needs headroom)
+```
+
+The init container copies `e2e.py` from the app image into a shared `emptyDir`. Playwright then executes it with Chromium. This keeps the test code versioned alongside the application while using the official Playwright runtime.
+
 #### Required: test scripts in the app image
 
-Add `tests/regression.py` and `tests/e2e.py` to your app repo. The operator mounts them via the app image. Output lines starting with `PASS`/`FAIL` are parsed automatically.
+Add `tests/regression.py` and `tests/e2e.py` to your app repo and include them in the Docker image:
+
+```dockerfile
+COPY tests/ ./tests/
+```
+
+Output lines must start with `PASS` or `FAIL` to be parsed by the operator:
 
 ```python
-# tests/regression.py
+# tests/regression.py — minimal example
 import requests, sys, os
 BASE = os.environ.get("APP_URL", "http://app:80")
 
 tests = [
-    ("health", "/health", 200),
-    ("products", "/api/products", 200),
+    ("health", "GET", "/healthz", 200, None),
+    ("products", "GET", "/api/products", 200, lambda r: isinstance(r.json(), list)),
 ]
 passed, failed = 0, 0
-for name, path, code in tests:
-    r = requests.get(BASE + path, timeout=10)
-    if r.status_code == code:
-        print(f"PASS regression {name}: {r.status_code}")
-        passed += 1
-    else:
-        print(f"FAIL regression {name}: expected {code} got {r.status_code}")
-        failed += 1
+for name, method, path, code, check in tests:
+    r = requests.request(method, BASE + path, timeout=10)
+    ok = r.status_code == code and (check(r) if check and r.status_code == code else True)
+    print(f"{'PASS' if ok else 'FAIL'} regression {name}: {r.status_code}")
+    if ok: passed += 1
+    else: failed += 1
 print(f"Results: {passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
+```
+
+```python
+# tests/e2e.py — minimal Playwright example
+import os, sys
+from playwright.sync_api import sync_playwright
+
+BASE = os.environ.get("APP_URL", "http://app:80")
+passed, failed = 0, 0
+
+def run(name, fn):
+    global passed, failed
+    with sync_playwright() as p:
+        browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        page = browser.new_page()
+        try:
+            fn(page)
+            print(f"PASS e2e {name}")
+            passed += 1
+        except Exception as e:
+            print(f"FAIL e2e {name}: {e}")
+            failed += 1
+        finally:
+            browser.close()
+
+def test_homepage(page):
+    page.goto(BASE, wait_until="networkidle", timeout=30000)
+    assert page.title() != "", "page has no title"
+
+run("homepage", test_homepage)
+print(f"Results: {passed} passed, {failed} failed")
+sys.exit(1 if failed > 0 else 0)
 ```
 
 #### Cellenza spec
@@ -507,6 +585,7 @@ spec:
       enabled: true              # default command: python /app/tests/regression.py
     e2e:
       enabled: true              # default command: python /app/tests/e2e.py
+      # image: mcr.microsoft.com/playwright/python:v1.44.0-jammy  # default
 ```
 
 #### GitHub PR comment produced
@@ -519,14 +598,15 @@ spec:
 | Suite      | Status        | Passed | Failed |
 |------------|---------------|--------|--------|
 | Smoke      | ✅ Succeeded  | 2      | 0      |
-| Regression | ✅ Succeeded  | 8      | 0      |
-| E2E        | ✅ Succeeded  | 4      | 0      |
+| Regression | ✅ Succeeded  | 9      | 0      |
+| E2E        | ✅ Succeeded  | 6      | 0      |
 ```
 
 #### Check status via CLI
 
 ```bash
-kubectl get cz pr-42 -o jsonpath='{.status.tests}'
+kubectl get cz pr-42 -o jsonpath='{.status.tests}' | jq .
+kubectl get cz pr-42 -o jsonpath='{range .status.tests.e2e.output[*]}{@}{"\n"}{end}'
 ```
 
 ---
@@ -1519,7 +1599,7 @@ image:
   tag: ""             # defaults to Chart.appVersion
 
 ai:
-  apiURL: "https://api.openai.com/v1"
+  apiURL: "https://models.inference.ai.azure.com"  # GitHub Models (free tier); use https://api.openai.com/v1 for OpenAI
 
 # Image pull secrets for private GHCR registries
 imagePullSecrets: []
@@ -1572,7 +1652,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.12.0/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.12.4/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1676,8 +1756,8 @@ kubectl patch cellenza demo --type merge \
 ### Release a new version
 
 ```bash
-git tag v0.12.0
-git push origin v0.12.0
+git tag v0.12.4
+git push origin v0.12.4
 ```
 
 GitHub Actions will automatically:
