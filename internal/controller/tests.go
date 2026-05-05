@@ -289,7 +289,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 		Name:            "copy-tests",
 		Image:           appImage,
 		Command:         []string{"sh", "-c", "mkdir -p /data/tests && cp -R /app/tests/. /data/tests/"},
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("50m"),
