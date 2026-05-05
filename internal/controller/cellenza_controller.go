@@ -96,6 +96,10 @@ func (r *CellenzaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	if err := r.resetDerivedStateForNewGeneration(ctx, cellenza, r.namespaceName(cellenza)); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// 4. Check TTL expiration
 	if isTTLExpired(cellenza) {
 		logger.Info("Cellenza TTL expired, deleting", "name", cellenza.Name)
@@ -302,6 +306,55 @@ func (r *CellenzaReconciler) refreshCellenza(ctx context.Context, key types.Name
 
 	*cellenza = *latest
 	return nil
+}
+
+func (r *CellenzaReconciler) resetDerivedStateForNewGeneration(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	if c.Status.ObservedGeneration == 0 || c.Status.ObservedGeneration == c.Generation {
+		return nil
+	}
+
+	for _, name := range []string{
+		smokeJobName,
+		regressionJobName,
+		e2eJobName,
+		aiSeedJobName,
+		aiTestJobName,
+		aiSchemaJobName,
+	} {
+		job := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: nsName}}
+		if err := r.Delete(ctx, job); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	for _, name := range []string{testSuiteConfigMap, aiEnrichmentConfigMap} {
+		cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: nsName}}
+		if err := r.Delete(ctx, cm); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	c.Status.ObservedGeneration = c.Generation
+	c.Status.Tests = nil
+	c.Status.AIEnrichment = nil
+	if c.Status.GitHub != nil {
+		c.Status.GitHub.TestsCommentID = 0
+		c.Status.GitHub.CommentID = 0
+		c.Status.GitHub.DeploymentState = ""
+		c.Status.GitHub.LastNotifiedPhase = ""
+		c.Status.GitHub.LastEnvironmentURL = ""
+		c.Status.GitHub.LastError = ""
+	}
+
+	filtered := c.Status.Conditions[:0]
+	for _, cond := range c.Status.Conditions {
+		if cond.Type == platformv1alpha1.ConditionTestSuiteReady || cond.Type == platformv1alpha1.ConditionAIEnrichmentReady {
+			continue
+		}
+		filtered = append(filtered, cond)
+	}
+	c.Status.Conditions = filtered
+
+	return r.Status().Update(ctx, c)
 }
 
 func isTTLExpired(cellenza *platformv1alpha1.Cellenza) bool {

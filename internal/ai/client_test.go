@@ -62,6 +62,8 @@ func TestBuildSystemPromptGuidesTestsToAPIEndpoints(t *testing.T) {
 		"requests.post(..., json=...)",
 		"Never hardcode row identifiers",
 		"omit that field instead of guessing",
+		"Do not invent endpoints",
+		"/api/orders does not imply",
 		"Only test stable product endpoints.",
 	} {
 		if !strings.Contains(prompt, want) {

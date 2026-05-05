@@ -139,6 +139,9 @@ Given a pull request diff and optionally a database schema, generate:
    discover it with a GET endpoint, then reuse the returned id.
    If a foreign key field is optional and no safe prerequisite resource can be created or discovered,
    omit that field instead of guessing.
+   Do not invent endpoints. A collection route such as /api/orders does not imply that
+   /api/orders/<id> exists. Only call item-by-id routes when they are explicitly present in the diff,
+   route hints, or another verified API response.
    Health endpoints such as /healthz or /ping may be tested with status or plain-text assertions
    when they are explicitly present in the diff.
    Skip browser/form endpoints, even if they use POST. Any route that reads request.form,
