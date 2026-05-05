@@ -458,6 +458,7 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	if err := r.Status().Update(ctx, c); err != nil {
 		return ctrl.Result{}, err
 	}
+	r.syncGitHubAIComment(ctx, c)
 
 	return ctrl.Result{}, nil
 }

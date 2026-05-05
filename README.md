@@ -460,6 +460,17 @@ For the Flask demo app, Python auto-instrumentation produces HTTP spans for `GET
 
 The operator runs **smoke, regression, and E2E tests automatically** after the preview environment is ready — all three jobs run in parallel. Results are posted as a dedicated PR comment.
 
+#### What the operator adds to testing
+
+The operator does more than "run a CI script". Its role is to turn a pull request into a **real, isolated test environment**, then orchestrate tests inside that environment:
+
+- It provisions a dedicated preview namespace for the PR, with its own app deployment, service, ingress, and optional PostgreSQL database.
+- It waits until the preview is actually usable before launching tests, instead of running them against mocks or half-ready infrastructure.
+- It runs smoke, regression, and E2E jobs against the real deployed app and the real database state of that PR.
+- It keeps PRs isolated from each other, so test data and failures from PR-41 cannot pollute PR-42.
+- It collects test outputs into structured status fields on the `Cellenza` resource and posts a summarized result back to GitHub.
+- It can combine test execution with AI-generated seed data and AI-generated test jobs when `aiEnrichment.enabled=true`.
+
 #### Why this matters vs a classic test environment
 
 | Capability | Classic staging | Cellenza preview |
@@ -601,6 +612,21 @@ spec:
 | Regression | ✅ Succeeded  | 9      | 0      |
 | E2E        | ✅ Succeeded  | 6      | 0      |
 ```
+
+#### What is executed and what is published
+
+When the test suite is enabled, the operator executes three concrete workloads against the preview:
+
+- **Smoke**: an operator-managed script that probes `/healthz` and `/api/products`
+- **Regression**: `tests/regression.py` copied from the application image
+- **E2E**: `tests/e2e.py` copied from the application image and executed in Playwright
+
+After execution, the operator publishes results in two forms:
+
+- **CR status**: per-suite phases, pass/fail counters, and parsed output under `status.tests.*`
+- **GitHub comment**: a dedicated PR comment summarizing the three suites in a pass/fail table
+
+So the application repository owns the regression/E2E test code, while the operator owns orchestration, execution timing, result collection, and publication.
 
 #### Check status via CLI
 

@@ -133,6 +133,12 @@ Given a pull request diff and optionally a database schema, generate:
    IMPORTANT: Only test JSON/API endpoints.
    Prefer routes whose path starts with /api/ and whose handler uses jsonify(), request.get_json(),
    or another explicit JSON response.
+   Never hardcode row identifiers such as category_id=1 or product_id=1 unless the script created
+   that row itself earlier in the same execution.
+   If a request depends on another resource, first create that resource with a POST endpoint or
+   discover it with a GET endpoint, then reuse the returned id.
+   If a foreign key field is optional and no safe prerequisite resource can be created or discovered,
+   omit that field instead of guessing.
    Health endpoints such as /healthz or /ping may be tested with status or plain-text assertions
    when they are explicitly present in the diff.
    Skip browser/form endpoints, even if they use POST. Any route that reads request.form,

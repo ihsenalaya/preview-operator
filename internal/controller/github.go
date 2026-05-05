@@ -214,6 +214,25 @@ func (r *CellenzaReconciler) createGitHubReadyComment(ctx context.Context, c *pl
 	return response.ID, nil
 }
 
+func (r *CellenzaReconciler) updateGitHubReadyComment(ctx context.Context, c *platformv1alpha1.Cellenza, token, environmentURL string) error {
+	if c.Status.GitHub == nil || c.Status.GitHub.CommentID == 0 {
+		return nil
+	}
+	spec := c.Spec.GitHub
+	if spec.Owner == "" || spec.Repo == "" {
+		return fmt.Errorf("spec.github.owner and spec.github.repo are required")
+	}
+
+	body := githubReadyCommentBody(c, environmentURL)
+	payload := githubIssueCommentRequest{Body: body}
+	path := fmt.Sprintf("/repos/%s/%s/issues/comments/%d",
+		url.PathEscape(spec.Owner),
+		url.PathEscape(spec.Repo),
+		c.Status.GitHub.CommentID,
+	)
+	return r.githubRequest(ctx, http.MethodPatch, token, path, payload, nil)
+}
+
 func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string) string {
 	var b strings.Builder
 	b.WriteString("## Cellenza Preview Ready\n\n")
@@ -412,6 +431,28 @@ func (r *CellenzaReconciler) postTestResultsComment(ctx context.Context, c *plat
 	_ = r.Status().Update(ctx, c)
 }
 
+func (r *CellenzaReconciler) syncGitHubAIComment(ctx context.Context, c *platformv1alpha1.Cellenza) {
+	logger := log.FromContext(ctx)
+	if !githubEnabled(c) || c.Status.Phase != platformv1alpha1.PhaseRunning || c.Status.URL == "" {
+		return
+	}
+	if c.Status.AIEnrichment == nil {
+		return
+	}
+	if c.Status.AIEnrichment.Phase != phaseSucceeded && c.Status.AIEnrichment.Phase != phaseFailed {
+		return
+	}
+
+	token, err := r.githubToken(ctx, c)
+	if err != nil {
+		logger.Error(err, "Failed to read GitHub token for AI enrichment comment sync")
+		return
+	}
+	if err := r.updateGitHubReadyComment(ctx, c, token, c.Status.URL); err != nil {
+		logger.Error(err, "Failed to update GitHub ready comment with AI enrichment status")
+	}
+}
+
 func buildTestResultsCommentBody(c *platformv1alpha1.Cellenza) string {
 	tests := c.Status.Tests
 	if tests == nil {
@@ -475,6 +516,10 @@ func testResultBadge(phase string) string {
 }
 
 func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string, payload any, response any) error {
+	return r.githubRequest(ctx, http.MethodPost, token, path, payload, response)
+}
+
+func (r *CellenzaReconciler) githubRequest(ctx context.Context, method, token, path string, payload any, response any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -485,7 +530,7 @@ func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string,
 		baseURL = defaultGitHubAPIBaseURL
 	}
 	endpoint := strings.TrimRight(baseURL, "/") + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}

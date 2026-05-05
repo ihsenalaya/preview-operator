@@ -60,6 +60,8 @@ func TestBuildSystemPromptGuidesTestsToAPIEndpoints(t *testing.T) {
 		"redirect()",
 		"/add-product",
 		"requests.post(..., json=...)",
+		"Never hardcode row identifiers",
+		"omit that field instead of guessing",
 		"Only test stable product endpoints.",
 	} {
 		if !strings.Contains(prompt, want) {
