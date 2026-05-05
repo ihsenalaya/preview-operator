@@ -28,6 +28,8 @@ const (
 	checkpointRestoreJobPrefix = "checkpoint-restore-"
 	checkpointConfigMapKey     = "dump.sql"
 	checkpointMaxBytes         = 950 * 1024
+	checkpointSaveTaskLabel    = "checkpoint-save"
+	checkpointRestoreTaskLabel = "checkpoint-restore"
 )
 
 var checkpointNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -303,7 +305,7 @@ func (r *CellenzaReconciler) checkpointSaveJob(c *platformv1alpha1.Cellenza, nsN
 				labelManagedBy:                "cellenza-operator",
 				labelCellenzaName:             c.Name,
 				"app.kubernetes.io/component": "db-checkpoint",
-				"platform.company.io/task":    checkpointSaveJobPrefix,
+				"platform.company.io/task":    checkpointSaveTaskLabel,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -314,7 +316,7 @@ func (r *CellenzaReconciler) checkpointSaveJob(c *platformv1alpha1.Cellenza, nsN
 					Labels: map[string]string{
 						labelManagedBy:             "cellenza-operator",
 						labelCellenzaName:          c.Name,
-						"platform.company.io/task": checkpointSaveJobPrefix,
+						"platform.company.io/task": checkpointSaveTaskLabel,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -369,7 +371,7 @@ func (r *CellenzaReconciler) checkpointRestoreJob(c *platformv1alpha1.Cellenza, 
 				labelManagedBy:                "cellenza-operator",
 				labelCellenzaName:             c.Name,
 				"app.kubernetes.io/component": "db-checkpoint",
-				"platform.company.io/task":    checkpointRestoreJobPrefix,
+				"platform.company.io/task":    checkpointRestoreTaskLabel,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -380,7 +382,7 @@ func (r *CellenzaReconciler) checkpointRestoreJob(c *platformv1alpha1.Cellenza, 
 					Labels: map[string]string{
 						labelManagedBy:             "cellenza-operator",
 						labelCellenzaName:          c.Name,
-						"platform.company.io/task": checkpointRestoreJobPrefix,
+						"platform.company.io/task": checkpointRestoreTaskLabel,
 					},
 				},
 				Spec: corev1.PodSpec{

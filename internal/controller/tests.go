@@ -277,7 +277,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 	if c.Spec.TestSuite.E2E != nil && c.Spec.TestSuite.E2E.Image != "" {
 		pwImage = c.Spec.TestSuite.E2E.Image
 	}
-	cmd := []string{"sh", "-c", "python -m pip install requests -q >/dev/null 2>&1 && python /data/tests/e2e.py"}
+	cmd := []string{"sh", "-c", "python -m pip install requests playwright==1.44.0 -q >/dev/null 2>&1 && python /data/tests/e2e.py"}
 	if c.Spec.TestSuite.E2E != nil && len(c.Spec.TestSuite.E2E.Command) > 0 {
 		cmd = c.Spec.TestSuite.E2E.Command
 	}
