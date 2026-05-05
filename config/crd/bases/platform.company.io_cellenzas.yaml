@@ -162,6 +162,16 @@ spec:
                 description: Database configures an ephemeral PostgreSQL instance
                   for this environment
                 properties:
+                  checkpointRestore:
+                    description: |-
+                      CheckpointRestore, if set, triggers a restore from the named snapshot.
+                      The operator clears this field after the Job completes.
+                    type: string
+                  checkpointSave:
+                    description: |-
+                      CheckpointSave, if set, triggers a pg_dump snapshot saved under this name.
+                      The operator clears this field after the Job completes.
+                    type: string
                   databaseName:
                     default: appdb
                     description: DatabaseName is the logical database created inside
@@ -532,6 +542,12 @@ spec:
                 description: Database describes the observed PostgreSQL and database
                   task state.
                 properties:
+                  checkpoints:
+                    description: Checkpoints lists the saved snapshot names available
+                      for restore.
+                    items:
+                      type: string
+                    type: array
                   databaseName:
                     description: DatabaseName is the logical PostgreSQL database name.
                     type: string

@@ -63,6 +63,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+	if strings.HasPrefix(r.URL.Path, "/api/previews/") {
+		s.serveCheckpointAPI(w, r)
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -173,6 +177,12 @@ func (s *Server) execute(ctx context.Context, msg string) string {
 		return s.cmdWake(ctx, args)
 	case "reset-db", "resetdb":
 		return s.cmdResetDB(ctx, args)
+	case "save-db", "savedb":
+		return s.cmdSaveDB(ctx, args)
+	case "restore-db", "restoredb":
+		return s.cmdRestoreDB(ctx, args)
+	case "list-checkpoints", "listcheckpoints":
+		return s.cmdListCheckpoints(ctx, args)
 	case "run-sql", "runsql":
 		return s.cmdRunSQL(ctx, args)
 	case "enrich":

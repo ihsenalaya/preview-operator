@@ -86,6 +86,9 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		if db.Seed != "" {
 			b.WriteString(fmt.Sprintf("- Seed: %s\n", db.Seed))
 		}
+		if len(db.Checkpoints) > 0 {
+			b.WriteString(fmt.Sprintf("- Checkpoints: %s\n", strings.Join(db.Checkpoints, ", ")))
+		}
 	}
 
 	if gh := cz.Status.GitHub; gh != nil && gh.DeploymentState != "" {
@@ -123,7 +126,7 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza enrich %s` · `@cellenza set-prompt %s <instructions>`", name, name, name, name, name))
+	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza save-db %s post-seed` · `@cellenza restore-db %s post-seed`", name, name, name, name, name))
 	return b.String()
 }
 
@@ -280,6 +283,91 @@ func (s *Server) cmdResetDB(ctx context.Context, args []string) string {
 	}
 
 	return fmt.Sprintf("**Reset DB lancé** pour `%s`\n\nL'opérateur va:\n1. Supprimer les jobs migration et seed\n2. Recréer la base de données\n3. Rejouer les migrations\n4. Rejouer le seed\n\nSuivi: `@cellenza status %s`", name, name)
+}
+
+func (s *Server) cmdSaveDB(ctx context.Context, args []string) string {
+	name, checkpoint, err := checkpointCommandArgs(args)
+	if err != nil {
+		return err.Error()
+	}
+
+	cz, err := s.getCellenza(ctx, name)
+	if err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.", name)
+	}
+	if cz.Spec.Database == nil || !cz.Spec.Database.Enabled {
+		return fmt.Sprintf("`%s` n'a pas de base de données activée (`spec.database.enabled: false`).", name)
+	}
+	if err := s.startCheckpointSave(ctx, cz, checkpoint); err != nil {
+		return fmt.Sprintf("Erreur lors de la sauvegarde du checkpoint: %v", err)
+	}
+
+	return fmt.Sprintf("**Checkpoint DB lancé** pour `%s`\n\n- Action: save\n- Checkpoint: `%s`\n\nSuivi: `@cellenza list-checkpoints %s`", name, checkpoint, name)
+}
+
+func (s *Server) cmdRestoreDB(ctx context.Context, args []string) string {
+	name, checkpoint, err := checkpointCommandArgs(args)
+	if err != nil {
+		return err.Error()
+	}
+
+	cz, err := s.getCellenza(ctx, name)
+	if err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.", name)
+	}
+	if cz.Spec.Database == nil || !cz.Spec.Database.Enabled {
+		return fmt.Sprintf("`%s` n'a pas de base de données activée (`spec.database.enabled: false`).", name)
+	}
+	if err := s.startCheckpointRestore(ctx, cz, checkpoint); err != nil {
+		return fmt.Sprintf("Erreur lors de la restauration du checkpoint: %v", err)
+	}
+
+	return fmt.Sprintf("**Restauration DB lancée** pour `%s`\n\n- Action: restore\n- Checkpoint: `%s`\n\nSuivi: `@cellenza status %s`", name, checkpoint, name)
+}
+
+func (s *Server) cmdListCheckpoints(ctx context.Context, args []string) string {
+	name := parsePRArg(args)
+	if name == "" {
+		return "Usage: `@cellenza list-checkpoints pr-<N>`"
+	}
+
+	cz, err := s.getCellenza(ctx, name)
+	if err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.", name)
+	}
+	if cz.Spec.Database == nil || !cz.Spec.Database.Enabled {
+		return fmt.Sprintf("`%s` n'a pas de base de données activée (`spec.database.enabled: false`).", name)
+	}
+
+	checkpoints := checkpointNames(cz)
+	if len(checkpoints) == 0 {
+		return fmt.Sprintf("Aucun checkpoint enregistré pour `%s`.", name)
+	}
+	return fmt.Sprintf("**Checkpoints DB — %s**\n\n- %s", name, strings.Join(checkpoints, "\n- "))
+}
+
+func checkpointCommandArgs(args []string) (string, string, error) {
+	name := parsePRArg(args)
+	if name == "" || len(args) < 2 {
+		return "", "", fmt.Errorf("Usage: `@cellenza save-db pr-<N> <nom>` ou `@cellenza restore-db pr-<N> <nom>`")
+	}
+	return name, args[1], nil
+}
+
+func checkpointNames(cz *platformv1alpha1.Cellenza) []string {
+	if cz.Status.Database == nil {
+		return nil
+	}
+	return cz.Status.Database.Checkpoints
+}
+
+func checkpointExists(cz *platformv1alpha1.Cellenza, checkpoint string) bool {
+	for _, name := range checkpointNames(cz) {
+		if name == checkpoint {
+			return true
+		}
+	}
+	return false
 }
 
 const (
@@ -534,6 +622,9 @@ func cmdHelp() string { //nolint:misspell
 | ` + "`@cellenza extend pr-42 [24h]`" + ` | Prolonge le TTL |
 | ` + "`@cellenza wake pr-42`" + ` | Redémarre un environnement mis en veille |
 | ` + "`@cellenza reset-db pr-42`" + ` | Recrée la base de données + rejoue seed |
+| ` + "`@cellenza save-db pr-42 post-seed`" + ` | Sauvegarde un checkpoint DB sous ce nom |
+| ` + "`@cellenza restore-db pr-42 post-seed`" + ` | Restaure la DB depuis un checkpoint |
+| ` + "`@cellenza list-checkpoints pr-42`" + ` | Liste les checkpoints DB disponibles |
 | ` + "`@cellenza run-sql pr-42 <sql>`" + ` | Exécute du SQL arbitraire sur la base de données |
 | ` + "`@cellenza enrich pr-42`" + ` | Relance la génération IA de seed et de tests |
 | ` + "`@cellenza set-prompt pr-42 <instructions>`" + ` | Définit les instructions IA pour cet environnement |

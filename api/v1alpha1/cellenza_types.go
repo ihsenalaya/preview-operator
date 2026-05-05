@@ -39,6 +39,16 @@ type DatabaseSpec struct {
 	// The operator clears this flag automatically after the reset is initiated.
 	// +optional
 	ResetRequested bool `json:"resetRequested,omitempty"`
+
+	// CheckpointSave, if set, triggers a pg_dump snapshot saved under this name.
+	// The operator clears this field after the Job completes.
+	// +optional
+	CheckpointSave string `json:"checkpointSave,omitempty"`
+
+	// CheckpointRestore, if set, triggers a restore from the named snapshot.
+	// The operator clears this field after the Job completes.
+	// +optional
+	CheckpointRestore string `json:"checkpointRestore,omitempty"`
 }
 
 // DatabaseTaskSpec configures a one-shot database task.
@@ -522,6 +532,10 @@ type DatabaseStatus struct {
 	// Seed is the latest observed seed task state.
 	// +optional
 	Seed string `json:"seed,omitempty"`
+
+	// Checkpoints lists the saved snapshot names available for restore.
+	// +optional
+	Checkpoints []string `json:"checkpoints,omitempty"`
 }
 
 // DiagnosticsStatus describes the latest human-readable preview diagnostics.

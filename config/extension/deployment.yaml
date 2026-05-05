@@ -19,7 +19,7 @@ spec:
       serviceAccountName: cellenza-extension
       containers:
         - name: extension
-          image: ghcr.io/ihsenalaya/cellenza-extension:0.12.0
+          image: ghcr.io/ihsenalaya/cellenza-extension:0.12.5
           ports:
             - containerPort: 8090
               name: http

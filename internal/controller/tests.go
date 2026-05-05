@@ -277,7 +277,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 	if c.Spec.TestSuite.E2E != nil && c.Spec.TestSuite.E2E.Image != "" {
 		pwImage = c.Spec.TestSuite.E2E.Image
 	}
-	cmd := []string{"python", "/data/e2e.py"}
+	cmd := []string{"sh", "-c", "python -m pip install requests -q >/dev/null 2>&1 && python /data/tests/e2e.py"}
 	if c.Spec.TestSuite.E2E != nil && len(c.Spec.TestSuite.E2E.Command) > 0 {
 		cmd = c.Spec.TestSuite.E2E.Command
 	}
@@ -288,7 +288,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 	initContainer := corev1.Container{
 		Name:            "copy-tests",
 		Image:           appImage,
-		Command:         []string{"sh", "-c", "cp /app/tests/e2e.py /data/e2e.py"},
+		Command:         []string{"sh", "-c", "mkdir -p /data/tests && cp -R /app/tests/. /data/tests/"},
 		ImagePullPolicy: corev1.PullAlways,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -313,6 +313,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 		Env: []corev1.EnvVar{
 			{Name: "APP_URL", Value: "http://app:80"},
 			{Name: "PREVIEW_URL", Value: previewURL},
+			{Name: "CHECKPOINT_API", Value: fmt.Sprintf("http://cellenza-extension.cellenza-operator-system.svc.cluster.local:8090/api/previews/%s", c.Name)},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{

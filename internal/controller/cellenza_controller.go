@@ -175,6 +175,10 @@ func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key type
 		return result, err
 	}
 
+	if handled, result, err := r.reconcileCheckpoints(ctx, cellenza, nsName); handled {
+		return result, err
+	}
+
 	if err := r.reconcileDeployment(ctx, cellenza, nsName); err != nil {
 		return r.setFailedStatus(ctx, cellenza, "DeploymentFailed", err)
 	}

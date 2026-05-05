@@ -162,6 +162,16 @@ spec:
                 description: Database configures an ephemeral PostgreSQL instance
                   for this environment
                 properties:
+                  checkpointRestore:
+                    description: |-
+                      CheckpointRestore, if set, triggers a restore from the named snapshot.
+                      The operator clears this field after the Job completes.
+                    type: string
+                  checkpointSave:
+                    description: |-
+                      CheckpointSave, if set, triggers a pg_dump snapshot saved under this name.
+                      The operator clears this field after the Job completes.
+                    type: string
                   databaseName:
                     default: appdb
                     description: DatabaseName is the logical database created inside
@@ -358,6 +368,75 @@ spec:
                       When empty, the controller uses "cellenza-<resource-name>".
                     type: string
                 type: object
+              testSuite:
+                description: TestSuite configures automated smoke, regression, and
+                  E2E tests run after deployment.
+                properties:
+                  e2e:
+                    description: |-
+                      E2E configures the end-to-end test job (full user flows).
+                      Default command: sh -c "pip install requests -q && python /app/tests/e2e.py"
+                    properties:
+                      command:
+                        description: Command overrides the default command used to
+                          run the tests.
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: true
+                        description: Enabled controls whether this test type runs.
+                        type: boolean
+                      image:
+                        description: Image overrides the container image. Defaults
+                          to the app image.
+                        type: string
+                    type: object
+                  enabled:
+                    default: false
+                    description: Enabled controls whether the test suite runs after
+                      the environment is ready.
+                    type: boolean
+                  regression:
+                    description: |-
+                      Regression configures the regression test job (existing endpoints).
+                      Default command: sh -c "pip install requests -q && python /app/tests/regression.py"
+                    properties:
+                      command:
+                        description: Command overrides the default command used to
+                          run the tests.
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: true
+                        description: Enabled controls whether this test type runs.
+                        type: boolean
+                      image:
+                        description: Image overrides the container image. Defaults
+                          to the app image.
+                        type: string
+                    type: object
+                  smoke:
+                    description: Smoke configures the smoke test job (health check
+                      endpoints).
+                    properties:
+                      command:
+                        description: Command overrides the default command used to
+                          run the tests.
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: true
+                        description: Enabled controls whether this test type runs.
+                        type: boolean
+                      image:
+                        description: Image overrides the container image. Defaults
+                          to the app image.
+                        type: string
+                    type: object
+                type: object
               ttl:
                 default: 48h
                 description: TTL is the time-to-live duration (e.g. "48h", "24h",
@@ -463,6 +542,12 @@ spec:
                 description: Database describes the observed PostgreSQL and database
                   task state.
                 properties:
+                  checkpoints:
+                    description: Checkpoints lists the saved snapshot names available
+                      for restore.
+                    items:
+                      type: string
+                    type: array
                   databaseName:
                     description: DatabaseName is the logical PostgreSQL database name.
                     type: string
@@ -588,6 +673,11 @@ spec:
                     description: LastNotifiedPhase is the Cellenza phase corresponding
                       to the last notification.
                     type: string
+                  testsCommentId:
+                    description: TestsCommentID is the GitHub issue comment id for
+                      the test results comment.
+                    format: int64
+                    type: integer
                 type: object
               namespaceName:
                 description: NamespaceName is the dedicated namespace created for
@@ -605,6 +695,73 @@ spec:
                   the Running phase.
                 format: date-time
                 type: string
+              tests:
+                description: Tests describes the observed test suite state.
+                properties:
+                  e2e:
+                    description: E2E holds the end-to-end test results.
+                    properties:
+                      failed:
+                        description: Failed is the number of failing test cases.
+                        type: integer
+                      output:
+                        description: Output contains the PASS/FAIL lines from the
+                          test job.
+                        items:
+                          type: string
+                        type: array
+                      passed:
+                        description: Passed is the number of passing test cases.
+                        type: integer
+                      phase:
+                        description: 'Phase: Pending | Running | Succeeded | Failed
+                          | Skipped'
+                        type: string
+                    type: object
+                  phase:
+                    description: 'Phase: Pending | Running | Succeeded | Failed'
+                    type: string
+                  regression:
+                    description: Regression holds the regression test results.
+                    properties:
+                      failed:
+                        description: Failed is the number of failing test cases.
+                        type: integer
+                      output:
+                        description: Output contains the PASS/FAIL lines from the
+                          test job.
+                        items:
+                          type: string
+                        type: array
+                      passed:
+                        description: Passed is the number of passing test cases.
+                        type: integer
+                      phase:
+                        description: 'Phase: Pending | Running | Succeeded | Failed
+                          | Skipped'
+                        type: string
+                    type: object
+                  smoke:
+                    description: Smoke holds the smoke test results.
+                    properties:
+                      failed:
+                        description: Failed is the number of failing test cases.
+                        type: integer
+                      output:
+                        description: Output contains the PASS/FAIL lines from the
+                          test job.
+                        items:
+                          type: string
+                        type: array
+                      passed:
+                        description: Passed is the number of passing test cases.
+                        type: integer
+                      phase:
+                        description: 'Phase: Pending | Running | Succeeded | Failed
+                          | Skipped'
+                        type: string
+                    type: object
+                type: object
               url:
                 description: URL is the ingress URL of the preview environment
                 type: string
