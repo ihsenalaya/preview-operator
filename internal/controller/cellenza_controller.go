@@ -391,13 +391,20 @@ func (r *CellenzaReconciler) handleResetRequested(ctx context.Context, cellenza 
 	if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
 		return true, ctrl.Result{}, err
 	}
+
+	statusBase := cellenza.DeepCopy()
 	if cellenza.Status.Database != nil {
 		cellenza.Status.Database.Migration = ""
 		cellenza.Status.Database.Seed = ""
 		cellenza.Status.Database.Ready = false
 	}
+	if err := r.Status().Patch(ctx, cellenza, client.MergeFrom(statusBase)); err != nil {
+		return true, ctrl.Result{}, err
+	}
+
+	specBase := cellenza.DeepCopy()
 	cellenza.Spec.Database.ResetRequested = false
-	if err := r.Update(ctx, cellenza); err != nil {
+	if err := r.Patch(ctx, cellenza, client.MergeFrom(specBase)); err != nil {
 		return true, ctrl.Result{}, err
 	}
 	return true, ctrl.Result{Requeue: true}, nil
