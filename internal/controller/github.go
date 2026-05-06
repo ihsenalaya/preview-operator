@@ -451,6 +451,9 @@ func (r *CellenzaReconciler) syncGitHubAIComment(ctx context.Context, c *platfor
 	if err := r.updateGitHubReadyComment(ctx, c, token, c.Status.URL); err != nil {
 		logger.Error(err, "Failed to update GitHub ready comment with AI enrichment status")
 	}
+	if err := r.updateGitHubTestsComment(ctx, c, token); err != nil {
+		logger.Error(err, "Failed to update GitHub test results comment with AI enrichment status")
+	}
 }
 
 func buildTestResultsCommentBody(c *platformv1alpha1.Cellenza) string {
@@ -495,9 +498,33 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Cellenza) string {
 		}
 	}
 
+	if section := buildAIEnrichmentSection(c); section != "" {
+		b.WriteString("\n")
+		b.WriteString(section)
+	}
+
 	b.WriteString(fmt.Sprintf("\n**Preview URL:** %s\n", c.Status.URL))
 	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
 	return b.String()
+}
+
+func (r *CellenzaReconciler) updateGitHubTestsComment(ctx context.Context, c *platformv1alpha1.Cellenza, token string) error {
+	if c.Status.GitHub == nil || c.Status.GitHub.TestsCommentID == 0 {
+		return nil
+	}
+	spec := c.Spec.GitHub
+	if spec.Owner == "" || spec.Repo == "" {
+		return fmt.Errorf("spec.github.owner and spec.github.repo are required")
+	}
+
+	body := buildTestResultsCommentBody(c)
+	payload := githubIssueCommentRequest{Body: body}
+	path := fmt.Sprintf("/repos/%s/%s/issues/comments/%d",
+		url.PathEscape(spec.Owner),
+		url.PathEscape(spec.Repo),
+		c.Status.GitHub.TestsCommentID,
+	)
+	return r.githubRequest(ctx, http.MethodPatch, token, path, payload, nil)
 }
 
 func testResultBadge(phase string) string {
