@@ -27,12 +27,14 @@ const (
 	aiSeedJobName            = "ai-seed"
 	aiTestJobName            = "ai-tests"
 	aiSchemaJobName          = "ai-schema-dump"
+	aiSystemPromptConfigMap  = "ai-prompt-template"
 	defaultAISecretNamespace = "cellenza-operator-system"
 	defaultAISecretKey       = "api-key"
 	defaultAISchemaDumpImage = "postgres:15-alpine"
 	defaultAIInternalAppURL  = "http://app:80"
 	defaultAITestImage       = "python:3.12-slim"
 	aiPromptConfigMapKey     = "instructions"
+	aiSystemPromptKey        = "ai-system-prompt.txt"
 
 	phaseSucceeded  = "Succeeded"
 	phaseFailed     = "Failed"
@@ -46,10 +48,33 @@ func aiPromptConfigMapName(czName string) string {
 	return "ai-prompt-" + czName
 }
 
+func (r *CellenzaReconciler) settingsReader() client.Reader {
+	if r.APIReader != nil {
+		return r.APIReader
+	}
+	return r.Client
+}
+
+func (r *CellenzaReconciler) operatorNamespace() string {
+	if strings.TrimSpace(r.OperatorNamespace) == "" {
+		return defaultAISecretNamespace
+	}
+	return strings.TrimSpace(r.OperatorNamespace)
+}
+
+func (r *CellenzaReconciler) fetchSystemPrompt(ctx context.Context) string {
+	cm := &corev1.ConfigMap{}
+	key := types.NamespacedName{Name: aiSystemPromptConfigMap, Namespace: r.operatorNamespace()}
+	if err := r.settingsReader().Get(ctx, key, cm); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(cm.Data[aiSystemPromptKey])
+}
+
 func (r *CellenzaReconciler) fetchExtraInstructions(ctx context.Context, c *platformv1alpha1.Cellenza) string {
 	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: aiPromptConfigMapName(c.Name), Namespace: defaultAISecretNamespace}
-	if err := r.Get(ctx, key, cm); err != nil {
+	if err := r.settingsReader().Get(ctx, key, cm); err != nil {
 		return ""
 	}
 	return strings.TrimSpace(cm.Data[aiPromptConfigMapKey])
@@ -234,6 +259,7 @@ func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *p
 		AppURL:            defaultAIInternalAppURL,
 		Branch:            c.Spec.Branch,
 		PRNumber:          c.Spec.PRNumber,
+		SystemPrompt:      r.fetchSystemPrompt(ctx),
 		ExtraInstructions: r.fetchExtraInstructions(ctx, c),
 	})
 	if err != nil {
