@@ -933,11 +933,11 @@ kubectl get cz pr-42 -o jsonpath='{.status.aiEnrichment}' | jq .
 
 ```bash
 # Via kubectl
-kubectl patch cz pr-42 --type=json \
-  -p='[{"op":"remove","path":"/status/aiEnrichment"}]'
+kubectl patch cz pr-42 --type=merge \
+  -p='{"spec":{"aiEnrichment":{"rerunRequested":true}}}'
 
 # Via Copilot Extension
-@cellenza enrich pr-42
+@cellenza retest-ai pr-42
 ```
 
 #### 6. Customize AI instructions per environment
@@ -948,7 +948,7 @@ You can store custom prompt instructions directly in the cluster without touchin
 @cellenza set-prompt pr-42 Generate at least 15 products across 5 categories. Only test /api/ endpoints.
 ```
 
-The extension creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically on the next enrichment. Run `@cellenza enrich pr-42` afterward to regenerate with the new instructions.
+The extension creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically on the next enrichment. Run `@cellenza retest-ai pr-42` afterward to regenerate with the new instructions.
 
 To check current instructions:
 
@@ -1280,7 +1280,8 @@ All responses are in French. Arguments accept `pr-42`, `42`, or `#42`.
 | `@cellenza extend pr-42 [24h]` | Extends TTL by the given duration (default `24h`) — patches `spec.ttl` and `status.expiresAt` immediately |
 | `@cellenza wake pr-42` | Sets `spec.replicas` to `1` to restart a scaled-down environment |
 | `@cellenza reset-db pr-42` | Sets `spec.database.resetRequested: true` — operator deletes migration/seed jobs and re-runs them on next reconcile |
-| `@cellenza enrich pr-42` | Resets AI enrichment state, deletes generated artifacts, and asks the operator to regenerate seed + tests |
+| `@cellenza retest-ai pr-42` | Sets `spec.aiEnrichment.rerunRequested: true` — operator replays DB setup when enabled, skips the standard test suite for this cycle, and regenerates AI seed/tests |
+| `@cellenza enrich pr-42` | Backward-compatible alias for `@cellenza retest-ai pr-42` |
 | `@cellenza set-prompt pr-42 <instructions>` | Stores custom AI instructions for this environment in the cluster (no operator redeploy needed) |
 | `@cellenza show-prompt pr-42` | Displays the current custom prompt for this environment |
 | `@cellenza help` | Shows the command list |
@@ -1385,19 +1386,25 @@ The extension patches `spec.database.resetRequested: true`. The controller detec
 ### Relaunch AI enrichment from Copilot Chat
 
 ```
-@cellenza enrich pr-42
+@cellenza retest-ai pr-42
 ```
 
-The extension clears `status.aiEnrichment`, deletes `ai-enrichment`, `ai-seed`, `ai-tests`, and `ai-schema-dump` in the preview namespace, then lets the operator regenerate seed and tests on the next reconcile.
+The extension now patches `spec.aiEnrichment.rerunRequested: true`. The operator owns the rerun from there:
+- it deletes AI-generated artifacts and AI jobs
+- it replays DB migration/seed when `database.enabled=true`
+- it skips the standard smoke/regression/E2E suite for that cycle
+- it regenerates `seed.sql` and `test.py`, then re-runs `ai-seed` and `ai-tests`
+
+`@cellenza enrich pr-42` remains available as an alias for backward compatibility.
 
 ### Customize AI instructions without redeploying
 
 ```
 @cellenza set-prompt pr-42 Only test /api/ endpoints. Generate 20 products with realistic prices.
-@cellenza enrich pr-42
+@cellenza retest-ai pr-42
 ```
 
-`set-prompt` creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically when generating seed and tests. No operator redeploy needed — the instructions take effect on the next `enrich` call. The ConfigMap is deleted automatically when the environment is removed.
+`set-prompt` creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically when generating seed and tests. No operator redeploy needed — the instructions take effect on the next `retest-ai` call. The ConfigMap is deleted automatically when the environment is removed.
 
 This override is environment-specific. For a cluster-wide default prompt managed by Helm, use
 `ai.systemPrompt` or `--set-file ai.systemPrompt=...` on the operator chart.
@@ -1443,7 +1450,7 @@ Failed to pull image "ghcr.io/acme/myapp:does-not-exist": not found
 ```
 
 ---
-`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42` · `@cellenza enrich pr-42` · `@cellenza set-prompt pr-42 <instructions>`
+`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42` · `@cellenza retest-ai pr-42` · `@cellenza set-prompt pr-42 <instructions>`
 ```
 
 They can request the raw pod logs:
