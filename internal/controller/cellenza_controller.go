@@ -175,6 +175,9 @@ func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key type
 	if handled, result, err := r.handleResetRequested(ctx, cellenza, nsName); handled {
 		return result, err
 	}
+	if handled, result, err := r.handleAIRerunRequested(ctx, cellenza, nsName); handled {
+		return result, err
+	}
 
 	if result, err := r.reconcileDatabaseWait(ctx, cellenza, nsName); result.RequeueAfter > 0 || err != nil {
 		return result, err
@@ -209,7 +212,7 @@ func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key type
 		syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 	}
 
-	if testSuiteEnabled(cellenza) {
+	if testSuiteEnabled(cellenza) && !aiRerunOnly(cellenza) {
 		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -313,7 +316,7 @@ func (r *CellenzaReconciler) resetDerivedStateForNewGeneration(ctx context.Conte
 	if c.Status.ObservedGeneration == 0 || c.Status.ObservedGeneration == c.Generation {
 		return nil
 	}
-	if hasTransientDatabaseRequest(c) {
+	if hasTransientDatabaseRequest(c) || aiRerunRequested(c) {
 		c.Status.ObservedGeneration = c.Generation
 		return r.Status().Update(ctx, c)
 	}
@@ -407,6 +410,45 @@ func (r *CellenzaReconciler) handleResetRequested(ctx context.Context, cellenza 
 	if err := r.Patch(ctx, cellenza, client.MergeFrom(specBase)); err != nil {
 		return true, ctrl.Result{}, err
 	}
+	return true, ctrl.Result{Requeue: true}, nil
+}
+
+func (r *CellenzaReconciler) handleAIRerunRequested(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
+	if !aiRerunRequested(cellenza) {
+		return false, ctrl.Result{}, nil
+	}
+
+	aiStatus := ensureAIEnrichmentStatus(cellenza)
+	if aiStatus.RerunOnly {
+		return false, ctrl.Result{}, nil
+	}
+
+	if err := r.deleteAIResources(ctx, nsName); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	if err := r.deleteTestSuiteJobs(ctx, nsName); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	if databaseEnabled(cellenza) {
+		if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
+			return true, ctrl.Result{}, err
+		}
+	}
+
+	statusBase := cellenza.DeepCopy()
+	if cellenza.Status.Database != nil {
+		cellenza.Status.Database.Migration = ""
+		cellenza.Status.Database.Seed = ""
+		cellenza.Status.Database.Ready = false
+	}
+	cellenza.Status.AIEnrichment = &platformv1alpha1.AIEnrichmentStatus{
+		RerunOnly: true,
+	}
+	clearStatusCondition(cellenza, platformv1alpha1.ConditionAIEnrichmentReady)
+	if err := r.Status().Patch(ctx, cellenza, client.MergeFrom(statusBase)); err != nil {
+		return true, ctrl.Result{}, err
+	}
+
 	return true, ctrl.Result{Requeue: true}, nil
 }
 
@@ -1362,6 +1404,17 @@ func (r *CellenzaReconciler) namespaceName(c *platformv1alpha1.Cellenza) string 
 	return fmt.Sprintf("preview-pr-%d", c.Spec.PRNumber)
 }
 
+func clearStatusCondition(c *platformv1alpha1.Cellenza, conditionType string) {
+	filtered := c.Status.Conditions[:0]
+	for _, cond := range c.Status.Conditions {
+		if cond.Type == conditionType {
+			continue
+		}
+		filtered = append(filtered, cond)
+	}
+	c.Status.Conditions = filtered
+}
+
 func sanitizeLabel(s string) string {
 	result := make([]byte, 0, len(s))
 	for i := 0; i < len(s); i++ {
@@ -1391,6 +1444,35 @@ func (r *CellenzaReconciler) deleteDatabaseJobs(ctx context.Context, nsName stri
 	}
 	for _, job := range jobs {
 		if err := r.Delete(ctx, job); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *CellenzaReconciler) deleteTestSuiteJobs(ctx context.Context, nsName string) error {
+	jobs := []client.Object{
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: regressionJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: e2eJobName, Namespace: nsName}},
+	}
+	for _, job := range jobs {
+		if err := r.Delete(ctx, job); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *CellenzaReconciler) deleteAIResources(ctx context.Context, nsName string) error {
+	objects := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: aiEnrichmentConfigMap, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: aiSeedJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: aiTestJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: aiSchemaJobName, Namespace: nsName}},
+	}
+	for _, obj := range objects {
+		if err := r.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}

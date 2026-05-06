@@ -210,6 +210,12 @@ type AIEnrichmentSpec struct {
 	// When omitted while AI enrichment is enabled, the operator treats this task as enabled.
 	// +optional
 	Tests *AIEnrichmentTaskSpec `json:"tests,omitempty"`
+
+	// RerunRequested triggers an AI-only rerun: database migration/seed are replayed
+	// when enabled, AI artifacts are regenerated, and the standard test suite is skipped
+	// for that cycle. The operator clears this flag automatically once the rerun completes.
+	// +optional
+	RerunRequested bool `json:"rerunRequested,omitempty"`
 }
 
 // AIEnrichmentTaskSpec configures one AI enrichment task (seed or tests).
@@ -246,6 +252,10 @@ type AIEnrichmentStatus struct {
 	// Phase: Pending | Generating | Running | Succeeded | Failed
 	// +optional
 	Phase string `json:"phase,omitempty"`
+
+	// RerunOnly is true while an AI-only rerun is in progress.
+	// +optional
+	RerunOnly bool `json:"rerunOnly,omitempty"`
 
 	// SeedStatus: Skipped | Running | Succeeded | Failed
 	// +optional

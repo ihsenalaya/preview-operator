@@ -62,3 +62,57 @@ func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 		t.Fatalf("expected test suite configmap to remain present: %v", err)
 	}
 }
+
+func TestResetDerivedStateSkipsTransientAIRerunRequests(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "pr-34",
+			Generation: 12,
+		},
+		Spec: platformv1alpha1.CellenzaSpec{
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled:        true,
+				RerunRequested: true,
+			},
+		},
+		Status: platformv1alpha1.CellenzaStatus{
+			ObservedGeneration: 11,
+			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
+				Phase: phaseFailed,
+			},
+		},
+	}
+	job := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: "preview-pr-34"}}
+	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testSuiteConfigMap, Namespace: "preview-pr-34"}}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(c).
+		WithObjects(c, job, cm).
+		Build()
+
+	reconciler := &CellenzaReconciler{
+		Client: cl,
+		Scheme: scheme,
+	}
+
+	if err := reconciler.resetDerivedStateForNewGeneration(context.Background(), c, "preview-pr-34"); err != nil {
+		t.Fatalf("resetDerivedStateForNewGeneration returned error: %v", err)
+	}
+
+	updated := &platformv1alpha1.Cellenza{}
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: "pr-34"}, updated); err != nil {
+		t.Fatalf("failed to fetch updated cellenza: %v", err)
+	}
+	if updated.Status.ObservedGeneration != updated.Generation {
+		t.Fatalf("observedGeneration = %d, want %d", updated.Status.ObservedGeneration, updated.Generation)
+	}
+
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: smokeJobName, Namespace: "preview-pr-34"}, &batchv1.Job{}); err != nil {
+		t.Fatalf("expected smoke job to remain present: %v", err)
+	}
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: testSuiteConfigMap, Namespace: "preview-pr-34"}, &corev1.ConfigMap{}); err != nil {
+		t.Fatalf("expected test suite configmap to remain present: %v", err)
+	}
+}
