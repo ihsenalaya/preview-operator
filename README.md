@@ -967,6 +967,38 @@ kubectl create configmap ai-prompt-pr-42 \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
+#### 7. Customize the default AI system prompt via Helm
+
+The chart now ships a default system prompt file at `charts/cellenza-operator/files/ai-system-prompt.txt`
+and renders it into a ConfigMap named `ai-prompt-template` in the operator namespace.
+
+You can override that prompt globally without changing operator code:
+
+```bash
+helm upgrade --install cellenza-operator cellenza/cellenza-operator \
+  --namespace cellenza-operator-system \
+  --create-namespace \
+  --set-file ai.systemPrompt=./my-ai-system-prompt.txt \
+  --wait
+```
+
+Or store the prompt directly in your values file:
+
+```yaml
+ai:
+  apiURL: "https://models.inference.ai.azure.com"
+  systemPrompt: |
+    You are a developer tool for preview environments.
+    Only test JSON endpoints under /api/.
+    Prefer 201 Created for successful resource-creation endpoints when the diff shows creation semantics.
+```
+
+Per-environment overrides created with `@cellenza set-prompt ...` are still supported. They are appended
+as additional instructions on top of the default Helm-managed system prompt.
+
+If the Helm ConfigMap is missing, the operator falls back to its built-in default prompt so manual or
+older deployments keep working.
+
 Apply it:
 
 ```bash
@@ -1367,6 +1399,9 @@ The extension clears `status.aiEnrichment`, deletes `ai-enrichment`, `ai-seed`, 
 
 `set-prompt` creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically when generating seed and tests. No operator redeploy needed — the instructions take effect on the next `enrich` call. The ConfigMap is deleted automatically when the environment is removed.
 
+This override is environment-specific. For a cluster-wide default prompt managed by Helm, use
+`ai.systemPrompt` or `--set-file ai.systemPrompt=...` on the operator chart.
+
 ```
 @cellenza show-prompt pr-42
 ```
@@ -1626,6 +1661,7 @@ image:
 
 ai:
   apiURL: "https://models.inference.ai.azure.com"  # GitHub Models (free tier); use https://api.openai.com/v1 for OpenAI
+  systemPrompt: ""                                 # optional global override; defaults to charts/cellenza-operator/files/ai-system-prompt.txt
 
 # Image pull secrets for private GHCR registries
 imagePullSecrets: []
@@ -1825,11 +1861,12 @@ The controller watches `Cellenza` resources cluster-wide and reconciles the foll
 - `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready and optional OpenTelemetry auto-instrumentation annotations
 - `Service` `app` — ClusterIP service for the app
 - `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`
+- `ConfigMap` `ai-prompt-template` (in `cellenza-operator-system`) — default AI system prompt managed by the Helm chart
 - `Job` `ai-schema-dump` — dumps the DB schema via `pg_dump --schema-only` and stores it in a ConfigMap
 - `ConfigMap` `ai-enrichment` — holds `seed.sql` (AI-generated INSERT statements) and `test.py` (AI-generated integration tests)
 - `Job` `ai-seed` — runs `psql -f /data/seed.sql` against the preview PostgreSQL
 - `Job` `ai-tests` — runs `pip install requests && python /data/test.py` with `APP_URL=http://app:80`
-- `ConfigMap` `ai-prompt-<name>` (in `cellenza-operator-system`) — optional custom AI instructions stored via `@cellenza set-prompt`; deleted automatically when the environment is removed
+- `ConfigMap` `ai-prompt-<name>` (in `cellenza-operator-system`) — optional per-environment AI instructions stored via `@cellenza set-prompt`; appended to the default system prompt and deleted automatically when the environment is removed
 
 A **finalizer** ensures all child resources (including the PostgreSQL deployment and credentials secret) are cleaned up even when the `Cellenza` is force-deleted.
 
