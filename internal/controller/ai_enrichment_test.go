@@ -314,6 +314,79 @@ func TestGenerateAndStoreAIContentCreatesConfigMap(t *testing.T) {
 	}
 }
 
+func TestGenerateAndStoreAIContentUsesSystemPromptConfigMap(t *testing.T) {
+	scheme := testAIScheme(t)
+	c := &platformv1alpha1.Cellenza{
+		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
+		Spec: platformv1alpha1.CellenzaSpec{
+			Branch:   "feature/ai",
+			PRNumber: 21,
+			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
+				Enabled: true,
+				Model:   "gpt-test",
+				APISecretRef: &platformv1alpha1.SecretKeyRef{
+					Name: "ai-api",
+				},
+			},
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "ai-api", Namespace: defaultAISecretNamespace},
+		Data:       map[string][]byte{defaultAISecretKey: []byte("test-key")},
+	}
+	systemPrompt := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: aiSystemPromptConfigMap, Namespace: "operator-system"},
+		Data:       map[string]string{aiSystemPromptKey: "Custom system prompt from Helm."},
+	}
+	prPrompt := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: aiPromptConfigMapName(c.Name), Namespace: defaultAISecretNamespace},
+		Data:       map[string]string{aiPromptConfigMapKey: "Prefer 201 for POST /api/products."},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret, systemPrompt, prPrompt).Build()
+
+	reconciler := &CellenzaReconciler{
+		Client:            fakeClient,
+		APIReader:         fakeClient,
+		Scheme:            scheme,
+		OperatorNamespace: "operator-system",
+		AIAPIBaseURL:      "https://ai.example.test",
+		AIHTTPClient: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("failed to read AI request body: %v", err)
+			}
+			payload := string(body)
+			for _, want := range []string{
+				"Custom system prompt from Helm.",
+				"Additional instructions:",
+				"Prefer 201 for POST /api/products.",
+			} {
+				if !strings.Contains(payload, want) {
+					t.Fatalf("AI request body missing %q:\n%s", want, payload)
+				}
+			}
+			if strings.Contains(payload, "You are a developer tool for Kubernetes preview environments.") {
+				t.Fatalf("expected custom system prompt to replace the default template:\n%s", payload)
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body: io.NopCloser(strings.NewReader(
+					`{"choices":[{"message":{"content":"{\"seed_sql\":\"\",\"test_script\":\"print('pass')\"}"}}]}`,
+				)),
+			}, nil
+		})},
+	}
+
+	ready, err := reconciler.generateAndStoreAIContent(context.Background(), c, "preview-pr-21")
+	if err != nil {
+		t.Fatalf("generateAndStoreAIContent returned error: %v", err)
+	}
+	if !ready {
+		t.Fatalf("expected generateAndStoreAIContent to complete")
+	}
+}
+
 func TestExtractAITestResults(t *testing.T) {
 	tests := []struct {
 		name  string

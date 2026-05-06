@@ -35,6 +35,7 @@ metrics:
 
 ai:
   apiURL: "https://models.inference.ai.azure.com"
+  systemPrompt: ""
 
 nodeSelector: {}
 tolerations: []

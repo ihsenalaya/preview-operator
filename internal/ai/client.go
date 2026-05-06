@@ -44,6 +44,7 @@ type GenerateRequest struct {
 	AppURL            string // preview app URL (e.g. http://app:8080)
 	Branch            string
 	PRNumber          int
+	SystemPrompt      string // full system prompt template loaded from ConfigMap (optional)
 	ExtraInstructions string // custom instructions from the ai-prompt ConfigMap (optional)
 }
 
@@ -55,7 +56,7 @@ type GenerateResponse struct {
 
 // Generate calls the AI API and returns seed SQL and a test script.
 func (c *Client) Generate(ctx context.Context, req GenerateRequest) (*GenerateResponse, error) {
-	systemPrompt := buildSystemPrompt(req.ExtraInstructions)
+	systemPrompt := buildSystemPrompt(req.SystemPrompt, req.ExtraInstructions)
 	userPrompt := buildUserPrompt(req)
 
 	body, err := json.Marshal(map[string]any{
@@ -122,8 +123,7 @@ func (c *Client) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 	}, nil
 }
 
-func buildSystemPrompt(extraInstructions string) string {
-	systemPrompt := `You are a developer tool for Kubernetes preview environments.
+const defaultSystemPrompt = `You are a developer tool for Kubernetes preview environments.
 Given a pull request diff and optionally a database schema, generate:
 1. seed_sql: SQL INSERT statements that populate the preview database with realistic data
    relevant to the PR changes. Use only tables that exist in the schema.
@@ -131,6 +131,9 @@ Given a pull request diff and optionally a database schema, generate:
 2. test_script: A Python script using the 'requests' library that tests the HTTP endpoints
    modified or added by the PR. The script must use the APP_URL environment variable as base URL.
    IMPORTANT: Only test JSON/API endpoints.
+   Do not assume HTTP 200 for successful POST, PUT, or PATCH requests.
+   For resource-creation endpoints, prefer the explicit status code shown in the diff and expect
+   201 Created when the handler indicates creation semantics.
    Prefer routes whose path starts with /api/ and whose handler uses jsonify(), request.get_json(),
    or another explicit JSON response.
    Never hardcode row identifiers such as category_id=1 or product_id=1 unless the script created
@@ -156,6 +159,12 @@ Given a pull request diff and optionally a database schema, generate:
    Exit with code 1 if any test fails.
 
 Respond ONLY with valid JSON: {"seed_sql": "...", "test_script": "..."}`
+
+func buildSystemPrompt(basePrompt, extraInstructions string) string {
+	systemPrompt := strings.TrimSpace(basePrompt)
+	if systemPrompt == "" {
+		systemPrompt = defaultSystemPrompt
+	}
 
 	if strings.TrimSpace(extraInstructions) != "" {
 		systemPrompt += "\n\nAdditional instructions:\n" + strings.TrimSpace(extraInstructions)
