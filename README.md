@@ -248,7 +248,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.12.6 \
+  --version 0.12.8 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -1721,7 +1721,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm (by design). If a new version changes the CRD schema, apply the updated CRD manually first:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.12.6/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.12.8/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
 > ```
 
 ## Uninstalling
@@ -1817,16 +1817,16 @@ kubectl patch cellenza demo --type merge \
 | `lint.yml` | push to any branch/tag | Runs `golangci-lint` |
 | `test.yml` | push to any branch/tag | Runs unit + envtest integration tests |
 | `test-e2e.yml` | push to any branch/tag | Spins up Kind, installs operator, runs e2e suite |
-| `docker-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-operator` image to GHCR |
-| `extension-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-extension` image to GHCR |
-| `demo-app-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-demo-app` image to GHCR |
+| `docker-release.yml` | `v*` tag only | Builds and pushes `cellenza-operator` image to GHCR |
+| `extension-release.yml` | `v*` tag only | Builds and pushes `cellenza-extension` image to GHCR |
+| `demo-app-release.yml` | `v*` tag only | Builds and pushes `cellenza-demo-app` image to GHCR |
 | `helm-release.yml` | `v*` tag only | Packages and publishes Helm chart to GitHub Releases + GitHub Pages + GHCR OCI |
 
 ### Release a new version
 
 ```bash
-git tag v0.12.6
-git push origin v0.12.6
+git tag v0.12.8
+git push origin v0.12.8
 ```
 
 GitHub Actions will automatically:
