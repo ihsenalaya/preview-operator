@@ -312,6 +312,10 @@ func (r *CellenzaReconciler) resetDerivedStateForNewGeneration(ctx context.Conte
 	if c.Status.ObservedGeneration == 0 || c.Status.ObservedGeneration == c.Generation {
 		return nil
 	}
+	if hasTransientDatabaseRequest(c) {
+		c.Status.ObservedGeneration = c.Generation
+		return r.Status().Update(ctx, c)
+	}
 
 	for _, name := range []string{
 		smokeJobName,
@@ -355,6 +359,15 @@ func (r *CellenzaReconciler) resetDerivedStateForNewGeneration(ctx context.Conte
 	c.Status.Conditions = filtered
 
 	return r.Status().Update(ctx, c)
+}
+
+func hasTransientDatabaseRequest(c *platformv1alpha1.Cellenza) bool {
+	if c.Spec.Database == nil || !c.Spec.Database.Enabled {
+		return false
+	}
+	return c.Spec.Database.ResetRequested ||
+		c.Spec.Database.CheckpointSave != "" ||
+		c.Spec.Database.CheckpointRestore != ""
 }
 
 func isTTLExpired(cellenza *platformv1alpha1.Cellenza) bool {

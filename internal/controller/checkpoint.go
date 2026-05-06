@@ -202,6 +202,7 @@ func (r *CellenzaReconciler) clearCheckpointRequest(ctx context.Context, c *plat
 		return err
 	}
 	r.setDatabaseStatus(c, wasReady)
+	c.Status.ObservedGeneration = c.Generation
 	c.Status.Database.Checkpoints = names
 	return r.Status().Update(ctx, c)
 }
