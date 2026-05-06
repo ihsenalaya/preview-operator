@@ -313,7 +313,7 @@ The app receives these environment variables automatically:
 | `POSTGRES_DB` | `appdb` |
 | `DATABASE_URL` | `postgresql://preview_42:a3f8c2...@postgres:5432/appdb?sslmode=disable` |
 
-The demo image `ghcr.io/ihsenalaya/cellenza-demo-app:latest` logs database activity with a `[db]` prefix, for example:
+The demo image `ghcr.io/ihsenalaya/cellenza-demo-app:<version>` logs database activity with a `[db]` prefix, for example:
 
 ```text
 [db] Opening PostgreSQL connection database=appdb user=preview_42
@@ -1321,11 +1321,11 @@ kubectl create secret generic cellenza-extension-secret \
 
 #### 3. Verify the extension image is available
 
-The extension image is built automatically by CI on every push to `main` or on version tags:
+The extension image is published automatically by CI on version tags:
 
 ```text
-ghcr.io/ihsenalaya/cellenza-extension:latest
 ghcr.io/ihsenalaya/cellenza-extension:<version>
+ghcr.io/ihsenalaya/cellenza-extension:sha-<git-sha>
 ```
 
 To build it locally:
@@ -1558,10 +1558,11 @@ The repository ships a ready-to-use Flask demo app (`demo-app/`) that showcases 
 
 ### Image
 
-Built automatically on every push to `main` or version tag:
+Published automatically on version tags:
 
 ```text
-ghcr.io/ihsenalaya/cellenza-demo-app:latest
+ghcr.io/ihsenalaya/cellenza-demo-app:<version>
+ghcr.io/ihsenalaya/cellenza-demo-app:sha-<git-sha>
 ```
 
 ### Deploy with the demo Cellenza manifest
