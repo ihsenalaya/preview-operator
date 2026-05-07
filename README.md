@@ -165,12 +165,31 @@ helm install cert-manager jetstack/cert-manager \
 
 ### 3. Install ingress-nginx
 
+**For Kind clusters** (required — disables the admission webhook that causes x509 errors in Kind):
+
+```bash
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --set controller.admissionWebhooks.enabled=false \
+  --wait
+```
+
+**For production clusters** (keeps the admission webhook):
+
 ```bash
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
   --create-namespace \
   --wait
 ```
+
+> **Kind + admission webhook:** If you install without `--set controller.admissionWebhooks.enabled=false` and see `x509: certificate signed by unknown authority` errors, delete the webhook and reinstall:
+> ```bash
+> kubectl delete validatingwebhookconfiguration ingress-nginx-admission
+> helm uninstall ingress-nginx -n ingress-nginx
+> # Re-install with the flag above
+> ```
 
 For clusters without Kind port mappings:
 
@@ -247,7 +266,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.12.8 \
+  --version 0.13.0 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -1717,8 +1736,10 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm. Apply the updated CRD manually first if the new version changes the schema:
 > ```bash
-> kubectl apply -f https://raw.githubusercontent.com/ihsenalaya/cellenza-operator/v0.12.8/charts/cellenza-operator/crds/platform.company.io_cellenzas.yaml
+> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.0 \
+>   | tail -n +3 | kubectl apply -f -
 > ```
+> The `tail -n +3` strips the two-line OCI pull header that Helm prepends before the YAML.
 
 ## Uninstalling
 
@@ -1774,8 +1795,8 @@ docker push ghcr.io/ihsenalaya/cellenza-demo-app:dev
 ### Release
 
 ```bash
-git tag v0.12.8
-git push origin v0.12.8
+git tag v0.13.0
+git push origin v0.13.0
 ```
 
 GitHub Actions automatically:
@@ -1797,8 +1818,8 @@ GitHub Actions automatically:
 ### Release a new version
 
 ```bash
-git tag v0.12.6
-git push origin v0.12.6
+git tag v0.13.0
+git push origin v0.13.0
 ```
 
 GitHub Actions will automatically:
@@ -1807,46 +1828,6 @@ GitHub Actions will automatically:
 3. Build and push `ghcr.io/ihsenalaya/cellenza-demo-app:<version>` (if `demo-app/` changed)
 4. Package and publish the Helm chart to GitHub Releases and GitHub Pages
 5. Push the chart to `oci://ghcr.io/ihsenalaya/charts/cellenza-operator`
-
----
-
-## Architecture
-
-```
-cellenza-operator/
-├── api/v1alpha1/          # CRD types (CellenzaSpec, CellenzaStatus)
-├── cmd/
-│   ├── main.go            # Operator entry point
-│   └── extension/main.go  # Copilot Extension server entry point
-├── internal/
-│   ├── controller/        # Reconciliation loop + diagnostics
-│   ├── extension/         # Copilot Extension HTTP server + commands
-│   └── webhook/v1alpha1/  # Defaulter + Validator admission webhooks
-├── config/
-│   └── extension/         # RBAC + Deployment manifests for the extension
-├── charts/
-│   └── cellenza-operator/ # Helm chart for distribution
-└── .github/workflows/     # CI: docker build, helm release
-```
-
-The controller watches `Cellenza` resources cluster-wide and reconciles the following child resources in the PR-specific namespace:
-
-- `Namespace` — isolated per PR (`preview-pr-<number>`)
-- `ResourceQuota` — enforces the `resourceTier` limits (extended automatically when PostgreSQL is enabled)
-- `Secret` `postgres-credentials` — unique credentials generated with `crypto/rand`, **created once and never overwritten**
-- `Deployment` `postgres` — PostgreSQL sidecar (only when `database.enabled: true`)
-- `Service` `postgres` — ClusterIP on port 5432, DNS name `postgres` within the namespace
-- `Job` `postgres-migrate` / `postgres-seed` — optional one-shot database tasks before app rollout
-- `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready and optional OpenTelemetry auto-instrumentation annotations
-- `Service` `app` — ClusterIP service for the app
-- `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`
-- `Job` `ai-schema-dump` — dumps the DB schema via `pg_dump --schema-only` and stores it in a ConfigMap
-- `ConfigMap` `ai-enrichment` — holds `seed.sql` (AI-generated INSERT statements) and `test.py` (AI-generated integration tests)
-- `Job` `ai-seed` — runs `psql -f /data/seed.sql` against the preview PostgreSQL
-- `Job` `ai-tests` — runs `pip install requests && python /data/test.py` with `APP_URL=http://app:80`
-- `ConfigMap` `ai-prompt-<name>` (in `cellenza-operator-system`) — optional custom AI instructions stored via `@cellenza set-prompt`; deleted automatically when the environment is removed
-
-A **finalizer** ensures all child resources (including the PostgreSQL deployment and credentials secret) are cleaned up even when the `Cellenza` is force-deleted.
 
 ---
 
