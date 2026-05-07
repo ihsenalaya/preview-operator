@@ -10,7 +10,7 @@ kubectl apply -f pr-42.yaml   →   http://pr-42.preview.localtest.me   →   ku
 
 ## What is it?
 
-**Cellenza** is a Kubernetes operator that turns a pull request number into a fully isolated preview environment in seconds. Each `Cellenza` resource provisions its own namespace, deployment, service, ingress, resource quota — and optionally a live PostgreSQL database, OpenTelemetry traces, a complete automated test suite, and AI-generated contextual seed data. Everything is cleaned up automatically when the TTL expires or the resource is deleted.
+**Cellenza** is a Kubernetes operator that turns a pull request number into a fully isolated preview environment in seconds. Each `Cellenza` resource provisions its own namespace, deployment, service, ingress, and resource quota — and optionally a **frontend + backend** multi-service stack, a live PostgreSQL database, OpenTelemetry traces, a complete automated test suite, and AI-generated contextual seed data. Everything is cleaned up automatically when the TTL expires or the resource is deleted.
 
 No shared staging environments. No manual setup. No cleanup scripts.
 
@@ -21,6 +21,7 @@ No shared staging environments. No manual setup. No cleanup scripts.
 | Feature | Description |
 |---|---|
 | Isolated namespaces | Each PR gets `preview-pr-<N>` — zero cross-PR pollution |
+| **Multi-service** | Deploy a **frontend + backend** in one resource — each gets its own Deployment, Service, and ingress path |
 | Ephemeral PostgreSQL | Optional sidecar DB with unique, cryptographically-generated credentials |
 | DB migrations & seeds | One-shot Kubernetes Jobs run before the app, credentials auto-injected |
 | DB checkpoints | Save and restore point-in-time DB snapshots via `pg_dump`/`psql` |
@@ -31,7 +32,7 @@ No shared staging environments. No manual setup. No cleanup scripts.
 | AI enrichment | PR diff + DB schema → AI generates contextual `seed.sql` and integration `test.py` |
 | Approval gate | Block large or sensitive environments until a human sets `approvedBy` |
 | TTL auto-expiry | Environments self-destruct after a configurable duration |
-| Resource tiers | `small` / `medium` / `large` — quota extended automatically for DB and AI jobs |
+| Resource tiers | `small` / `medium` / `large` — quota extended automatically for DB, AI jobs, and extra services |
 | Copilot Extension | `@cellenza status pr-42`, `reset-db`, `enrich`, `extend`, `logs` from GitHub Copilot Chat |
 
 ---
@@ -1435,6 +1436,80 @@ spec:
       key: api-key
     model: gpt-4o-mini
 ```
+
+### Frontend + Backend + Database
+
+Use `spec.services` to deploy multiple containers in one environment. Each service gets its own Deployment, ClusterIP Service, and ingress path. `spec.image` is ignored when `services` is set.
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-42
+spec:
+  branch: feature/product-catalogue
+  prNumber: 42
+  image: "" # ignored when spec.services is set
+  resourceTier: medium
+  ttl: 48h
+  database:
+    enabled: true
+    databaseName: appdb
+    migration:
+      enabled: true
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+  services:
+    - name: backend
+      image: ghcr.io/acme/myapp-api:sha-abc123
+      port: 8080
+      pathPrefix: /api
+      env:
+        - name: LOG_LEVEL
+          value: debug
+    - name: frontend
+      image: ghcr.io/acme/myapp-ui:sha-abc123
+      port: 3000
+      pathPrefix: /
+      env:
+        - name: VITE_API_URL
+          value: http://pr-42.preview.localtest.me/api
+```
+
+**What the operator creates:**
+
+| Resource | Name | Details |
+|---|---|---|
+| `Deployment` | `svc-backend` | Runs the API container on port 8080 |
+| `Service` | `svc-backend` | ClusterIP, selects `app: svc-backend` |
+| `Deployment` | `svc-frontend` | Runs the UI container on port 3000 |
+| `Service` | `svc-frontend` | ClusterIP, selects `app: svc-frontend` |
+| `Ingress` | `app` | Routes `/api` → `svc-backend:8080`, `/` → `svc-frontend:3000` |
+
+The ingress routes by path prefix — longer prefixes match first, so `/api/products` hits the backend before the frontend catches `/`.
+
+**Database credentials** are injected into every service as env vars (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`). Each service also gets a `wait-for-postgres` init container so neither the frontend nor the backend starts before PostgreSQL is accepting connections.
+
+**All add-ons continue to work in multi-service mode:**
+
+| Add-on | Behavior |
+|---|---|
+| PostgreSQL | Sidecar created as usual; credentials auto-injected to all services |
+| AI enrichment | `APP_URL` points to the first service in the list |
+| Smoke tests | `APP_URL` env var injected — script reads it automatically |
+| Regression/E2E tests | Use the first service's image and URL |
+| Telemetry | Pod annotations applied to all service deployments |
+| Resource quota | Tier headroom added for each additional service |
+
+**`ServiceSpec` fields:**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `name` | string | required | Unique name — Deployment and Service are called `svc-<name>` |
+| `image` | string | required | Container image to deploy |
+| `port` | int32 | `80` | Container port |
+| `pathPrefix` | string | — | URL path routed to this service (e.g. `/api`, `/`). Omit to deploy without ingress exposure |
+| `replicas` | int32 | `spec.replicas` | Pod replicas for this specific service |
+| `env` | EnvVar[] | — | Additional environment variables injected into this service's container |
 
 ### Load testing with multiple replicas
 
