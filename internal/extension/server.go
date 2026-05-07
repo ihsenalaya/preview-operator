@@ -185,6 +185,8 @@ func (s *Server) execute(ctx context.Context, msg string) string {
 		return s.cmdListCheckpoints(ctx, args)
 	case "run-sql", "runsql":
 		return s.cmdRunSQL(ctx, args)
+	case "retest-ai", "retestai":
+		return s.cmdRetestAI(ctx, args)
 	case "enrich":
 		return s.cmdEnrich(ctx, args)
 	case "set-prompt", "setprompt":

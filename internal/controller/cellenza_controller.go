@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -175,6 +176,9 @@ func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key type
 	if handled, result, err := r.handleResetRequested(ctx, cellenza, nsName); handled {
 		return result, err
 	}
+	if handled, result, err := r.handleAIRerunRequested(ctx, cellenza, nsName); handled {
+		return result, err
+	}
 
 	if result, err := r.reconcileDatabaseWait(ctx, cellenza, nsName); result.RequeueAfter > 0 || err != nil {
 		return result, err
@@ -209,7 +213,7 @@ func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key type
 		syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 	}
 
-	if testSuiteEnabled(cellenza) {
+	if testSuiteEnabled(cellenza) && !aiRerunOnly(cellenza) {
 		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -313,7 +317,7 @@ func (r *CellenzaReconciler) resetDerivedStateForNewGeneration(ctx context.Conte
 	if c.Status.ObservedGeneration == 0 || c.Status.ObservedGeneration == c.Generation {
 		return nil
 	}
-	if hasTransientDatabaseRequest(c) {
+	if hasTransientDatabaseRequest(c) || aiRerunRequested(c) {
 		c.Status.ObservedGeneration = c.Generation
 		return r.Status().Update(ctx, c)
 	}
@@ -391,15 +395,61 @@ func (r *CellenzaReconciler) handleResetRequested(ctx context.Context, cellenza 
 	if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
 		return true, ctrl.Result{}, err
 	}
+
+	statusBase := cellenza.DeepCopy()
 	if cellenza.Status.Database != nil {
 		cellenza.Status.Database.Migration = ""
 		cellenza.Status.Database.Seed = ""
 		cellenza.Status.Database.Ready = false
 	}
-	cellenza.Spec.Database.ResetRequested = false
-	if err := r.Update(ctx, cellenza); err != nil {
+	if err := r.Status().Patch(ctx, cellenza, client.MergeFrom(statusBase)); err != nil {
 		return true, ctrl.Result{}, err
 	}
+
+	specBase := cellenza.DeepCopy()
+	cellenza.Spec.Database.ResetRequested = false
+	if err := r.Patch(ctx, cellenza, client.MergeFrom(specBase)); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	return true, ctrl.Result{Requeue: true}, nil
+}
+
+func (r *CellenzaReconciler) handleAIRerunRequested(ctx context.Context, cellenza *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
+	if !aiRerunRequested(cellenza) {
+		return false, ctrl.Result{}, nil
+	}
+
+	aiStatus := ensureAIEnrichmentStatus(cellenza)
+	if aiStatus.RerunOnly {
+		return false, ctrl.Result{}, nil
+	}
+
+	if err := r.deleteAIResources(ctx, nsName); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	if err := r.deleteTestSuiteJobs(ctx, nsName); err != nil {
+		return true, ctrl.Result{}, err
+	}
+	if databaseEnabled(cellenza) {
+		if err := r.deleteDatabaseJobs(ctx, nsName); err != nil {
+			return true, ctrl.Result{}, err
+		}
+	}
+
+	statusBase := cellenza.DeepCopy()
+	if cellenza.Status.Database != nil {
+		cellenza.Status.Database.Migration = ""
+		cellenza.Status.Database.Seed = ""
+		cellenza.Status.Database.Ready = false
+	}
+	cellenza.Status.AIEnrichment = &platformv1alpha1.AIEnrichmentStatus{
+		RerunOnly: true,
+	}
+	clearStatusCondition(cellenza, platformv1alpha1.ConditionAIEnrichmentReady)
+	if err := r.Status().Patch(ctx, cellenza, client.MergeFrom(statusBase)); err != nil {
+		return true, ctrl.Result{}, err
+	}
+
 	return true, ctrl.Result{Requeue: true}, nil
 }
 
@@ -433,6 +483,36 @@ func (r *CellenzaReconciler) reconcileDatabase(ctx context.Context, cellenza *pl
 
 func databaseEnabled(cellenza *platformv1alpha1.Cellenza) bool {
 	return cellenza.Spec.Database != nil && cellenza.Spec.Database.Enabled
+}
+
+func multiServiceEnabled(c *platformv1alpha1.Cellenza) bool {
+	return len(c.Spec.Services) > 0
+}
+
+func serviceDeploymentName(name string) string {
+	return "svc-" + name
+}
+
+// appServiceURL returns the in-cluster HTTP URL of the primary app service.
+// In multi-service mode it targets the first defined service.
+func appServiceURL(c *platformv1alpha1.Cellenza) string {
+	if len(c.Spec.Services) > 0 {
+		svc := c.Spec.Services[0]
+		port := svc.Port
+		if port == 0 {
+			port = 80
+		}
+		return fmt.Sprintf("http://%s:%d", serviceDeploymentName(svc.Name), port)
+	}
+	return "http://app:80"
+}
+
+// mainAppImage returns the primary app image. In multi-service mode the first service's image is used.
+func mainAppImage(c *platformv1alpha1.Cellenza) string {
+	if len(c.Spec.Services) > 0 {
+		return c.Spec.Services[0].Image
+	}
+	return c.Spec.Image
 }
 
 func databaseVersion(cellenza *platformv1alpha1.Cellenza) string {
@@ -585,6 +665,16 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 	cpuReq := resource.MustParse(cpuReqStr)
 	memReq := resource.MustParse(memReqStr)
 
+	if multiServiceEnabled(c) {
+		// Each service beyond the first needs its own CPU/memory headroom.
+		for i := 1; i < len(c.Spec.Services); i++ {
+			cpuLimit.Add(resource.MustParse(cpuLimitStr))
+			memLimit.Add(resource.MustParse(memLimitStr))
+			cpuReq.Add(resource.MustParse(cpuReqStr))
+			memReq.Add(resource.MustParse(memReqStr))
+		}
+	}
+
 	if c.Spec.Database != nil && c.Spec.Database.Enabled {
 		// Reserve headroom for the PostgreSQL pod (500m CPU / 512Mi RAM limit)
 		cpuLimit.Add(resource.MustParse("500m"))
@@ -640,8 +730,16 @@ func (r *CellenzaReconciler) reconcileResourceQuota(ctx context.Context, c *plat
 	return err
 }
 
-// reconcileDeployment creates/updates the app deployment, wiring in PostgreSQL when enabled
+// reconcileDeployment creates/updates app deployments.
+// In multi-service mode each entry in spec.services gets its own Deployment.
 func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	if multiServiceEnabled(c) {
+		return r.reconcileServiceDeployments(ctx, c, nsName)
+	}
+	return r.reconcileSingleDeployment(ctx, c, nsName)
+}
+
+func (r *CellenzaReconciler) reconcileSingleDeployment(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
 	cpuLimit, memLimit, cpuReq, memReq := c.ResourceLimits()
 
 	dbEnabled := c.Spec.Database != nil && c.Spec.Database.Enabled
@@ -769,6 +867,224 @@ func (r *CellenzaReconciler) reconcileDeployment(ctx context.Context, c *platfor
 	})
 	return err
 }
+
+
+// reconcileServiceDeployments creates/updates one Deployment per entry in spec.services.
+func (r *CellenzaReconciler) reconcileServiceDeployments(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	cpuLimit, memLimit, cpuReq, memReq := c.ResourceLimits()
+	dbEnabled := c.Spec.Database != nil && c.Spec.Database.Enabled
+	podAnnotations := telemetryPodAnnotations(c)
+	telEnv := telemetryEnv(c, nsName)
+
+	var initContainers []corev1.Container
+	var dbEnv []corev1.EnvVar
+	if dbEnabled {
+		initContainers = []corev1.Container{{
+			Name:    "wait-for-postgres",
+			Image:   "busybox:1.36",
+			Command: []string{"sh", "-c", "until nc -z postgres 5432; do echo 'waiting for postgres...'; sleep 2; done"},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("10m"),
+					corev1.ResourceMemory: resource.MustParse("32Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("50m"),
+					corev1.ResourceMemory: resource.MustParse("64Mi"),
+				},
+			},
+		}}
+		fromSecret := func(key string) corev1.EnvVar {
+			return corev1.EnvVar{Name: key, ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName},
+					Key:                  key,
+				},
+			}}
+		}
+		dbEnv = []corev1.EnvVar{
+			fromSecret("POSTGRES_USER"),
+			fromSecret("POSTGRES_PASSWORD"),
+			fromSecret("POSTGRES_DB"),
+			fromSecret("DATABASE_URL"),
+		}
+	}
+
+	for _, svc := range c.Spec.Services {
+		deployName := serviceDeploymentName(svc.Name)
+		replicas := svc.Replicas
+		if replicas == 0 {
+			replicas = c.Spec.Replicas
+			if replicas == 0 {
+				replicas = 1
+			}
+		}
+		port := svc.Port
+		if port == 0 {
+			port = 80
+		}
+
+		env := []corev1.EnvVar{
+			{Name: "PREVIEW_BRANCH", Value: c.Spec.Branch},
+			{Name: "PREVIEW_PR", Value: fmt.Sprintf("%d", c.Spec.PRNumber)},
+			{Name: "ENVIRONMENT", Value: "preview"},
+		}
+		env = append(env, dbEnv...)
+		env = append(env, svc.Env...)
+		env = append(env, telEnv...)
+
+		deploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: deployName, Namespace: nsName}}
+		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deploy, func() error {
+			if err := controllerutil.SetControllerReference(c, deploy, r.Scheme); err != nil {
+				return err
+			}
+			deploy.Labels = map[string]string{labelManagedBy: "cellenza-operator", labelCellenzaName: c.Name}
+			progressDeadlineSeconds := int32(60)
+			deploy.Spec = appsv1.DeploymentSpec{
+				Replicas:                &replicas,
+				ProgressDeadlineSeconds: &progressDeadlineSeconds,
+				Strategy:                appsv1.DeploymentStrategy{Type: appsv1.RecreateDeploymentStrategyType},
+				Selector:                &metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"app":          deployName,
+							"branch":       sanitizeLabel(c.Spec.Branch),
+							"pr":           fmt.Sprintf("%d", c.Spec.PRNumber),
+							labelManagedBy: "cellenza-operator",
+						},
+						Annotations: podAnnotations,
+					},
+					Spec: corev1.PodSpec{
+						InitContainers: initContainers,
+						Containers: []corev1.Container{{
+							Name:  svc.Name,
+							Image: svc.Image,
+							Ports: []corev1.ContainerPort{{ContainerPort: port, Protocol: corev1.ProtocolTCP}},
+							Env:   env,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse(cpuReq),
+									corev1.ResourceMemory: resource.MustParse(memReq),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse(cpuLimit),
+									corev1.ResourceMemory: resource.MustParse(memLimit),
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{Path: "/", Port: intstr.FromInt32(port)},
+								},
+								InitialDelaySeconds: 5,
+								PeriodSeconds:       10,
+							},
+						}},
+					},
+				},
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("service %s: %w", svc.Name, err)
+		}
+	}
+	return nil
+}
+
+// reconcileMultiServices creates/updates one ClusterIP Service per entry in spec.services.
+func (r *CellenzaReconciler) reconcileMultiServices(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	for _, svc := range c.Spec.Services {
+		deployName := serviceDeploymentName(svc.Name)
+		port := svc.Port
+		if port == 0 {
+			port = 80
+		}
+		k8sSvc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: deployName, Namespace: nsName}}
+		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, k8sSvc, func() error {
+			if err := controllerutil.SetControllerReference(c, k8sSvc, r.Scheme); err != nil {
+				return err
+			}
+			k8sSvc.Labels = map[string]string{labelManagedBy: "cellenza-operator"}
+			k8sSvc.Spec = corev1.ServiceSpec{
+				Selector: map[string]string{"app": deployName},
+				Ports: []corev1.ServicePort{{
+					Port:       port,
+					TargetPort: intstr.FromInt32(port),
+					Protocol:   corev1.ProtocolTCP,
+				}},
+				Type: corev1.ServiceTypeClusterIP,
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("service %s: %w", svc.Name, err)
+		}
+	}
+	return nil
+}
+
+// reconcileMultiServiceIngress creates a single Ingress with path-based routing to each service.
+func (r *CellenzaReconciler) reconcileMultiServiceIngress(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	pathType := networkingv1.PathTypePrefix
+	host := fmt.Sprintf("pr-%d.preview.localtest.me", c.Spec.PRNumber)
+
+	type svcPath struct {
+		prefix  string
+		svcName string
+		port    int32
+	}
+	var paths []svcPath
+	for _, svc := range c.Spec.Services {
+		if svc.PathPrefix == "" {
+			continue
+		}
+		port := svc.Port
+		if port == 0 {
+			port = 80
+		}
+		paths = append(paths, svcPath{prefix: svc.PathPrefix, svcName: serviceDeploymentName(svc.Name), port: port})
+	}
+	sort.Slice(paths, func(i, j int) bool { return len(paths[i].prefix) > len(paths[j].prefix) })
+
+	if len(paths) == 0 {
+		return nil
+	}
+
+	var ingressPaths []networkingv1.HTTPIngressPath
+	for _, p := range paths {
+		ingressPaths = append(ingressPaths, networkingv1.HTTPIngressPath{
+			Path:     p.prefix,
+			PathType: &pathType,
+			Backend: networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{
+					Name: p.svcName,
+					Port: networkingv1.ServiceBackendPort{Number: p.port},
+				},
+			},
+		})
+	}
+
+	ing := &networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, ing, func() error {
+		if err := controllerutil.SetControllerReference(c, ing, r.Scheme); err != nil {
+			return err
+		}
+		ing.Labels = map[string]string{labelManagedBy: "cellenza-operator"}
+		ing.Spec = networkingv1.IngressSpec{
+			IngressClassName: strPtr("nginx"),
+			Rules: []networkingv1.IngressRule{{
+				Host: host,
+				IngressRuleValue: networkingv1.IngressRuleValue{
+					HTTP: &networkingv1.HTTPIngressRuleValue{Paths: ingressPaths},
+				},
+			}},
+		}
+		return nil
+	})
+	return err
+}
+
 
 func (r *CellenzaReconciler) handleAppAvailability(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
 	appReady, appReason, err := r.appDeploymentReady(ctx, nsName)
@@ -1355,6 +1671,17 @@ func (r *CellenzaReconciler) namespaceName(c *platformv1alpha1.Cellenza) string 
 	return fmt.Sprintf("preview-pr-%d", c.Spec.PRNumber)
 }
 
+func clearStatusCondition(c *platformv1alpha1.Cellenza, conditionType string) {
+	filtered := c.Status.Conditions[:0]
+	for _, cond := range c.Status.Conditions {
+		if cond.Type == conditionType {
+			continue
+		}
+		filtered = append(filtered, cond)
+	}
+	c.Status.Conditions = filtered
+}
+
 func sanitizeLabel(s string) string {
 	result := make([]byte, 0, len(s))
 	for i := 0; i < len(s); i++ {
@@ -1384,6 +1711,35 @@ func (r *CellenzaReconciler) deleteDatabaseJobs(ctx context.Context, nsName stri
 	}
 	for _, job := range jobs {
 		if err := r.Delete(ctx, job); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *CellenzaReconciler) deleteTestSuiteJobs(ctx context.Context, nsName string) error {
+	jobs := []client.Object{
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: regressionJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: e2eJobName, Namespace: nsName}},
+	}
+	for _, job := range jobs {
+		if err := r.Delete(ctx, job); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *CellenzaReconciler) deleteAIResources(ctx context.Context, nsName string) error {
+	objects := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: aiEnrichmentConfigMap, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: aiSeedJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: aiTestJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: aiSchemaJobName, Namespace: nsName}},
+	}
+	for _, obj := range objects {
+		if err := r.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}

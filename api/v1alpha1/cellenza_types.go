@@ -210,6 +210,12 @@ type AIEnrichmentSpec struct {
 	// When omitted while AI enrichment is enabled, the operator treats this task as enabled.
 	// +optional
 	Tests *AIEnrichmentTaskSpec `json:"tests,omitempty"`
+
+	// RerunRequested triggers an AI-only rerun: database migration/seed are replayed
+	// when enabled, AI artifacts are regenerated, and the standard test suite is skipped
+	// for that cycle. The operator clears this flag automatically once the rerun completes.
+	// +optional
+	RerunRequested bool `json:"rerunRequested,omitempty"`
 }
 
 // AIEnrichmentTaskSpec configures one AI enrichment task (seed or tests).
@@ -247,6 +253,10 @@ type AIEnrichmentStatus struct {
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
+	// RerunOnly is true while an AI-only rerun is in progress.
+	// +optional
+	RerunOnly bool `json:"rerunOnly,omitempty"`
+
 	// SeedStatus: Skipped | Running | Succeeded | Failed
 	// +optional
 	SeedStatus string `json:"seedStatus,omitempty"`
@@ -282,6 +292,37 @@ const (
 	PhaseTerminating  EnvironmentPhase = "Terminating"
 	PhaseFailed       EnvironmentPhase = "Failed"
 )
+
+// ServiceSpec configures one service (e.g. frontend, backend) in a multi-service environment.
+type ServiceSpec struct {
+	// Name is the unique identifier for this service (e.g. "frontend", "backend").
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Image is the container image to deploy for this service.
+	// +kubebuilder:validation:MinLength=1
+	Image string `json:"image"`
+
+	// Port is the container port exposed by this service. Defaults to 80.
+	// +kubebuilder:default=80
+	// +optional
+	Port int32 `json:"port,omitempty"`
+
+	// PathPrefix is the URL path routed to this service via the ingress (e.g. "/" or "/api").
+	// Services without a PathPrefix are deployed but not exposed through the shared ingress.
+	// +optional
+	PathPrefix string `json:"pathPrefix,omitempty"`
+
+	// Replicas is the number of Pod replicas. Defaults to spec.replicas when unset.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=5
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// Env contains additional environment variables to inject into this service's container.
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
+}
 
 // CellenzaSpec defines the desired state
 type CellenzaSpec struct {
@@ -338,6 +379,12 @@ type CellenzaSpec struct {
 	// TestSuite configures automated smoke, regression, and E2E tests run after deployment.
 	// +optional
 	TestSuite *TestSuiteSpec `json:"testSuite,omitempty"`
+
+	// Services defines multiple containers to deploy (e.g. a frontend and a backend).
+	// When non-empty, spec.image is ignored; each entry gets its own Deployment, Service, and
+	// optional ingress path. All other add-ons (database, telemetry, AI enrichment, test suite) continue to work.
+	// +optional
+	Services []ServiceSpec `json:"services,omitempty"`
 }
 
 // GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.

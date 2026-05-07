@@ -5,7 +5,6 @@ env:
 
 on:
   push:
-    branches: ['**']
     tags: ['v*']
 
 jobs:
@@ -23,7 +22,6 @@ jobs:
       with:
         images: ghcr.io/${{ github.repository }}
         tags: |
-          type=ref,event=branch
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=sha,prefix=sha-

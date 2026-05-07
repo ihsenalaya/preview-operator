@@ -84,6 +84,14 @@ func aiEnrichmentEnabled(c *platformv1alpha1.Cellenza) bool {
 	return c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Enabled
 }
 
+func aiRerunRequested(c *platformv1alpha1.Cellenza) bool {
+	return aiEnrichmentEnabled(c) && c.Spec.AIEnrichment.RerunRequested
+}
+
+func aiRerunOnly(c *platformv1alpha1.Cellenza) bool {
+	return aiRerunRequested(c) || (c.Status.AIEnrichment != nil && c.Status.AIEnrichment.RerunOnly)
+}
+
 func aiSeedEnabled(c *platformv1alpha1.Cellenza) bool {
 	if !aiEnrichmentEnabled(c) {
 		return false
@@ -407,6 +415,11 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 
 	aiStatus := ensureAIEnrichmentStatus(c)
 	if aiStatus.Phase == phaseSucceeded || aiStatus.Phase == phaseFailed {
+		if aiRerunOnly(c) {
+			if err := r.completeAIRerun(ctx, c); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -485,8 +498,34 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 		return ctrl.Result{}, err
 	}
 	r.syncGitHubAIComment(ctx, c)
+	if aiRerunOnly(c) {
+		if err := r.completeAIRerun(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *CellenzaReconciler) completeAIRerun(ctx context.Context, c *platformv1alpha1.Cellenza) error {
+	if c.Status.AIEnrichment != nil && c.Status.AIEnrichment.RerunOnly {
+		statusBase := c.DeepCopy()
+		c.Status.AIEnrichment.RerunOnly = false
+		if err := r.Status().Patch(ctx, c, client.MergeFrom(statusBase)); err != nil {
+			return err
+		}
+		if err := r.refreshCellenza(ctx, client.ObjectKeyFromObject(c), c); err != nil {
+			return err
+		}
+	}
+
+	if c.Spec.AIEnrichment == nil || !c.Spec.AIEnrichment.RerunRequested {
+		return nil
+	}
+
+	specBase := c.DeepCopy()
+	c.Spec.AIEnrichment.RerunRequested = false
+	return r.Patch(ctx, c, client.MergeFrom(specBase))
 }
 
 func (r *CellenzaReconciler) reconcileAISeedJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, error) {

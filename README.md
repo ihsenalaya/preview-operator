@@ -339,6 +339,17 @@ The operator:
 | `POSTGRES_DB` | `appdb` |
 | `DATABASE_URL` | `postgresql://preview_42:a3f8c2...@postgres:5432/appdb?sslmode=disable` |
 
+The demo image `ghcr.io/ihsenalaya/cellenza-demo-app:latest` logs database activity with a `[db]` prefix, for example:
+
+```text
+[db] Opening PostgreSQL connection database=appdb user=preview_42
+[db] Initialized PostgreSQL schema table=messages
+[db] Read messages from PostgreSQL rows=1
+[db] Inserted message into PostgreSQL author=ihsen
+```
+
+Watch those logs with:
+
 ```bash
 # Read credentials at any time
 kubectl get secret postgres-credentials -n preview-pr-42 \
@@ -864,12 +875,12 @@ kubectl get cz pr-42 -o jsonpath='{.status.aiEnrichment}' | jq .
 ### Re-trigger enrichment
 
 ```bash
-# Via kubectl (remove the status sub-object to re-trigger)
+# Via kubectl
 kubectl patch cz pr-42 --type=json \
   -p='[{"op":"remove","path":"/status/aiEnrichment"}]'
 
 # Via Copilot Extension
-@cellenza enrich pr-42
+@cellenza retest-ai pr-42
 ```
 
 ### Per-environment AI prompt customization
@@ -879,14 +890,58 @@ Store custom instructions for this environment in the cluster without touching t
 ```bash
 # Via Copilot Extension
 @cellenza set-prompt pr-42 Generate at least 15 products across 5 categories. Only test /api/ endpoints.
-@cellenza enrich pr-42
+```
 
-# Via kubectl
+The extension creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically on the next enrichment. Run `@cellenza enrich pr-42` afterward to regenerate with the new instructions.
+
+To check current instructions:
+
+```
+@cellenza show-prompt pr-42
+```
+
+The prompt ConfigMap follows the Cellenza lifecycle — it is automatically deleted when the environment is removed.
+
+To update via `kubectl` directly:
+
+```bash
 kubectl create configmap ai-prompt-pr-42 \
   --namespace=cellenza-operator-system \
   --from-literal=instructions="Generate at least 15 products across 5 categories." \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+#### 7. Customize the default AI system prompt via Helm
+
+The chart now ships a default system prompt file at `charts/cellenza-operator/files/ai-system-prompt.txt`
+and renders it into a ConfigMap named `ai-prompt-template` in the operator namespace.
+
+You can override that prompt globally without changing operator code:
+
+```bash
+helm upgrade --install cellenza-operator cellenza/cellenza-operator \
+  --namespace cellenza-operator-system \
+  --create-namespace \
+  --set-file ai.systemPrompt=./my-ai-system-prompt.txt \
+  --wait
+```
+
+Or store the prompt directly in your values file:
+
+```yaml
+ai:
+  apiURL: "https://models.inference.ai.azure.com"
+  systemPrompt: |
+    You are a developer tool for preview environments.
+    Only test JSON endpoints under /api/.
+    Prefer 201 Created for successful resource-creation endpoints when the diff shows creation semantics.
+```
+
+Per-environment overrides created with `@cellenza set-prompt ...` are still supported. They are appended
+as additional instructions on top of the default Helm-managed system prompt.
+
+If the Helm ConfigMap is missing, the operator falls back to its built-in default prompt so manual or
+older deployments keep working.
 
 The prompt ConfigMap is automatically deleted when the environment is removed.
 
@@ -1040,10 +1095,10 @@ All responses are in French. Arguments accept `pr-42`, `42`, or `#42`.
 | `@cellenza logs pr-42` | Last 40 lines from the app pod; falls back to `status.diagnostics.podLogs` when pod is gone |
 | `@cellenza extend pr-42 [24h]` | Extends TTL by the given duration (default `24h`) — immediate effect |
 | `@cellenza wake pr-42` | Sets `spec.replicas` to `1` to restart a scaled-down environment |
-| `@cellenza reset-db pr-42` | Triggers DB reset: operator re-runs migration and seed on next reconcile |
-| `@cellenza enrich pr-42` | Clears AI enrichment state and re-triggers generation |
-| `@cellenza set-prompt pr-42 <instructions>` | Stores custom AI instructions for this environment |
-| `@cellenza show-prompt pr-42` | Displays the current custom AI prompt |
+| `@cellenza reset-db pr-42` | Sets `spec.database.resetRequested: true` — operator deletes migration/seed jobs and re-runs them on next reconcile |
+| `@cellenza enrich pr-42` | Resets AI enrichment state, deletes generated artifacts, and asks the operator to regenerate seed + tests |
+| `@cellenza set-prompt pr-42 <instructions>` | Stores custom AI instructions for this environment in the cluster (no operator redeploy needed) |
+| `@cellenza show-prompt pr-42` | Displays the current custom prompt for this environment |
 | `@cellenza help` | Shows the command list |
 
 ### RBAC granted to the extension
@@ -1078,7 +1133,27 @@ kubectl create secret generic cellenza-extension-secret \
   --from-literal=webhook-secret="$WEBHOOK_SECRET"
 ```
 
-**Step 3 — Deploy the extension:**
+> The webhook secret is `optional` in the deployment — the extension starts without it, but GitHub webhook validation will be skipped. Set it for production use.
+
+#### 3. Verify the extension image is available
+
+The extension image is built automatically by CI on every push to `main` or on version tags:
+
+```text
+ghcr.io/ihsenalaya/cellenza-extension:latest
+ghcr.io/ihsenalaya/cellenza-extension:<version>
+```
+
+To build it locally:
+
+```bash
+docker build -f Dockerfile.extension -t cellenza-extension:local .
+kind load docker-image cellenza-extension:local --name cellenza-test
+```
+
+Then update the image in `config/extension/deployment.yaml` before applying.
+
+#### 4. Deploy the extension
 
 ```bash
 kubectl apply -f config/extension/rbac.yaml
@@ -1091,90 +1166,144 @@ kubectl -n cellenza-operator-system rollout status deployment/cellenza-extension
 ```bash
 kubectl port-forward -n cellenza-operator-system svc/cellenza-extension 8090:8090 &
 ngrok http 8090
-# → paste the https:// URL as Webhook URL in the GitHub App settings
+# → Forwarding: https://abc123.ngrok-free.app → http://localhost:8090
 ```
 
-**Step 5 — Enable Copilot Chat:**
+Copy the `https://` ngrok URL and paste it as **Webhook URL** in your GitHub App settings (append `/` — the extension serves at the root path).
 
-In the GitHub App settings → **Copilot** tab → set **App type** to `Agent`.
+#### 6. Enable Copilot Chat for the App
 
----
+In your GitHub App settings → **Copilot** tab:
+- Set **App type** to `Agent`
+- Set **Inference description** to something like `Manage Cellenza preview environments`
+- Save
 
-## Spec reference
+Now open GitHub Copilot Chat in any repository where the App is installed and type `@cellenza help` to verify the connection.
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `branch` | string | **required** | Git branch name |
-| `prNumber` | integer | **required** | Pull request number |
-| `image` | string | **required** | Container image to deploy |
-| `ttl` | string | `48h` | Time-to-live. Format: `24h`, `72h`, `30m` |
-| `resourceTier` | `small` \| `medium` \| `large` | `medium` | CPU and memory quota tier |
-| `replicas` | 1–5 | `1` | Number of app pod replicas |
-| `requiresApproval` | bool | `false` | Block provisioning until `approvedBy` is set |
-| `approvedBy` | string | — | Username of the approver |
-| `database.enabled` | bool | `false` | Provision an ephemeral PostgreSQL instance |
-| `database.version` | string | `"15"` | PostgreSQL major version |
-| `database.databaseName` | string | `"appdb"` | Logical database name |
-| `database.migration.enabled` | bool | `false` | Run a migration Job before the app |
-| `database.migration.image` | string | `spec.image` | Override image for the migration Job |
-| `database.migration.command` | string[] | — | Required when migration is enabled |
-| `database.migration.args` | string[] | — | Optional migration arguments |
-| `database.seed.enabled` | bool | `false` | Run a seed Job after migration |
-| `database.seed.image` | string | `spec.image` | Override image for the seed Job |
-| `database.seed.command` | string[] | — | Required when seed is enabled |
-| `database.seed.args` | string[] | — | Optional seed arguments |
-| `database.resetRequested` | bool | `false` | Trigger a full DB reset (auto-cleared) |
-| `database.checkpointSave` | string | — | Name of snapshot to save (auto-cleared) |
-| `database.checkpointRestore` | string | — | Name of snapshot to restore (auto-cleared) |
-| `telemetry.enabled` | bool | `false` | Add OTel settings to the app Pod template |
-| `telemetry.serviceName` | string | `cellenza-<name>` | Value for `OTEL_SERVICE_NAME` |
-| `telemetry.autoInstrumentation.language` | enum | — | `python`, `java`, `nodejs`, `dotnet`, `go`, `sdk` |
-| `telemetry.autoInstrumentation.instrumentationRef` | string | `"true"` | `Instrumentation` CR reference |
-| `telemetry.autoInstrumentation.pythonPlatform` | `glibc` \| `musl` | — | Python platform override (Alpine) |
-| `telemetry.autoInstrumentation.goTargetExecutable` | string | — | Required for Go auto-instrumentation |
-| `github.enabled` | bool | `false` | Update GitHub Deployment and PR |
-| `github.owner` | string | — | GitHub repository owner |
-| `github.repo` | string | — | GitHub repository name |
-| `github.deploymentId` | int64 | — | GitHub Deployment id |
-| `github.environment` | string | `pr-<N>` | GitHub environment name |
-| `github.commentOnReady` | bool | `false` | Post PR comment when preview reaches Running |
-| `github.tokenSecretRef` | object | — | Secret reference for the GitHub token |
-| `aiEnrichment.enabled` | bool | `false` | Generate seed SQL and tests via AI |
-| `aiEnrichment.apiSecretRef` | object | — | Secret containing the AI API key |
-| `aiEnrichment.githubTokenSecretRef` | object | — | Optional dedicated GitHub token for PR diff |
-| `aiEnrichment.model` | string | `gpt-4o-mini` | AI model name |
-| `aiEnrichment.seed.enabled` | bool | `true` | Run the `ai-seed` Job |
-| `aiEnrichment.seed.image` | string | `postgres:15-alpine` | Override image for ai-seed |
-| `aiEnrichment.tests.enabled` | bool | `true` | Run the `ai-tests` Job |
-| `aiEnrichment.tests.image` | string | `python:3.12-slim` | Override image for ai-tests |
-| `testSuite.enabled` | bool | `false` | Run the automated test suite |
-| `testSuite.smoke.enabled` | bool | `true` | Run built-in smoke tests |
-| `testSuite.regression.enabled` | bool | `true` | Run `tests/regression.py` |
-| `testSuite.regression.command` | string[] | — | Override regression command |
-| `testSuite.e2e.enabled` | bool | `true` | Run `tests/e2e.py` via Playwright |
-| `testSuite.e2e.command` | string[] | — | Override E2E command |
-| `testSuite.e2e.image` | string | `mcr.microsoft.com/playwright/python:v1.44.0-jammy` | Override Playwright image |
+### Trigger a database reset from Copilot Chat
 
----
-
-## Examples
-
-### Minimal — app only
-
-```yaml
-apiVersion: platform.company.io/v1alpha1
-kind: Cellenza
-metadata:
-  name: pr-42
-spec:
-  branch: feature/my-feature
-  prNumber: 42
-  image: myapp:abc1234
+```
+@cellenza reset-db pr-42
 ```
 
-### Full-stack with PostgreSQL and approval gate
+The extension patches `spec.database.resetRequested: true`. The controller detects this on the next reconcile loop, deletes both migration and seed jobs, clears `status.database`, and re-runs the full database setup sequence. The flag is cleared automatically once the reset starts.
 
-```yaml
+### Relaunch AI enrichment from Copilot Chat
+
+```
+@cellenza enrich pr-42
+```
+
+The extension clears `status.aiEnrichment`, deletes `ai-enrichment`, `ai-seed`, `ai-tests`, and `ai-schema-dump` in the preview namespace, then lets the operator regenerate seed and tests on the next reconcile.
+
+### Customize AI instructions without redeploying
+
+```
+@cellenza set-prompt pr-42 Only test /api/ endpoints. Generate 20 products with realistic prices.
+@cellenza enrich pr-42
+```
+
+`set-prompt` creates a ConfigMap `ai-prompt-pr-42` in `cellenza-operator-system`. The operator reads it automatically when generating seed and tests. No operator redeploy needed — the instructions take effect on the next `enrich` call. The ConfigMap is deleted automatically when the environment is removed.
+
+```
+@cellenza show-prompt pr-42
+```
+
+Returns the current custom instructions for that environment.
+
+### Read pod logs from a failed environment
+
+```
+@cellenza logs pr-42
+```
+
+If the pod is running, the extension streams the last 40 live lines. If the environment is in `Failed` phase, it falls back to `status.diagnostics.podLogs` (last 30 lines captured by the controller at failure time).
+
+### Full example — diagnosing a crash from Copilot Chat
+
+A developer notices their preview is stuck. They open Copilot Chat and type:
+
+```
+@cellenza status pr-42
+```
+
+The extension responds in French with the current phase, DB status, and diagnostics:
+
+```
+## ❌ pr-42 — Failed
+
+**Branch:** `feature/my-feature`
+**Tier:** `medium`
+**Replicas:** 1
+**TTL:** expire dans 23h45m
+
+**Erreur:** Deployment app is unavailable: Deployment does not have minimum availability.
+
+**Derniers logs:**
+```
+Error: ImagePullBackOff
+Failed to pull image "ghcr.io/acme/myapp:does-not-exist": not found
+```
+
+---
+`@cellenza logs pr-42` · `@cellenza extend pr-42` · `@cellenza reset-db pr-42` · `@cellenza enrich pr-42` · `@cellenza set-prompt pr-42 <instructions>`
+```
+
+They can request the raw pod logs:
+
+```
+@cellenza logs pr-42
+```
+
+```
+**Logs — pr-42** (namespace: `preview-pr-42`)
+
+[db] Opening PostgreSQL connection database=appdb user=preview_42
+Error: connection refused
+```
+
+Or trigger a database reset after fixing a migration:
+
+```
+@cellenza reset-db pr-42
+```
+
+```
+**Reset DB lancé** pour `pr-42`
+
+L'opérateur va:
+1. Supprimer les jobs migration et seed
+2. Recréer la base de données
+3. Rejouer les migrations
+4. Rejouer le seed
+
+Suivi: `@cellenza status pr-42`
+```
+
+The controller patches `spec.database.resetRequested: true`, deletes the failed Jobs, and re-runs migration and seed on the next reconcile cycle.
+
+> **Note:** The extension responds in French. The `kubectl` debug commands shown in PR comments are generated by the **operator** (in `status.diagnostics.debugCommands`), not by the extension.
+
+### Testing crash scenarios locally
+
+To validate the diagnostics and GitHub comment flow against a real PR:
+
+```bash
+# 1. Create a GitHub Deployment for the target PR
+DEPLOY_ID=$(gh api repos/OWNER/REPO/deployments \
+  --method POST \
+  --field ref="<branch-or-sha>" \
+  --field environment="pr-<N>-crash-test" \
+  --field auto_merge=false \
+  --jq '.id')
+
+# 2. Create a token Secret
+kubectl create secret generic github-token-crash-test \
+  --namespace=cellenza-operator-system \
+  --from-literal=token="$GITHUB_TOKEN"
+
+# 3. Apply a Cellenza with a non-existent image to trigger ImagePullBackOff
+kubectl apply -f - <<EOF
 apiVersion: platform.company.io/v1alpha1
 kind: Cellenza
 metadata:
@@ -1188,15 +1317,51 @@ spec:
   requiresApproval: true
   database:
     enabled: true
-    version: "16"
-    databaseName: myapp
-    migration:
-      enabled: true
-      command: ["python", "-m", "alembic", "upgrade", "head"]
-    seed:
-      enabled: true
-      command: ["python", "scripts/seed_preview.py"]
+    owner: OWNER
+    repo: REPO
+    deploymentId: $DEPLOY_ID
+    environment: pr-<N>-crash-test
+    commentOnReady: true
+    tokenSecretRef:
+      name: github-token-crash-test
+      namespace: cellenza-operator-system
+      key: token
+EOF
+
+# 4. Watch the phase move to Failed and the comment appear on the PR
+kubectl get cellenza pr-<N>-crash --watch
+
+# 5. Clean up
+kubectl delete cellenza pr-<N>-crash
 ```
+
+Within ~30 seconds the controller detects `ErrImagePull`, collects diagnostics, posts a `failure` GitHub Deployment status, and comments on the PR with the root cause and recommendations.
+
+---
+
+## Demo app
+
+The repository ships a ready-to-use Flask demo app (`demo-app/`) that showcases the full operator feature set: PostgreSQL integration, OTel auto-instrumentation, and live environment variables.
+
+### What it does
+
+- Connects to the PostgreSQL instance provisioned by the operator using the injected `DATABASE_URL` env var
+- Creates a `messages` table on startup (`CREATE TABLE IF NOT EXISTS`)
+- Exposes a simple UI where you can post and read messages
+- Displays all operator-injected env vars (`POSTGRES_USER`, `POSTGRES_DB`, `PREVIEW_BRANCH`, `PREVIEW_PR`, `ENVIRONMENT`)
+- Exposes `/healthz` for the readiness probe
+
+> **More advanced demo:** [ihsenalaya/idp-testing](https://github.com/ihsenalaya/idp-testing) is a full product catalogue app (categories, products, reviews, orders) that showcases AI enrichment — the AI generates real product names, prices, discounts, and star ratings from the PR diff and DB schema.
+
+### Image
+
+Built automatically on every push to `main` or version tag:
+
+```text
+ghcr.io/ihsenalaya/cellenza-demo-app:latest
+```
+
+### Deploy with the demo Cellenza manifest
 
 ```bash
 kubectl patch cellenza pr-77 --type=merge \
@@ -1348,8 +1513,7 @@ image:
   tag: ""                       # defaults to Chart.appVersion
 
 ai:
-  apiURL: "https://models.inference.ai.azure.com"  # or https://api.openai.com/v1
-  systemPrompt: ""              # override default; or use --set-file ai.systemPrompt=./prompt.txt
+  apiURL: "https://models.inference.ai.azure.com"  # GitHub Models (free tier); use https://api.openai.com/v1 for OpenAI
 
 imagePullSecrets: []
 # - name: ghcr-pull-secret
@@ -1547,13 +1711,67 @@ GitHub Actions automatically:
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `lint.yml` | push to any branch/tag | `golangci-lint` |
-| `test.yml` | push to any branch/tag | Unit + envtest integration tests |
-| `test-e2e.yml` | push to any branch/tag | Kind cluster + full E2E suite |
-| `docker-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-operator` image |
-| `extension-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-extension` image |
-| `demo-app-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-demo-app` image |
-| `helm-release.yml` | `v*` tag only | Packages and publishes Helm chart |
+| `lint.yml` | push to any branch/tag | Runs `golangci-lint` |
+| `test.yml` | push to any branch/tag | Runs unit + envtest integration tests |
+| `test-e2e.yml` | push to any branch/tag | Spins up Kind, installs operator, runs e2e suite |
+| `docker-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-operator` image to GHCR |
+| `extension-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-extension` image to GHCR |
+| `demo-app-release.yml` | push to `main` or `v*` tag | Builds and pushes `cellenza-demo-app` image to GHCR |
+| `helm-release.yml` | `v*` tag only | Packages and publishes Helm chart to GitHub Releases + GitHub Pages + GHCR OCI |
+
+### Release a new version
+
+```bash
+git tag v0.12.6
+git push origin v0.12.6
+```
+
+GitHub Actions will automatically:
+1. Build and push `ghcr.io/ihsenalaya/cellenza-operator:<version>`
+2. Build and push `ghcr.io/ihsenalaya/cellenza-extension:<version>`
+3. Build and push `ghcr.io/ihsenalaya/cellenza-demo-app:<version>` (if `demo-app/` changed)
+4. Package and publish the Helm chart to GitHub Releases and GitHub Pages
+5. Push the chart to `oci://ghcr.io/ihsenalaya/charts/cellenza-operator`
+
+---
+
+## Architecture
+
+```
+cellenza-operator/
+├── api/v1alpha1/          # CRD types (CellenzaSpec, CellenzaStatus)
+├── cmd/
+│   ├── main.go            # Operator entry point
+│   └── extension/main.go  # Copilot Extension server entry point
+├── internal/
+│   ├── controller/        # Reconciliation loop + diagnostics
+│   ├── extension/         # Copilot Extension HTTP server + commands
+│   └── webhook/v1alpha1/  # Defaulter + Validator admission webhooks
+├── config/
+│   └── extension/         # RBAC + Deployment manifests for the extension
+├── charts/
+│   └── cellenza-operator/ # Helm chart for distribution
+└── .github/workflows/     # CI: docker build, helm release
+```
+
+The controller watches `Cellenza` resources cluster-wide and reconciles the following child resources in the PR-specific namespace:
+
+- `Namespace` — isolated per PR (`preview-pr-<number>`)
+- `ResourceQuota` — enforces the `resourceTier` limits (extended automatically when PostgreSQL is enabled)
+- `Secret` `postgres-credentials` — unique credentials generated with `crypto/rand`, **created once and never overwritten**
+- `Deployment` `postgres` — PostgreSQL sidecar (only when `database.enabled: true`)
+- `Service` `postgres` — ClusterIP on port 5432, DNS name `postgres` within the namespace
+- `Job` `postgres-migrate` / `postgres-seed` — optional one-shot database tasks before app rollout
+- `Deployment` `app` — runs the specified image; includes a `busybox` init container that blocks startup until PostgreSQL is ready and optional OpenTelemetry auto-instrumentation annotations
+- `Service` `app` — ClusterIP service for the app
+- `Ingress` — exposes the environment at `pr-<number>.preview.localtest.me`
+- `Job` `ai-schema-dump` — dumps the DB schema via `pg_dump --schema-only` and stores it in a ConfigMap
+- `ConfigMap` `ai-enrichment` — holds `seed.sql` (AI-generated INSERT statements) and `test.py` (AI-generated integration tests)
+- `Job` `ai-seed` — runs `psql -f /data/seed.sql` against the preview PostgreSQL
+- `Job` `ai-tests` — runs `pip install requests && python /data/test.py` with `APP_URL=http://app:80`
+- `ConfigMap` `ai-prompt-<name>` (in `cellenza-operator-system`) — optional custom AI instructions stored via `@cellenza set-prompt`; deleted automatically when the environment is removed
+
+A **finalizer** ensures all child resources (including the PostgreSQL deployment and credentials secret) are cleaned up even when the `Cellenza` is force-deleted.
 
 ---
 

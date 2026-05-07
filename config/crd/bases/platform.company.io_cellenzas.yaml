@@ -113,6 +113,12 @@ spec:
                     description: Model is the AI model to use (e.g. "gpt-4o-mini",
                       "gpt-4o").
                     type: string
+                  rerunRequested:
+                    description: |-
+                      RerunRequested triggers an AI-only rerun: database migration/seed are replayed
+                      when enabled, AI artifacts are regenerated, and the standard test suite is skipped
+                      for that cycle. The operator clears this flag automatically once the rerun completes.
+                    type: boolean
                   seed:
                     description: |-
                       Seed configures AI seed data generation and execution.
@@ -465,6 +471,9 @@ spec:
                     description: 'Phase: Pending | Generating | Running | Succeeded
                       | Failed'
                     type: string
+                  rerunOnly:
+                    description: RerunOnly is true while an AI-only rerun is in progress.
+                    type: boolean
                   seedStatus:
                     description: 'SeedStatus: Skipped | Running | Succeeded | Failed'
                     type: string

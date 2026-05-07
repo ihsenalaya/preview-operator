@@ -99,6 +99,9 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		b.WriteString("\n**IA:**\n")
 		if ai := cz.Status.AIEnrichment; ai != nil {
 			b.WriteString(fmt.Sprintf("- Phase: %s\n", defaultAIStatus(ai.Phase, "Pending")))
+			if ai.RerunOnly {
+				b.WriteString("- Mode: AI-only rerun (testSuite standard suspendu)\n")
+			}
 			if aiSeedTaskEnabled(cz) {
 				b.WriteString(fmt.Sprintf("- Seed: %s\n", defaultAIStatus(ai.SeedStatus, "Pending")))
 			}
@@ -126,7 +129,7 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza save-db %s post-seed` · `@cellenza restore-db %s post-seed`", name, name, name, name, name))
+	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza retest-ai %s` · `@cellenza save-db %s post-seed` · `@cellenza restore-db %s post-seed`", name, name, name, name, name, name))
 	return b.String()
 }
 
@@ -416,7 +419,7 @@ func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
 		}
 	}
 
-	return fmt.Sprintf("**Prompt IA mis à jour** pour `%s`\n\nInstructions enregistrées:\n```\n%s\n```\n\nLance `@cellenza enrich %s` pour régénérer avec le nouveau prompt.", name, instructions, name)
+	return fmt.Sprintf("**Prompt IA mis à jour** pour `%s`\n\nInstructions enregistrées:\n```\n%s\n```\n\nLance `@cellenza retest-ai %s` pour régénérer avec le nouveau prompt.", name, instructions, name)
 }
 
 func (s *Server) cmdShowPrompt(ctx context.Context, args []string) string {
@@ -536,41 +539,46 @@ func mustParseQuantity(s string) *resource.Quantity {
 	return &q
 }
 
-func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
+func (s *Server) cmdRetestAI(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza enrich pr-<N>`"
+		return "Usage: `@cellenza retest-ai pr-<N>`"
 	}
 
 	cz, err := s.getCellenza(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
-
-	statusBase := client.MergeFrom(cz.DeepCopy())
-	cz.Status.AIEnrichment = nil
-	if err := s.crClient.Status().Patch(ctx, cz, statusBase); err != nil {
-		return fmt.Sprintf("Erreur lors du reset IA (status): %v", err)
+	if !aiEnabled(cz) {
+		return fmt.Sprintf("`%s` n'a pas l'enrichissement IA activé (`spec.aiEnrichment.enabled: false`).", name)
+	}
+	if cz.Spec.AIEnrichment.RerunRequested || (cz.Status.AIEnrichment != nil && cz.Status.AIEnrichment.RerunOnly) {
+		return fmt.Sprintf("Un rerun IA est déjà en cours pour `%s`.\n\nSuivi: `@cellenza status %s`", name, name)
 	}
 
-	nsName := cz.Status.NamespaceName
-	if nsName == "" {
-		nsName = fmt.Sprintf("preview-pr-%d", cz.Spec.PRNumber)
+	patch := client.MergeFrom(cz.DeepCopy())
+	cz.Spec.AIEnrichment.RerunRequested = true
+	if err := s.crClient.Patch(ctx, cz, patch); err != nil {
+		return fmt.Sprintf("Erreur lors du rerun IA: %v", err)
 	}
 
-	toDelete := []client.Object{
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "ai-enrichment", Namespace: nsName}},
-		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "ai-seed", Namespace: nsName}},
-		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "ai-tests", Namespace: nsName}},
-		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "ai-schema-dump", Namespace: nsName}},
-	}
-	for _, obj := range toDelete {
-		if err := s.crClient.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
-			return fmt.Sprintf("Erreur lors du nettoyage IA: %v", err)
-		}
+	var steps []string
+	if cz.Spec.Database != nil && cz.Spec.Database.Enabled {
+		steps = append(steps, "1. Rejouer migration + seed de la base")
+		steps = append(steps, "2. Ignorer le test suite standard pour ce cycle")
+		steps = append(steps, "3. Régénérer `seed.sql` et `test.py`")
+		steps = append(steps, "4. Rejouer `ai-seed` puis `ai-tests`")
+	} else {
+		steps = append(steps, "1. Ignorer le test suite standard pour ce cycle")
+		steps = append(steps, "2. Régénérer `seed.sql` et `test.py`")
+		steps = append(steps, "3. Rejouer `ai-seed` puis `ai-tests`")
 	}
 
-	return fmt.Sprintf("**Enrichissement IA relancé** pour `%s`\n\nL'opérateur va:\n1. Relire le diff PR\n2. Régénérer le seed SQL\n3. Rejouer les tests\n\nSuivi: `@cellenza status %s`", name, name)
+	return fmt.Sprintf("**Rerun IA lancé** pour `%s`\n\nL'opérateur va:\n%s\n\nSuivi: `@cellenza status %s`", name, strings.Join(steps, "\n"), name)
+}
+
+func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
+	return s.cmdRetestAI(ctx, args)
 }
 
 func (s *Server) cmdList(ctx context.Context) string {
@@ -626,7 +634,8 @@ func cmdHelp() string { //nolint:misspell
 | ` + "`@cellenza restore-db pr-42 post-seed`" + ` | Restaure la DB depuis un checkpoint |
 | ` + "`@cellenza list-checkpoints pr-42`" + ` | Liste les checkpoints DB disponibles |
 | ` + "`@cellenza run-sql pr-42 <sql>`" + ` | Exécute du SQL arbitraire sur la base de données |
-| ` + "`@cellenza enrich pr-42`" + ` | Relance la génération IA de seed et de tests |
+| ` + "`@cellenza retest-ai pr-42`" + ` | Relance un cycle IA-only géré par l'opérateur |
+| ` + "`@cellenza enrich pr-42`" + ` | Alias rétrocompatible de ` + "`retest-ai`" + ` |
 | ` + "`@cellenza set-prompt pr-42 <instructions>`" + ` | Définit les instructions IA pour cet environnement |
 | ` + "`@cellenza show-prompt pr-42`" + ` | Affiche le prompt IA actuel |
 | ` + "`@cellenza help`" + ` | Affiche cette aide |`

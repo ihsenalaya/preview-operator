@@ -5,10 +5,7 @@ env:
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
-    paths:
-      - 'demo-app/**'
 
 jobs:
   build:
@@ -25,9 +22,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/cellenza-demo-app
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
-            type=raw,value=latest
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
 
       - uses: docker/setup-buildx-action@v3
 
