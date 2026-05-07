@@ -974,7 +974,7 @@ func (r *CellenzaReconciler) reconcileServiceDeployments(ctx context.Context, c 
 							},
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{Path: "/", Port: intstr.FromInt32(port)},
+									HTTPGet: &corev1.HTTPGetAction{Path: "/healthz", Port: intstr.FromInt32(port)},
 								},
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       10,

@@ -404,6 +404,12 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(backendEnv).To(ContainElement(corev1.EnvVar{Name: "PREVIEW_BRANCH", Value: "feature/multi-svc"}))
 			Expect(backendEnv).To(ContainElement(corev1.EnvVar{Name: "PREVIEW_PR", Value: "55"}))
 
+			By("verifying readiness probe uses /healthz not / (backend has no GET / route)")
+			probe := backendDeploy.Spec.Template.Spec.Containers[0].ReadinessProbe
+			Expect(probe).NotTo(BeNil())
+			Expect(probe.HTTPGet.Path).To(Equal("/healthz"))
+			Expect(probe.HTTPGet.Port.IntVal).To(Equal(int32(8080)))
+
 			By("cleanup")
 			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
 		})
