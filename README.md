@@ -1,18 +1,32 @@
 # cellenza-operator
 
-> **Ephemeral preview environments for every pull request — with PostgreSQL, OpenTelemetry, AI-generated test data, and full GitHub integration — all from a single Kubernetes custom resource.**
+> **Ephemeral preview environments for every pull request — multi-service frontend + backend, PostgreSQL, operator-orchestrated test suite (smoke · regression · E2E), OpenTelemetry, AI-generated seed data, and full GitHub integration — all from a single Kubernetes custom resource.**
 
 ```
-kubectl apply -f pr-42.yaml   →   http://pr-42.preview.localtest.me   →   kubectl delete cellenza pr-42
+kubectl apply -f pr-42.yaml
+  → http://pr-42.preview.localtest.me/      (frontend)
+  → http://pr-42.preview.localtest.me/api   (backend)
+  → operator runs smoke · regression · E2E  (testSuite)
+  → kubectl delete cellenza pr-42           (full cleanup)
 ```
 
 ---
 
 ## What is it?
 
-**Cellenza** is a Kubernetes operator that turns a pull request number into a fully isolated preview environment in seconds. Each `Cellenza` resource provisions its own namespace, deployment, service, ingress, and resource quota — and optionally a **frontend + backend** multi-service stack, a live PostgreSQL database, OpenTelemetry traces, a complete automated test suite, and AI-generated contextual seed data. Everything is cleaned up automatically when the TTL expires or the resource is deleted.
+**Cellenza** is a Kubernetes operator that turns a pull request number into a fully isolated preview environment in seconds. A single `Cellenza` resource provisions:
 
-No shared staging environments. No manual setup. No cleanup scripts.
+- An **isolated namespace** with resource quotas (one per PR — zero cross-PR pollution)
+- A **multi-service stack** via `spec.services[]` — frontend and backend each get their own Deployment, Service, and path-based ingress route
+- An **ephemeral PostgreSQL** instance with cryptographically-generated credentials auto-injected into every service
+- An **operator-orchestrated test suite** — smoke (built-in), regression (`tests/regression.py`), and E2E (Playwright/Chromium) all run in parallel after the environment is ready
+- **OpenTelemetry auto-instrumentation** — zero code changes required
+- **AI-generated seed data and integration tests** from the PR diff and live DB schema
+- **GitHub Deployment status and PR comments** updated automatically by the operator
+
+Everything is cleaned up automatically when the TTL expires or the resource is deleted.
+
+No shared staging environments. No manual test steps. No cleanup scripts.
 
 ---
 
@@ -43,7 +57,7 @@ No shared staging environments. No manual setup. No cleanup scripts.
 Developer opens PR
       │
       ▼
-CI pipeline or kubectl apply
+CI workflow (GitHub Actions) or kubectl apply
 creates a Cellenza resource
       │
       ▼
@@ -53,17 +67,33 @@ creates a Cellenza resource
  └────────────────────────────────────────────────────┘
       │
       ▼
-Operator provisions child resources
-  • Namespace      preview-pr-42              (isolated per PR)
-  • ResourceQuota  cellenza-quota             (CPU/RAM enforced per tier)
-  • Secret         postgres-credentials       (generated once, never overwritten)
-  • Deployment     postgres                   (optional: database.enabled=true)
-  • Service        postgres                   (ClusterIP, DNS: postgres:5432)
-  • Job            postgres-migrate           (optional, runs before app)
-  • Job            postgres-seed              (optional, runs after migration)
-  • Deployment     app                        (Recreate strategy, init container waits for Postgres)
-  • Service        app                        (ClusterIP :80)
-  • Ingress        pr-42.preview.localtest.me (via nginx)
+Operator provisions child resources (namespace: preview-pr-42)
+  ┌── Infrastructure ──────────────────────────────────────────────┐
+  │  Namespace      preview-pr-42          isolated per PR          │
+  │  ResourceQuota  cellenza-quota         CPU/RAM per tier          │
+  └───────────────────────────────────────────────────────────────-┘
+  ┌── Database (database.enabled=true) ────────────────────────────┐
+  │  Secret         postgres-credentials   crypto-random, immutable │
+  │  Deployment     postgres               pg:15-alpine, Recreate   │
+  │  Service        postgres               ClusterIP :5432           │
+  │  Job            postgres-migrate       runs before app           │
+  │  Job            postgres-seed          runs after migration      │
+  └────────────────────────────────────────────────────────────────┘
+  ┌── Services ─────────────────────────────────────────────────────┐
+  │  Multi-service mode  (spec.services[])                           │
+  │    Deployment  svc-backend    port 8080, DB env vars injected    │
+  │    Service     svc-backend    ClusterIP                          │
+  │    Deployment  svc-frontend   port 3000, APP_MODE=frontend       │
+  │    Service     svc-frontend   ClusterIP                          │
+  │    Ingress     pr-42.preview.localtest.me                        │
+  │                  /api  →  svc-backend:8080                       │
+  │                  /     →  svc-frontend:3000                      │
+  │                                                                   │
+  │  Single-service mode  (spec.image)                               │
+  │    Deployment  app            Recreate, init waits for Postgres  │
+  │    Service     app            ClusterIP :80                       │
+  │    Ingress     pr-42.preview.localtest.me  →  app:80             │
+  └────────────────────────────────────────────────────────────────┘
       │
       ▼
 GitHub notification (github.enabled=true)
@@ -71,18 +101,18 @@ GitHub notification (github.enabled=true)
   • Posts PR comment with URL, DB state, traces, TTL, diagnostics
       │
       ▼
-Automated test suite (testSuite.enabled=true)
-  • Job smoke-tests      → probes /healthz + /api/products (operator-embedded script)
+Operator-orchestrated test suite (testSuite.enabled=true)
+  • Job smoke-tests      → probes /healthz + /api/products (operator-embedded)
   • Job regression-tests → runs tests/regression.py from the app image
-  • Job e2e-tests        → copies tests/e2e.py from app image; Playwright/Chromium executes
-  • All three jobs run in parallel
+  • Job e2e-tests        → copies tests/e2e.py; Playwright/Chromium executes
+  • All three jobs run in parallel after environment reaches Running
   • Results posted as a dedicated PR comment with pass/fail table
       │
       ▼
 AI enrichment (aiEnrichment.enabled=true)
   • Job ai-schema-dump  → pg_dump --schema-only → stored in ConfigMap
   • Operator calls AI API with PR diff + DB schema + app URL
-  • AI generates seed.sql (realistic, schema-aware INSERTs) + test.py (targeted integration tests)
+  • AI generates seed.sql (realistic INSERTs) + test.py (targeted integration tests)
   • Job ai-seed         → psql -f /data/seed.sql
   • Job ai-tests        → pip install requests && python /data/test.py
   • Results published to status.aiEnrichment and PR comment
@@ -313,15 +343,19 @@ The controller reconciles every `Cellenza` resource through a deterministic sequ
 8. Set phase → Provisioning
 9. Reconcile child resources:
      a. Namespace
-     b. ResourceQuota  (auto-extended for DB, AI, and E2E jobs)
+     b. ResourceQuota  (auto-extended for DB, AI, extra services, and E2E jobs)
      c. DB reset handling (if database.resetRequested=true)
      d. Database provisioning (Secret → Service → Deployment → migrate → seed)
      e. DB checkpoints (save / restore)
-     f. App Deployment (with init container, DB env vars, OTel annotations)
-     g. App Service
-     h. Ingress
-     i. Wait for app availability
-10. Mark phase → Running; notify GitHub
+     f. Service deployments:
+          • spec.services[]  → one Deployment + Service per entry (svc-<name>)
+                               DB env vars injected into all; wait-for-postgres init container
+          • spec.image       → single Deployment "app" + Service "app"
+     g. Ingress:
+          • multi-service → path-based routes (/api → svc-backend, / → svc-frontend)
+          • single-service → pr-<N>.preview.localtest.me → app:80
+     h. Wait for all deployments to reach minimum availability
+10. Mark phase → Running; notify GitHub (deployment status → success, post PR comment)
 11. Run test suite (smoke + regression + E2E in parallel)
 12. Run AI enrichment (schema dump → generate → seed → tests)
 13. Requeue before TTL expiry
