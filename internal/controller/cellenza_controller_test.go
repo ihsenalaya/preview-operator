@@ -18,10 +18,13 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -278,6 +281,193 @@ var _ = Describe("Cellenza Controller", func() {
 			Expect(body).To(ContainSubstring("Telemetry: enabled"))
 			Expect(body).To(ContainSubstring("AI-Assisted Summary"))
 		})
+
+	Context("When using multi-service mode", func() {
+		It("should detect multi-service mode from spec.services", func() {
+			single := &platformv1alpha1.Cellenza{Spec: platformv1alpha1.CellenzaSpec{Image: "nginx:latest"}}
+			Expect(multiServiceEnabled(single)).To(BeFalse())
+
+			multi := &platformv1alpha1.Cellenza{
+				Spec: platformv1alpha1.CellenzaSpec{
+					Services: []platformv1alpha1.ServiceSpec{
+						{Name: "backend", Image: "api:latest", Port: 8080},
+					},
+				},
+			}
+			Expect(multiServiceEnabled(multi)).To(BeTrue())
+		})
+
+		It("should prefix service names with svc-", func() {
+			Expect(serviceDeploymentName("backend")).To(Equal("svc-backend"))
+			Expect(serviceDeploymentName("frontend")).To(Equal("svc-frontend"))
+		})
+
+		It("should build app URL targeting first service in multi-service mode", func() {
+			multi := &platformv1alpha1.Cellenza{
+				Spec: platformv1alpha1.CellenzaSpec{
+					Services: []platformv1alpha1.ServiceSpec{
+						{Name: "backend", Port: 8080},
+						{Name: "frontend", Port: 3000},
+					},
+				},
+			}
+			Expect(appServiceURL(multi)).To(Equal("http://svc-backend:8080"))
+		})
+
+		It("should default app URL port to 80 when service port is unset", func() {
+			multi := &platformv1alpha1.Cellenza{
+				Spec: platformv1alpha1.CellenzaSpec{
+					Services: []platformv1alpha1.ServiceSpec{
+						{Name: "api"},
+					},
+				},
+			}
+			Expect(appServiceURL(multi)).To(Equal("http://svc-api:80"))
+		})
+
+		It("should return http://app:80 in single-service mode", func() {
+			single := &platformv1alpha1.Cellenza{Spec: platformv1alpha1.CellenzaSpec{Image: "nginx:latest"}}
+			Expect(appServiceURL(single)).To(Equal("http://app:80"))
+		})
+
+		It("should reconcile multi-service deployments and ingress in the cluster", func() {
+			ctx := context.Background()
+			const prNumber = 55
+			nsName := fmt.Sprintf("preview-pr-%d", prNumber)
+			resourceName := fmt.Sprintf("pr-%d", prNumber)
+
+			By("creating the namespace")
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+			_ = k8sClient.Create(ctx, ns)
+
+			By("creating the Cellenza resource with two services")
+			cr := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: resourceName, Namespace: "default"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					Branch:       "feature/multi-svc",
+					PRNumber:     prNumber,
+					Image:        "unused",
+					TTL:          "24h",
+					ResourceTier: platformv1alpha1.TierSmall,
+					Services: []platformv1alpha1.ServiceSpec{
+						{Name: "backend", Image: "api:test", Port: 8080, PathPrefix: "/api"},
+						{Name: "frontend", Image: "ui:test", Port: 3000, PathPrefix: "/"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+
+			By("reconciling — pass 1 adds finalizer, pass 2 provisions resources")
+			reconciler := &CellenzaReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+			req := reconcile.Request{NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"}}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying svc-backend deployment exists")
+			backendDeploy := &appsv1.Deployment{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "svc-backend", Namespace: nsName}, backendDeploy)).To(Succeed())
+			Expect(backendDeploy.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(backendDeploy.Spec.Template.Spec.Containers[0].Image).To(Equal("api:test"))
+			Expect(backendDeploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(8080)))
+
+			By("verifying svc-frontend deployment exists")
+			frontendDeploy := &appsv1.Deployment{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "svc-frontend", Namespace: nsName}, frontendDeploy)).To(Succeed())
+			Expect(frontendDeploy.Spec.Template.Spec.Containers[0].Image).To(Equal("ui:test"))
+			Expect(frontendDeploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(3000)))
+
+			By("verifying ClusterIP services exist")
+			backendSvc := &corev1.Service{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "svc-backend", Namespace: nsName}, backendSvc)).To(Succeed())
+			Expect(backendSvc.Spec.Ports[0].Port).To(Equal(int32(8080)))
+			Expect(backendSvc.Spec.Selector).To(HaveKeyWithValue("app", "svc-backend"))
+
+			frontendSvc := &corev1.Service{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "svc-frontend", Namespace: nsName}, frontendSvc)).To(Succeed())
+			Expect(frontendSvc.Spec.Ports[0].Port).To(Equal(int32(3000)))
+
+			By("verifying ingress has path-based routing (longer prefix first)")
+			ing := &networkingv1.Ingress{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "app", Namespace: nsName}, ing)).To(Succeed())
+			Expect(ing.Spec.Rules).To(HaveLen(1))
+			paths := ing.Spec.Rules[0].HTTP.Paths
+			Expect(paths).To(HaveLen(2))
+			Expect(paths[0].Path).To(Equal("/api"))
+			Expect(paths[0].Backend.Service.Name).To(Equal("svc-backend"))
+			Expect(paths[1].Path).To(Equal("/"))
+			Expect(paths[1].Backend.Service.Name).To(Equal("svc-frontend"))
+
+			By("verifying PREVIEW_BRANCH and PREVIEW_PR env vars are injected")
+			backendEnv := backendDeploy.Spec.Template.Spec.Containers[0].Env
+			Expect(backendEnv).To(ContainElement(corev1.EnvVar{Name: "PREVIEW_BRANCH", Value: "feature/multi-svc"}))
+			Expect(backendEnv).To(ContainElement(corev1.EnvVar{Name: "PREVIEW_PR", Value: "55"}))
+
+			By("cleanup")
+			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
+		})
+
+		It("should inject DB env vars into all services when database is enabled", func() {
+			ctx := context.Background()
+			const prNumber = 56
+			nsName := fmt.Sprintf("preview-pr-%d", prNumber)
+
+			By("creating the namespace")
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+			_ = k8sClient.Create(ctx, ns)
+
+			By("creating postgres-credentials secret in the namespace")
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: postgresSecretName, Namespace: nsName},
+				StringData: map[string]string{
+					"POSTGRES_USER":     "preview_56",
+					"POSTGRES_PASSWORD": "secret",
+					"POSTGRES_DB":       "appdb",
+					"DATABASE_URL":      "postgresql://preview_56:secret@postgres:5432/appdb",
+				},
+			}
+			_ = k8sClient.Create(ctx, secret)
+
+			cr := &platformv1alpha1.Cellenza{
+				ObjectMeta: metav1.ObjectMeta{Name: "pr-56", Namespace: "default"},
+				Spec: platformv1alpha1.CellenzaSpec{
+					Branch:       "feature/db-multi",
+					PRNumber:     prNumber,
+					Image:        "unused",
+					TTL:          "24h",
+					ResourceTier: platformv1alpha1.TierSmall,
+					Database:     &platformv1alpha1.DatabaseSpec{Enabled: true, DatabaseName: "appdb"},
+					Services: []platformv1alpha1.ServiceSpec{
+						{Name: "backend", Image: "api:test", Port: 8080, PathPrefix: "/api"},
+						{Name: "frontend", Image: "ui:test", Port: 3000, PathPrefix: "/"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+
+			By("reconciling — pass 1 adds finalizer, pass 2 provisions resources")
+			reconciler := &CellenzaReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+			req56 := reconcile.Request{NamespacedName: types.NamespacedName{Name: "pr-56", Namespace: "default"}}
+			_, err := reconciler.Reconcile(ctx, req56)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = reconciler.Reconcile(ctx, req56)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying DATABASE_URL is injected via secretKeyRef into backend")
+			backendDeploy := &appsv1.Deployment{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "svc-backend", Namespace: nsName}, backendDeploy)).To(Succeed())
+			backendEnv := backendDeploy.Spec.Template.Spec.Containers[0].Env
+			Expect(backendEnv).To(ContainElement(secretKeyRef("DATABASE_URL", "DATABASE_URL")))
+
+			By("verifying wait-for-postgres init container is added")
+			Expect(backendDeploy.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+			Expect(backendDeploy.Spec.Template.Spec.InitContainers[0].Name).To(Equal("wait-for-postgres"))
+
+			By("cleanup")
+			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
+		})
+	})
 
 		It("should build a failed comment with diagnostics", func() {
 			cellenza := &platformv1alpha1.Cellenza{
