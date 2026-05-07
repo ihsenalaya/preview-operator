@@ -609,7 +609,7 @@ func (r *CellenzaReconciler) aiTestJob(c *platformv1alpha1.Cellenza, nsName stri
 	ttlSecondsAfterFinished := int32(300)
 
 	job := r.aiConfigMapBackedJob(c, nsName, aiTestJobName, image, []string{"sh", "-c", "pip install requests -q && python /data/test.py"}, "test.py", "ai-tests", &backoffLimit, &ttlSecondsAfterFinished, false)
-	job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "APP_URL", Value: defaultAIInternalAppURL})
+	job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "APP_URL", Value: appServiceURL(c)})
 	return job
 }
 

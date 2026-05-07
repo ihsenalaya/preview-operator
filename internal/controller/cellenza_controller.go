@@ -1087,35 +1087,44 @@ func (r *CellenzaReconciler) reconcileMultiServiceIngress(ctx context.Context, c
 
 
 func (r *CellenzaReconciler) handleAppAvailability(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
-	appReady, appReason, err := r.appDeploymentReady(ctx, nsName)
-	if err != nil {
-		result, err := r.setFailedStatus(ctx, c, appReason, err)
-		return true, result, err
-	}
-	if appReady {
-		return false, ctrl.Result{}, nil
+	deployNames := []string{"app"}
+	if multiServiceEnabled(c) {
+		deployNames = make([]string, len(c.Spec.Services))
+		for i, svc := range c.Spec.Services {
+			deployNames[i] = serviceDeploymentName(svc.Name)
+		}
 	}
 
-	c.Status.Phase = platformv1alpha1.PhaseProvisioning
-	c.Status.NamespaceName = nsName
-	c.Status.ObservedGeneration = c.Generation
-	c.SetCondition(metav1.Condition{
-		Type:               platformv1alpha1.ConditionReady,
-		Status:             metav1.ConditionFalse,
-		Reason:             appReason,
-		Message:            "Waiting for app deployment to become available",
-		LastTransitionTime: metav1.Now(),
-	})
-	if err := r.Status().Update(ctx, c); err != nil {
-		return true, ctrl.Result{}, err
+	for _, deployName := range deployNames {
+		appReady, appReason, err := r.appDeploymentReady(ctx, nsName, deployName)
+		if err != nil {
+			result, err := r.setFailedStatus(ctx, c, appReason, err)
+			return true, result, err
+		}
+		if !appReady {
+			c.Status.Phase = platformv1alpha1.PhaseProvisioning
+			c.Status.NamespaceName = nsName
+			c.Status.ObservedGeneration = c.Generation
+			c.SetCondition(metav1.Condition{
+				Type:               platformv1alpha1.ConditionReady,
+				Status:             metav1.ConditionFalse,
+				Reason:             appReason,
+				Message:            fmt.Sprintf("Waiting for %s deployment to become available", deployName),
+				LastTransitionTime: metav1.Now(),
+			})
+			if err := r.Status().Update(ctx, c); err != nil {
+				return true, ctrl.Result{}, err
+			}
+			syncGitHubAfterStatus(ctx, r, c, "")
+			return true, ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
 	}
-	syncGitHubAfterStatus(ctx, r, c, "")
-	return true, ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	return false, ctrl.Result{}, nil
 }
 
-func (r *CellenzaReconciler) appDeploymentReady(ctx context.Context, nsName string) (bool, string, error) {
+func (r *CellenzaReconciler) appDeploymentReady(ctx context.Context, nsName, deployName string) (bool, string, error) {
 	deploy := &appsv1.Deployment{}
-	if err := r.Get(ctx, types.NamespacedName{Name: "app", Namespace: nsName}, deploy); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: nsName}, deploy); err != nil {
 		return false, "DeploymentUnavailable", err
 	}
 
@@ -1191,6 +1200,9 @@ func telemetryEnv(c *platformv1alpha1.Cellenza, nsName string) []corev1.EnvVar {
 
 // reconcileService creates/updates the ClusterIP service
 func (r *CellenzaReconciler) reconcileService(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	if multiServiceEnabled(c) {
+		return r.reconcileMultiServices(ctx, c, nsName)
+	}
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "app",
@@ -1221,6 +1233,9 @@ func (r *CellenzaReconciler) reconcileService(ctx context.Context, c *platformv1
 
 // reconcileIngress creates/updates the ingress
 func (r *CellenzaReconciler) reconcileIngress(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+	if multiServiceEnabled(c) {
+		return r.reconcileMultiServiceIngress(ctx, c, nsName)
+	}
 	pathType := networkingv1.PathTypePrefix
 	host := fmt.Sprintf("pr-%d.preview.localtest.me", c.Spec.PRNumber)
 

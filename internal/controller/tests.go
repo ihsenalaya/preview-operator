@@ -40,8 +40,8 @@ const (
 
 	// smokeScript is embedded in the operator — no external file required.
 	// It tests the health endpoint and the main products endpoint.
-	smokeScript = `import requests,sys
-BASE='http://app:80'
+	smokeScript = `import requests,sys,os
+BASE=os.environ.get('APP_URL','http://app:80')
 checks=[('/healthz',200),('/api/products',200)]
 p,f=0,0
 for path,code in checks:
@@ -246,11 +246,16 @@ func (r *CellenzaReconciler) smokeTestJob(c *platformv1alpha1.Cellenza, nsName s
 		cmd = c.Spec.TestSuite.Smoke.Command
 	}
 
-	return r.testJob(c, nsName, smokeJobName, image, cmd, testSuiteConfigMap, "smoke.py", smokeJobName, false)
+	job := r.testJob(c, nsName, smokeJobName, image, cmd, testSuiteConfigMap, "smoke.py", smokeJobName, false)
+	job.Spec.Template.Spec.Containers[0].Env = append(
+		job.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{Name: "APP_URL", Value: appServiceURL(c)},
+	)
+	return job
 }
 
 func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsName, previewURL string) *batchv1.Job {
-	image := c.Spec.Image
+	image := mainAppImage(c)
 	if c.Spec.TestSuite.Regression != nil && c.Spec.TestSuite.Regression.Image != "" {
 		image = c.Spec.TestSuite.Regression.Image
 	}
@@ -262,7 +267,7 @@ func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsN
 	job := r.testJobNoMount(c, nsName, regressionJobName, image, cmd, regressionJobName, true)
 	job.Spec.Template.Spec.Containers[0].Env = append(
 		job.Spec.Template.Spec.Containers[0].Env,
-		corev1.EnvVar{Name: "APP_URL", Value: "http://app:80"},
+		corev1.EnvVar{Name: "APP_URL", Value: appServiceURL(c)},
 		corev1.EnvVar{Name: "PREVIEW_URL", Value: previewURL},
 	)
 	return job
@@ -272,7 +277,7 @@ func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsN
 // An init container copies e2e.py from the app image into a shared emptyDir,
 // then the Playwright container (with Chromium pre-installed) executes the tests.
 func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, previewURL string) *batchv1.Job {
-	appImage := c.Spec.Image
+	appImage := mainAppImage(c)
 	pwImage := playwrightImage
 	if c.Spec.TestSuite.E2E != nil && c.Spec.TestSuite.E2E.Image != "" {
 		pwImage = c.Spec.TestSuite.E2E.Image
@@ -311,7 +316,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 		Command:         cmd,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
-			{Name: "APP_URL", Value: "http://app:80"},
+			{Name: "APP_URL", Value: appServiceURL(c)},
 			{Name: "PREVIEW_URL", Value: previewURL},
 			{Name: "CHECKPOINT_API", Value: fmt.Sprintf("http://cellenza-extension.cellenza-operator-system.svc.cluster.local:8090/api/previews/%s", c.Name)},
 		},
