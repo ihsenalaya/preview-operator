@@ -51,10 +51,12 @@ func TestGenerateParsesResponse(t *testing.T) {
 }
 
 func TestBuildSystemPromptGuidesTestsToAPIEndpoints(t *testing.T) {
-	prompt := buildSystemPrompt("Only test stable product endpoints.")
+	prompt := buildSystemPrompt("", "Only test stable product endpoints.")
 
 	for _, want := range []string{
 		"Only test JSON/API endpoints",
+		"Do not assume HTTP 200 for successful POST, PUT, or PATCH requests.",
+		"201 Created",
 		"/api/",
 		"request.form",
 		"redirect()",
@@ -69,6 +71,23 @@ func TestBuildSystemPromptGuidesTestsToAPIEndpoints(t *testing.T) {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("system prompt missing %q:\n%s", want, prompt)
 		}
+	}
+}
+
+func TestBuildSystemPromptUsesConfigMapTemplateWhenProvided(t *testing.T) {
+	prompt := buildSystemPrompt("Custom system prompt from Helm.", "Prefer 201 for create endpoints.")
+
+	for _, want := range []string{
+		"Custom system prompt from Helm.",
+		"Additional instructions:",
+		"Prefer 201 for create endpoints.",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("system prompt missing %q:\n%s", want, prompt)
+		}
+	}
+	if strings.Contains(prompt, "You are a developer tool for Kubernetes preview environments.") {
+		t.Fatalf("expected custom system prompt to replace the default template:\n%s", prompt)
 	}
 }
 

@@ -45,13 +45,14 @@ const (
 // CellenzaReconciler reconciles Cellenza objects
 type CellenzaReconciler struct {
 	client.Client
-	Scheme           *runtime.Scheme
-	APIReader        client.Reader
-	GitHubAPIBaseURL string
-	GitHubHTTPClient *http.Client
-	AIAPIBaseURL     string
-	AIHTTPClient     *http.Client
-	KubeClient       kubernetes.Interface
+	Scheme            *runtime.Scheme
+	APIReader         client.Reader
+	OperatorNamespace string
+	GitHubAPIBaseURL  string
+	GitHubHTTPClient  *http.Client
+	AIAPIBaseURL      string
+	AIHTTPClient      *http.Client
+	KubeClient        kubernetes.Interface
 }
 
 // +kubebuilder:rbac:groups=platform.company.io,resources=cellenzas,verbs=get;list;watch;create;update;patch;delete

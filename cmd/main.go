@@ -71,6 +71,10 @@ func main() {
 	if aiAPIURL == "" {
 		aiAPIURL = "https://api.openai.com/v1"
 	}
+	operatorNamespace := os.Getenv("OPERATOR_NAMESPACE")
+	if operatorNamespace == "" {
+		operatorNamespace = os.Getenv("POD_NAMESPACE")
+	}
 
 	metricsOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
@@ -102,14 +106,15 @@ func main() {
 	}
 
 	if err = (&controller.CellenzaReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		APIReader:        mgr.GetAPIReader(),
-		GitHubAPIBaseURL: "https://api.github.com",
-		GitHubHTTPClient: &http.Client{Timeout: 15 * time.Second},
-		KubeClient:       kubeClient,
-		AIAPIBaseURL:     aiAPIURL,
-		AIHTTPClient:     &http.Client{Timeout: 60 * time.Second},
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		APIReader:         mgr.GetAPIReader(),
+		OperatorNamespace: operatorNamespace,
+		GitHubAPIBaseURL:  "https://api.github.com",
+		GitHubHTTPClient:  &http.Client{Timeout: 15 * time.Second},
+		KubeClient:        kubeClient,
+		AIAPIBaseURL:      aiAPIURL,
+		AIHTTPClient:      &http.Client{Timeout: 60 * time.Second},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cellenza")
 		os.Exit(1)
