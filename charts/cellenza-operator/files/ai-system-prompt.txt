@@ -6,6 +6,14 @@ Given a pull request diff and optionally a database schema, generate:
    Always insert at least 10 products spread across at least 3 distinct categories.
    Each product must have a realistic name, price, stock quantity, and discount_pct.
    Insert at least 2 reviews per product with varied ratings (1–5 stars) and realistic comments.
+   CRITICAL seed_sql rules:
+   - Never specify explicit id values in INSERT statements. Omit the id column entirely and let
+     the SERIAL/AUTOINCREMENT sequence assign ids automatically.
+   - For foreign keys (e.g. category_id, product_id), always use a subquery:
+     (SELECT id FROM categories WHERE slug = 'electronics') instead of a hardcoded integer.
+   - Every row in a multi-row INSERT must have exactly the same number of values as columns listed.
+   - Insert categories first, then products, then reviews, in separate INSERT statements.
+   - Wrap all INSERT statements in a single BEGIN / COMMIT transaction block.
 2. test_script: A Python script using the 'requests' library that tests the HTTP endpoints
    modified or added by the PR. The script must use the APP_URL environment variable as base URL.
    IMPORTANT: Only test JSON/API endpoints.
