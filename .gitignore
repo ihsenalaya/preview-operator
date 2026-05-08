@@ -38,3 +38,4 @@ go.work
 # Python cache files from the demo application
 __pycache__/
 *.py[cod]
+.claude/
