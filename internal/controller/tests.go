@@ -25,6 +25,13 @@ const (
 	e2eJobName         = "e2e-tests"
 	testSuiteConfigMap = "cellenza-test-suite"
 
+	suiteStepSaving            = "saving"
+	suiteStepSmoke             = "smoke"
+	suiteStepRestoreRegression = "restore-regression"
+	suiteStepRegression        = "regression"
+	suiteStepRestoreE2E        = "restore-e2e"
+	suiteStepE2E               = "e2e"
+
 	testJobCPURequest    = "50m"
 	testJobMemoryRequest = "128Mi"
 	testJobCPULimit      = "500m"
@@ -91,8 +98,8 @@ func ensureTestSuiteStatus(c *platformv1alpha1.Cellenza) *platformv1alpha1.TestS
 	return c.Status.Tests
 }
 
-// reconcileTestSuite orchestrates smoke, regression and E2E test jobs in parallel.
-// All three jobs are launched simultaneously; the reconciler waits for all to complete.
+// reconcileTestSuite orchestrates the test pipeline sequentially:
+// checkpoint-save → smoke → restore → regression → restore → e2e
 func (r *CellenzaReconciler) reconcileTestSuite(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (ctrl.Result, error) {
 	if !testSuiteEnabled(c) {
 		return ctrl.Result{}, nil
@@ -107,51 +114,141 @@ func (r *CellenzaReconciler) reconcileTestSuite(ctx context.Context, c *platform
 		return ctrl.Result{}, err
 	}
 
-	previewURL := c.Status.URL
+	dbEnabled := databaseEnabled(c)
 
-	if smokeEnabled(c) && !testResultFinal(tests.Smoke.Phase) {
-		state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName))
-		tests.Smoke.Phase = state
-		tests.Smoke.Output = output
-		tests.Smoke.Passed, tests.Smoke.Failed = countTestResults(output)
-	} else if !smokeEnabled(c) {
-		tests.Smoke.Phase = phaseSkipped
-	}
-
-	if regressionEnabled(c) && !testResultFinal(tests.Regression.Phase) {
-		state, output := r.checkOrCreateTestJob(ctx, c, nsName, regressionJobName, r.regressionTestJob(c, nsName, previewURL))
-		tests.Regression.Phase = state
-		tests.Regression.Output = output
-		tests.Regression.Passed, tests.Regression.Failed = countTestResults(output)
-	} else if !regressionEnabled(c) {
-		tests.Regression.Phase = phaseSkipped
-	}
-
-	if e2eEnabled(c) && !testResultFinal(tests.E2E.Phase) {
-		state, output := r.checkOrCreateTestJob(ctx, c, nsName, e2eJobName, r.e2eTestJob(c, nsName, previewURL))
-		tests.E2E.Phase = state
-		tests.E2E.Output = output
-		tests.E2E.Passed, tests.E2E.Failed = countTestResults(output)
-	} else if !e2eEnabled(c) {
-		tests.E2E.Phase = phaseSkipped
-	}
-
-	allDone := testResultFinal(tests.Smoke.Phase) &&
-		testResultFinal(tests.Regression.Phase) &&
-		testResultFinal(tests.E2E.Phase)
-
-	if !allDone {
+	// Initialise step on first entry.
+	if tests.Step == "" {
+		if dbEnabled {
+			tests.Step = suiteStepSaving
+		} else {
+			tests.Step = suiteStepSmoke
+		}
 		tests.Phase = phaseRunning
 		if err := r.Status().Update(ctx, c); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+	}
+
+	previewURL := c.Status.URL
+
+	switch tests.Step {
+
+	case suiteStepSaving:
+		done, err := r.ensureSuiteCheckpointSaved(ctx, c, nsName)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !done {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		}
+		tests.Step = suiteStepSmoke
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepSmoke:
+		if smokeEnabled(c) {
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName))
+			tests.Smoke.Phase = state
+			tests.Smoke.Output = output
+			tests.Smoke.Passed, tests.Smoke.Failed = countTestResults(output)
+			if !testResultFinal(state) {
+				tests.Phase = phaseRunning
+				if err := r.Status().Update(ctx, c); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		} else {
+			tests.Smoke.Phase = phaseSkipped
+		}
+		if dbEnabled && regressionEnabled(c) {
+			tests.Step = suiteStepRestoreRegression
+		} else {
+			tests.Step = suiteStepRegression
+		}
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepRestoreRegression:
+		done, err := r.ensureSuiteCheckpointRestored(ctx, c, nsName, suiteRestoreRegressionJob)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !done {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		}
+		tests.Step = suiteStepRegression
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepRegression:
+		if regressionEnabled(c) {
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, regressionJobName, r.regressionTestJob(c, nsName, previewURL))
+			tests.Regression.Phase = state
+			tests.Regression.Output = output
+			tests.Regression.Passed, tests.Regression.Failed = countTestResults(output)
+			if !testResultFinal(state) {
+				tests.Phase = phaseRunning
+				if err := r.Status().Update(ctx, c); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		} else {
+			tests.Regression.Phase = phaseSkipped
+		}
+		if dbEnabled && e2eEnabled(c) {
+			tests.Step = suiteStepRestoreE2E
+		} else {
+			tests.Step = suiteStepE2E
+		}
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepRestoreE2E:
+		done, err := r.ensureSuiteCheckpointRestored(ctx, c, nsName, suiteRestoreE2EJob)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !done {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		}
+		tests.Step = suiteStepE2E
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepE2E:
+		if e2eEnabled(c) {
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, e2eJobName, r.e2eTestJob(c, nsName, previewURL))
+			tests.E2E.Phase = state
+			tests.E2E.Output = output
+			tests.E2E.Passed, tests.E2E.Failed = countTestResults(output)
+			if !testResultFinal(state) {
+				tests.Phase = phaseRunning
+				if err := r.Status().Update(ctx, c); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		} else {
+			tests.E2E.Phase = phaseSkipped
+		}
 	}
 
 	anyFailed := tests.Smoke.Phase == phaseFailed ||
 		tests.Regression.Phase == phaseFailed ||
 		tests.E2E.Phase == phaseFailed
-
 	if anyFailed {
 		tests.Phase = phaseFailed
 	} else {
@@ -162,9 +259,7 @@ func (r *CellenzaReconciler) reconcileTestSuite(ctx context.Context, c *platform
 	if err := r.Status().Update(ctx, c); err != nil {
 		return ctrl.Result{}, err
 	}
-
 	r.postTestResultsComment(ctx, c)
-
 	return ctrl.Result{}, nil
 }
 

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(helm package *)",
+      "Bash(mkdir -p /tmp/gh-pages)",
+      "Bash(cp cellenza-operator-0.1.0.tgz /tmp/gh-pages/)",
+      "Bash(helm repo *)",
+      "Read(//tmp/gh-pages/**)",
+      "Bash(gh api *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Branch:', d['source']['branch'], '\\\\nURL:', d['html_url'], '\\\\nStatus:', d['status']\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Status:', d['status']\\)\")",
+      "Bash(kubectl get *)",
+      "Bash(go build *)",
+      "Bash(go vet *)",
+      "Bash(git stash *)",
+      "Bash(kubectl cluster-info *)",
+      "Bash(kubectl delete *)",
+      "Bash(helm lint *)",
+      "Bash(kubectl describe *)",
+      "Bash(lsof -ti:8081)",
+      "Bash(lsof -ti:8383)",
+      "Bash(ps -p 21754 -o pid,cmd)",
+      "Bash(git push *)",
+      "Bash(git tag *)",
+      "Bash(git commit *)",
+      "Bash(kubectl logs *)",
+      "Bash(kind get *)",
+      "Bash(make setup-test-e2e *)"
+    ]
+  }
+}

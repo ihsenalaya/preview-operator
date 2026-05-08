@@ -30,6 +30,11 @@ const (
 	checkpointMaxBytes         = 950 * 1024
 	checkpointSaveTaskLabel    = "checkpoint-save"
 	checkpointRestoreTaskLabel = "checkpoint-restore"
+
+	suiteCheckpointName        = "after-seed"
+	suiteCheckpointSaveJob     = "suite-checkpoint-save"
+	suiteRestoreRegressionJob  = "suite-restore-regression"
+	suiteRestoreE2EJob         = "suite-restore-e2e"
 )
 
 var checkpointNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -464,4 +469,68 @@ func restoreCheckpointScript() string {
 		`fi`,
 		`psql -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /data/dump.sql`,
 	}, "\n")
+}
+
+// ensureSuiteCheckpointSaved creates and waits for the suite checkpoint-save job.
+// Returns (true, nil) once the dump is stored in the ConfigMap.
+func (r *CellenzaReconciler) ensureSuiteCheckpointSaved(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, error) {
+	// Idempotent: if ConfigMap already exists, we're done.
+	cmKey := types.NamespacedName{Name: checkpointConfigMapName(suiteCheckpointName), Namespace: nsName}
+	if err := r.Get(ctx, cmKey, &corev1.ConfigMap{}); err == nil {
+		return true, nil
+	}
+
+	job := &batchv1.Job{}
+	err := r.Get(ctx, types.NamespacedName{Name: suiteCheckpointSaveJob, Namespace: nsName}, job)
+	if errors.IsNotFound(err) {
+		newJob := r.checkpointSaveJob(c, nsName, suiteCheckpointName)
+		newJob.Name = suiteCheckpointSaveJob
+		if err := controllerutil.SetControllerReference(c, newJob, r.Scheme); err != nil {
+			return false, err
+		}
+		return false, r.Create(ctx, newJob)
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, cond := range job.Status.Conditions {
+		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
+			return false, fmt.Errorf("suite checkpoint save job failed: %s", cond.Message)
+		}
+	}
+	if job.Status.Succeeded == 0 {
+		return false, nil
+	}
+	dump, err := r.fetchCheckpointDump(ctx, nsName, suiteCheckpointSaveJob)
+	if err != nil {
+		return false, err
+	}
+	return true, r.storeCheckpointConfigMap(ctx, c, nsName, suiteCheckpointName, dump)
+}
+
+// ensureSuiteCheckpointRestored creates and waits for a restore job identified by jobName.
+// Returns (true, nil) once the restore job has succeeded.
+func (r *CellenzaReconciler) ensureSuiteCheckpointRestored(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, jobName string) (bool, error) {
+	if _, err := r.ensureCheckpointConfigMap(ctx, c, nsName, suiteCheckpointName); err != nil {
+		return false, fmt.Errorf("suite checkpoint not found: %w", err)
+	}
+	job := &batchv1.Job{}
+	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: nsName}, job)
+	if errors.IsNotFound(err) {
+		newJob := r.checkpointRestoreJob(c, nsName, suiteCheckpointName)
+		newJob.Name = jobName
+		if err := controllerutil.SetControllerReference(c, newJob, r.Scheme); err != nil {
+			return false, err
+		}
+		return false, r.Create(ctx, newJob)
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, cond := range job.Status.Conditions {
+		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
+			return false, fmt.Errorf("suite checkpoint restore job %s failed: %s", jobName, cond.Message)
+		}
+	}
+	return job.Status.Succeeded > 0, nil
 }

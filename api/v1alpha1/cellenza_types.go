@@ -443,6 +443,11 @@ type TestSuiteStatus struct {
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
+	// Step tracks the current stage in the sequential pipeline:
+	// saving → smoke → restore-regression → regression → restore-e2e → e2e
+	// +optional
+	Step string `json:"step,omitempty"`
+
 	// Smoke holds the smoke test results.
 	// +optional
 	Smoke TestResult `json:"smoke,omitempty"`

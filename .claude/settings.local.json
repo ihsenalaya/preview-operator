@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git branch *)",
+      "Bash(git restore *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh repo *)",
+      "Bash(git commit --amend -m 'feat: initial release of cellenza-operator with Helm chart *)",
+      "Bash(git remote *)",
+      "Bash(helm install *)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator add README.md demo-app/otel.yaml)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator commit -m ' *)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator status)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator log --oneline origin/main..HEAD)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator log --oneline HEAD..origin/main)",
+      "Bash(gh release *)",
+      "Bash(gh run *)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator log --oneline -5)",
+      "Bash(go get *)",
+      "Bash(go mod *)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator diff --stat)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator add cmd/main.go config/default/manager_metrics_patch.yaml go.mod go.sum)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator push origin main)",
+      "Bash(python3 -m json.tool)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator add demo-app/k.yaml)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator commit -m \"fix: use medium tier in demo app to avoid quota exceeded\")",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator add demo-app/cellenza-demo.yaml demo-app/k.yaml)",
+      "Bash(git -C /home/ihsen/projects/cellenza-operator commit -m \"fix: use medium tier in demo and remove k.yaml\")",
+      "Bash(kubectl config *)",
+      "Bash(kubectl apply *)",
+      "Bash(kubectl rollout *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(kind load *)",
+      "Bash(kubectl set *)"
+    ]
+  }
+}
