@@ -213,20 +213,30 @@ func (r *CellenzaReconciler) reconcileProvisioning(ctx context.Context, key type
 		syncGitHubAfterStatus(ctx, r, cellenza, previewURL)
 	}
 
-	if testSuiteEnabled(cellenza) && !aiRerunOnly(cellenza) {
-		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
-			return ctrl.Result{}, err
-		}
-		if result, err := r.reconcileTestSuite(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
-			return result, err
-		}
-	}
-
 	if aiEnrichmentEnabled(cellenza) {
 		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
 			return ctrl.Result{}, err
 		}
 		if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+	}
+
+	// Test suite runs AFTER AI enrichment so the database already contains seed data.
+	if testSuiteEnabled(cellenza) && !aiRerunOnly(cellenza) {
+		if aiEnrichmentEnabled(cellenza) {
+			aiPhase := ""
+			if cellenza.Status.AIEnrichment != nil {
+				aiPhase = cellenza.Status.AIEnrichment.Phase
+			}
+			if aiPhase != phaseSucceeded && aiPhase != phaseFailed {
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		}
+		if err := r.refreshCellenza(ctx, key, cellenza); err != nil {
+			return ctrl.Result{}, err
+		}
+		if result, err := r.reconcileTestSuite(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
 	}
