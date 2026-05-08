@@ -296,7 +296,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.13.1 \
+  --version 0.13.3 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -1886,7 +1886,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm. Apply the updated CRD manually first if the new version changes the schema:
 > ```bash
-> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.1 \
+> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.3 \
 >   | tail -n +3 | kubectl apply -f -
 > ```
 > The `tail -n +3` strips the two-line OCI pull header that Helm prepends before the YAML.
@@ -1945,8 +1945,8 @@ docker push ghcr.io/ihsenalaya/cellenza-demo-app:dev
 ### Release
 
 ```bash
-git tag v0.13.1
-git push origin v0.13.1
+git tag v0.13.3
+git push origin v0.13.3
 ```
 
 GitHub Actions automatically:
@@ -1968,8 +1968,8 @@ GitHub Actions automatically:
 ### Release a new version
 
 ```bash
-git tag v0.13.1
-git push origin v0.13.1
+git tag v0.13.3
+git push origin v0.13.3
 ```
 
 GitHub Actions will automatically:
