@@ -971,6 +971,11 @@ spec:
                           | Skipped'
                         type: string
                     type: object
+                  step:
+                    description: |-
+                      Step tracks the current stage in the sequential pipeline:
+                      saving → smoke → restore-regression → regression → restore-e2e → e2e
+                    type: string
                 type: object
               url:
                 description: URL is the ingress URL of the preview environment

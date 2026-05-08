@@ -507,6 +507,21 @@ func appServiceURL(c *platformv1alpha1.Cellenza) string {
 	return "http://app:80"
 }
 
+// frontendServiceURL returns the in-cluster URL of the service with pathPrefix "/".
+// Falls back to appServiceURL when no root-path service is found.
+func frontendServiceURL(c *platformv1alpha1.Cellenza) string {
+	for _, svc := range c.Spec.Services {
+		if svc.PathPrefix == "/" {
+			port := svc.Port
+			if port == 0 {
+				port = 80
+			}
+			return fmt.Sprintf("http://%s:%d", serviceDeploymentName(svc.Name), port)
+		}
+	}
+	return appServiceURL(c)
+}
+
 // mainAppImage returns the primary app image. In multi-service mode the first service's image is used.
 func mainAppImage(c *platformv1alpha1.Cellenza) string {
 	if len(c.Spec.Services) > 0 {

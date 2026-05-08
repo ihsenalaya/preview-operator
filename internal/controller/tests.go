@@ -367,6 +367,7 @@ func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsN
 	job.Spec.Template.Spec.Containers[0].Env = append(
 		job.Spec.Template.Spec.Containers[0].Env,
 		corev1.EnvVar{Name: "APP_URL", Value: appServiceURL(c)},
+		corev1.EnvVar{Name: "FRONTEND_URL", Value: frontendServiceURL(c)},
 		corev1.EnvVar{Name: "PREVIEW_URL", Value: previewURL},
 	)
 	return job
@@ -415,7 +416,8 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 		Command:         cmd,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
-			{Name: "APP_URL", Value: appServiceURL(c)},
+			{Name: "APP_URL", Value: frontendServiceURL(c)},
+			{Name: "FRONTEND_URL", Value: frontendServiceURL(c)},
 			{Name: "PREVIEW_URL", Value: previewURL},
 			{Name: "CHECKPOINT_API", Value: fmt.Sprintf("http://cellenza-extension.cellenza-operator-system.svc.cluster.local:8090/api/previews/%s", c.Name)},
 		},
