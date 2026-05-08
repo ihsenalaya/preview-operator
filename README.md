@@ -1564,6 +1564,122 @@ The ingress routes by path prefix — longer prefixes match first, so `/api/prod
 | `replicas` | int32 | `spec.replicas` | Pod replicas for this specific service |
 | `env` | EnvVar[] | — | Additional environment variables injected into this service's container |
 
+### Complete example — all features
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: Cellenza
+metadata:
+  name: pr-42
+spec:
+  # ── Identity ────────────────────────────────────────────────────────────────
+  branch: feature/my-feature
+  prNumber: 42
+  image: unused               # required by webhook; ignored when spec.services[] is set
+  ttl: 48h
+  resourceTier: medium        # small | medium | large
+  replicas: 1
+
+  # ── Approval gate (optional) ─────────────────────────────────────────────────
+  requiresApproval: false
+  # approvedBy: platform-team   # unblocks provisioning when requiresApproval: true
+
+  # ── Multi-service — frontend + backend ──────────────────────────────────────
+  services:
+    - name: backend
+      image: ghcr.io/acme/myapp:sha-abc123
+      port: 8080
+      pathPrefix: /api          # ingress: /api/* → svc-backend:8080
+    - name: frontend
+      image: ghcr.io/acme/myapp:sha-abc123
+      port: 3000
+      pathPrefix: /             # ingress: /* → svc-frontend:3000
+      env:
+        - name: APP_MODE
+          value: frontend
+        - name: PREVIEW_PR
+          value: "42"
+        - name: PREVIEW_BRANCH
+          value: feature/my-feature
+
+  # ── Ephemeral PostgreSQL ─────────────────────────────────────────────────────
+  database:
+    enabled: true
+    databaseName: appdb
+    migration:
+      enabled: true
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+    seed:
+      enabled: true
+      command: ["python", "scripts/seed_preview.py"]
+
+  # ── OpenTelemetry auto-instrumentation ──────────────────────────────────────
+  telemetry:
+    enabled: true
+    serviceName: myapp-pr-42
+    autoInstrumentation:
+      language: python          # python | java | nodejs | dotnet | go
+      instrumentationRef: observability/python
+
+  # ── Operator-orchestrated test suite ────────────────────────────────────────
+  testSuite:
+    enabled: true
+    smoke: {}                   # built-in: GET /healthz + GET /api/products
+    regression:
+      enabled: true             # runs tests/regression.py from the app image
+    e2e:
+      enabled: true             # runs tests/e2e.py via Playwright/Chromium
+
+  # ── AI enrichment ────────────────────────────────────────────────────────────
+  aiEnrichment:
+    enabled: true
+    apiSecretRef:
+      name: ai-api-key          # kubectl create secret generic ai-api-key --from-literal=api-key=...
+      key: api-key
+    model: gpt-4o-mini          # gpt-4o-mini (fast) | gpt-4o (better quality)
+    seed:
+      enabled: true             # runs ai-seed Job: psql -f seed.sql
+    tests:
+      enabled: true             # runs ai-tests Job: python test.py
+
+  # ── GitHub Deployment + PR comments ─────────────────────────────────────────
+  github:
+    enabled: true
+    owner: acme
+    repo: myapp
+    deploymentId: 123456789     # returned by github.rest.repos.createDeployment()
+    environment: pr-42
+    commentOnReady: true
+    tokenSecretRef:
+      name: cellenza-github-token
+      namespace: cellenza-operator-system
+      key: token
+```
+
+**What the operator creates from this CR:**
+
+```
+Namespace        preview-pr-42
+ResourceQuota    cellenza-quota         (medium + DB + AI + E2E headroom)
+Secret           postgres-credentials   (crypto-random, immutable)
+Deployment       postgres               pg:15-alpine
+Service          postgres               ClusterIP :5432
+Job              postgres-migrate       alembic upgrade head
+Job              postgres-seed          seed_preview.py
+Deployment       svc-backend            api image, port 8080, /healthz probe, DB env vars
+Service          svc-backend            ClusterIP :8080
+Deployment       svc-frontend           ui image, port 3000, APP_MODE=frontend
+Service          svc-frontend           ClusterIP :3000
+Ingress          app                    /api → svc-backend | / → svc-frontend
+Job              smoke-tests            built-in script (python:3.12-slim)
+Job              regression-tests       tests/regression.py
+Job              e2e-tests              tests/e2e.py + Playwright init-container
+Job              ai-schema-dump         pg_dump --schema-only → ConfigMap
+ConfigMap        ai-enrichment          seed.sql + test.py (AI-generated)
+Job              ai-seed                psql -f /data/seed.sql
+Job              ai-tests               python /data/test.py
+```
+
 ### Load testing with multiple replicas
 
 ```yaml
