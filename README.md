@@ -19,7 +19,7 @@ kubectl apply -f pr-42.yaml
 - An **isolated namespace** with resource quotas (one per PR — zero cross-PR pollution)
 - A **multi-service stack** via `spec.services[]` — frontend and backend each get their own Deployment, Service, and path-based ingress route
 - An **ephemeral PostgreSQL** instance with cryptographically-generated credentials auto-injected into every service
-- An **operator-orchestrated test suite** — smoke (built-in), regression (`tests/regression.py`), and E2E (Playwright/Chromium) all run in parallel after the environment is ready
+- An **operator-orchestrated test suite** — smoke → regression → E2E run sequentially; the operator saves a DB checkpoint after the AI seed and restores it before each suite so every test starts from a known, identical state
 - **OpenTelemetry auto-instrumentation** — zero code changes required
 - **AI-generated seed data and integration tests** from the PR diff and live DB schema
 - **GitHub Deployment status and PR comments** updated automatically by the operator
@@ -42,7 +42,7 @@ No shared staging environments. No manual test steps. No cleanup scripts.
 | OpenTelemetry | Zero-code auto-instrumentation for Python, Java, Node.js, .NET, Go |
 | GitHub Deployment | CI sets the deployment ID; the operator publishes live Kubernetes state back to GitHub |
 | Smart diagnostics | On failure: root cause, confidence level, significant logs, and kubectl debug commands — all in a PR comment |
-| Automated test suite | Smoke (built-in) + Regression + E2E (Playwright/Chromium) — all three run in parallel |
+| Automated test suite | Smoke → Regression → E2E — sequential pipeline; DB checkpoint restored before each suite for test isolation |
 | AI enrichment | PR diff + DB schema → AI generates contextual `seed.sql` and integration `test.py` |
 | Approval gate | Block large or sensitive environments until a human sets `approvedBy` |
 | TTL auto-expiry | Environments self-destruct after a configurable duration |
@@ -296,7 +296,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.13.3 \
+  --version 0.13.5 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -356,7 +356,8 @@ The controller reconciles every `Cellenza` resource through a deterministic sequ
           • single-service → pr-<N>.preview.localtest.me → app:80
      h. Wait for all deployments to reach minimum availability
 10. Mark phase → Running; notify GitHub (deployment status → success, post PR comment)
-11. Run test suite (smoke + regression + E2E in parallel)
+11. Run test suite — sequential pipeline with DB checkpoint isolation:
+         checkpoint-save → smoke → restore → regression → restore → e2e
 12. Run AI enrichment (schema dump → generate → seed → tests)
 13. Requeue before TTL expiry
 ```
@@ -695,7 +696,21 @@ migration failed at 003_create_messages.sql
 
 ## Automated test suite
 
-The operator runs **smoke, regression, and E2E tests automatically** after the preview environment is ready — all three jobs run in parallel.
+The operator runs **smoke, regression, and E2E tests sequentially** after the preview environment is ready. Before regression and E2E, the database is automatically restored to the post-seed state so every suite starts from an identical, known baseline.
+
+```
+checkpoint-save (pg_dump after AI seed)
+       ↓
+smoke-tests
+       ↓
+restore (TRUNCATE + replay dump)
+       ↓
+regression-tests
+       ↓
+restore (TRUNCATE + replay dump)
+       ↓
+e2e-tests
+```
 
 ```yaml
 spec:
@@ -1886,7 +1901,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm. Apply the updated CRD manually first if the new version changes the schema:
 > ```bash
-> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.3 \
+> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.5 \
 >   | tail -n +3 | kubectl apply -f -
 > ```
 > The `tail -n +3` strips the two-line OCI pull header that Helm prepends before the YAML.
@@ -1945,8 +1960,8 @@ docker push ghcr.io/ihsenalaya/cellenza-demo-app:dev
 ### Release
 
 ```bash
-git tag v0.13.3
-git push origin v0.13.3
+git tag v0.13.5
+git push origin v0.13.5
 ```
 
 GitHub Actions automatically:
@@ -1968,8 +1983,8 @@ GitHub Actions automatically:
 ### Release a new version
 
 ```bash
-git tag v0.13.3
-git push origin v0.13.3
+git tag v0.13.5
+git push origin v0.13.5
 ```
 
 GitHub Actions will automatically:
