@@ -142,6 +142,10 @@ func (r *CellenzaReconciler) reconcileTestSuite(ctx context.Context, c *platform
 		if !done {
 			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 		}
+		// Publish the checkpoint name in status so the extension restore endpoint can see it.
+		if names, err := r.listCheckpointNames(ctx, nsName); err == nil && c.Status.Database != nil {
+			c.Status.Database.Checkpoints = names
+		}
 		tests.Step = suiteStepSmoke
 		if err := r.Status().Update(ctx, c); err != nil {
 			return ctrl.Result{}, err

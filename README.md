@@ -296,7 +296,7 @@ helm install cellenza-operator cellenza/cellenza-operator \
 ```bash
 helm install cellenza-operator \
   oci://ghcr.io/ihsenalaya/charts/cellenza-operator \
-  --version 0.13.5 \
+  --version 0.13.6 \
   --namespace cellenza-operator-system \
   --create-namespace
 ```
@@ -696,20 +696,85 @@ migration failed at 003_create_messages.sql
 
 ## Automated test suite
 
-The operator runs **smoke, regression, and E2E tests sequentially** after the preview environment is ready. Before regression and E2E, the database is automatically restored to the post-seed state so every suite starts from an identical, known baseline.
+The operator runs **smoke, regression, and E2E tests sequentially** after the preview environment is ready. A database checkpoint is saved once after the AI seed, then restored before each suite — and again before each individual E2E test — so every test always starts from an identical, known baseline.
+
+### Pipeline complet
 
 ```
-checkpoint-save (pg_dump after AI seed)
-       ↓
-smoke-tests
-       ↓
-restore (TRUNCATE + replay dump)
-       ↓
-regression-tests
-       ↓
-restore (TRUNCATE + replay dump)
-       ↓
-e2e-tests
+AI enrichment seed (10 produits, 3 catégories, 2 avis/produit)
+       │
+       ▼
+[Job] suite-checkpoint-save          ← pg_dump --data-only → ConfigMap "db-checkpoint-after-seed"
+       │
+       ▼
+[Job] smoke-tests                    ← probes /healthz + /api/products (operator-embedded)
+       │
+       ▼
+[Job] suite-restore-regression       ← TRUNCATE toutes les tables + psql replay du dump
+       │
+       ▼
+[Job] regression-tests               ← tests/regression.py depuis l'image de l'app
+       │
+       ▼
+[Job] suite-restore-e2e              ← TRUNCATE + psql replay (DB remise à l'état post-seed)
+       │
+       ▼
+[Job] e2e-tests (Playwright/Chromium)
+         │
+         ├── reset_db() → restore avant test_catalog_page_loads
+         ├── reset_db() → restore avant test_product_detail_panel
+         ├── reset_db() → restore avant test_discount_filter
+         └── reset_db() → restore avant chaque test suivant
+```
+
+**Pourquoi deux niveaux de restore ?**
+- **Entre les suites** (suite-restore-regression, suite-restore-e2e) : garantit que la suite regression ne pollue pas la suite e2e (ex. commandes passées, stocks modifiés).
+- **Entre chaque test e2e** (reset_db) : garantit que chaque test Playwright voit exactement les mêmes données, quel que soit l'ordre d'exécution. Un test qui crée une commande ne casse pas le test suivant qui vérifie le stock.
+
+**Fonctionnement du reset_db() dans les tests e2e :**
+
+Le pod e2e dispose d'une variable d'environnement `CHECKPOINT_API` injectée par l'opérateur. Avant chaque test, le script appelle :
+
+```
+POST http://cellenza-extension.../api/previews/pr-42/checkpoints/after-seed/restore
+```
+
+L'extension patche le CR (`spec.database.checkpointRestore = "after-seed"`). Le controller crée un Job Kubernetes qui exécute `TRUNCATE` + `psql` replay, puis retourne HTTP 200. Le test Playwright ne démarre qu'une fois la base restaurée.
+
+```python
+# pattern à utiliser dans tests/e2e.py
+import os, requests
+
+CHECKPOINT_API  = os.environ.get("CHECKPOINT_API", "")
+CHECKPOINT_NAME = "after-seed"
+
+def reset_db():
+    """Restaure la DB à l'état post-seed avant chaque test."""
+    if not CHECKPOINT_API:
+        return
+    try:
+        requests.post(f"{CHECKPOINT_API}/checkpoints/{CHECKPOINT_NAME}/restore", timeout=60)
+    except Exception:
+        pass  # dégradation gracieuse si l'API est indisponible
+
+def run(name, fn):
+    reset_db()          # ← DB propre garantie avant chaque test
+    with sync_playwright() as p:
+        ...
+```
+
+**Rôle du controller dans l'orchestration :**
+
+Le controller est le chef d'orchestre. Il tourne en boucle de réconciliation et suit la progression via `status.tests.step`. Si le cluster redémarre ou si un job crashe, il reprend exactement là où il en était — aucune perte d'état. Un script bash classique serait perdu dans ce cas.
+
+```
+Reconcile() → lit status.tests.step
+  "saving"             → crée job pg_dump, attend la fin, stocke le dump
+  "smoke"              → crée job smoke-tests, attend la completion
+  "restore-regression" → crée job restore, attend la fin
+  "regression"         → crée job regression-tests, attend la completion
+  "restore-e2e"        → crée job restore, attend la fin
+  "e2e"                → crée job e2e-tests, attend la completion
 ```
 
 ```yaml
@@ -758,7 +823,7 @@ Pod: e2e-tests
         Volume: emptyDir /data  (shared)
 ```
 
-The `CHECKPOINT_API` env var lets E2E tests programmatically save and restore DB snapshots during the test run.
+`CHECKPOINT_API` est injecté automatiquement — le test n'a pas besoin de connaître le nom du preview ni les credentials.
 
 ### Required: test scripts in the app image
 
@@ -783,32 +848,6 @@ for name, path, code in tests:
     else: failed += 1
 print(f"Results: {passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
-```
-
-```python
-# tests/e2e.py — minimal Playwright example
-import os, sys
-from playwright.sync_api import sync_playwright
-
-BASE = os.environ.get("APP_URL", "http://app:80")
-passed, failed = 0, 0
-
-with sync_playwright() as p:
-    browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
-    page = browser.new_page()
-    try:
-        page.goto(BASE, wait_until="networkidle", timeout=30000)
-        assert page.title() != ""
-        print("PASS e2e homepage")
-        passed += 1
-    except Exception as e:
-        print(f"FAIL e2e homepage: {e}")
-        failed += 1
-    finally:
-        browser.close()
-
-print(f"Results: {passed} passed, {failed} failed")
-sys.exit(1 if failed > 0 else 0)
 ```
 
 ### GitHub PR comment produced
@@ -1901,7 +1940,7 @@ helm upgrade cellenza-operator cellenza/cellenza-operator \
 
 > CRDs are not automatically upgraded by Helm. Apply the updated CRD manually first if the new version changes the schema:
 > ```bash
-> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.5 \
+> helm show crds oci://ghcr.io/ihsenalaya/charts/cellenza-operator --version 0.13.6 \
 >   | tail -n +3 | kubectl apply -f -
 > ```
 > The `tail -n +3` strips the two-line OCI pull header that Helm prepends before the YAML.
@@ -1960,8 +1999,8 @@ docker push ghcr.io/ihsenalaya/cellenza-demo-app:dev
 ### Release
 
 ```bash
-git tag v0.13.5
-git push origin v0.13.5
+git tag v0.13.6
+git push origin v0.13.6
 ```
 
 GitHub Actions automatically:
@@ -1983,8 +2022,8 @@ GitHub Actions automatically:
 ### Release a new version
 
 ```bash
-git tag v0.13.5
-git push origin v0.13.5
+git tag v0.13.6
+git push origin v0.13.6
 ```
 
 GitHub Actions will automatically:
