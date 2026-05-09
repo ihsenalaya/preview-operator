@@ -1,0 +1,70 @@
+apiVersion: platform.company.io/v1alpha1
+kind: Preview
+metadata:
+  labels:
+    app.kubernetes.io/name: preview-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: preview-sample
+spec:
+  branch: feature/my-feature
+  prNumber: 42
+  image: nginx:latest
+  ttl: 48h
+  resourceTier: medium
+  replicas: 1
+  # Enable an ephemeral PostgreSQL sidecar.
+  # The operator generates unique credentials on first creation and never overwrites them.
+  # Credentials are injected into the app as: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DATABASE_URL
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
+    migration:
+      enabled: true
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+    seed:
+      enabled: true
+      command: ["python", "seed.py"]
+  # Enable OpenTelemetry Operator auto-instrumentation for the app Pod.
+  # instrumentationRef can be "true", a name in the preview namespace, or "namespace/name".
+  telemetry:
+    enabled: true
+    serviceName: preview-sample
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python
+  # Optional: let the controller update a GitHub Deployment and comment on the PR.
+  # The referenced Secret must contain a GitHub token under the "token" key.
+  github:
+    enabled: false
+    owner: ihsenalaya
+    repo: idp-testing
+    deploymentId: 123456789
+    environment: pr-42
+    commentOnReady: true
+    tokenSecretRef:
+      name: preview-github-token
+      namespace: preview-operator-system
+      key: token
+  # Optional: AI enrichment can use a dedicated long-lived GitHub token to fetch PR diffs.
+  # aiEnrichment:
+  #   enabled: true
+  #   apiSecretRef:
+  #     name: ai-api-key
+  #     namespace: preview-operator-system
+  #     key: api-key
+  #   githubTokenSecretRef:
+  #     name: preview-github-token
+  #     namespace: preview-operator-system
+  #     key: token
+---
+# Minimal example without database
+apiVersion: platform.company.io/v1alpha1
+kind: Preview
+metadata:
+  name: preview-no-db
+spec:
+  branch: hotfix/no-db
+  prNumber: 99
+  image: nginx:alpine
+  resourceTier: small

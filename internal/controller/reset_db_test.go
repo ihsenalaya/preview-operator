@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,16 +13,16 @@ import (
 
 func TestHandleResetRequestedClearsPersistedDatabaseProgress(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-34"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			PRNumber: 34,
 			Database: &platformv1alpha1.DatabaseSpec{
 				Enabled:        true,
 				ResetRequested: true,
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			Database: &platformv1alpha1.DatabaseStatus{
 				Ready:     true,
 				Migration: phaseSucceeded,
@@ -39,7 +39,7 @@ func TestHandleResetRequestedClearsPersistedDatabaseProgress(t *testing.T) {
 		WithObjects(c, migrationJob, seedJob).
 		Build()
 
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: cl,
 		Scheme: scheme,
 	}
@@ -55,9 +55,9 @@ func TestHandleResetRequestedClearsPersistedDatabaseProgress(t *testing.T) {
 		t.Fatalf("expected reset request to trigger requeue, got %#v", result)
 	}
 
-	updated := &platformv1alpha1.Cellenza{}
+	updated := &platformv1alpha1.Preview{}
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: "pr-34"}, updated); err != nil {
-		t.Fatalf("failed to fetch updated cellenza: %v", err)
+		t.Fatalf("failed to fetch updated preview: %v", err)
 	}
 	if updated.Spec.Database == nil || updated.Spec.Database.ResetRequested {
 		t.Fatalf("resetRequested should be cleared, got %#v", updated.Spec.Database)

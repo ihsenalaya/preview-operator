@@ -16,14 +16,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 const (
 	smokeJobName       = "smoke-tests"
 	regressionJobName  = "regression-tests"
 	e2eJobName         = "e2e-tests"
-	testSuiteConfigMap = "cellenza-test-suite"
+	testSuiteConfigMap = "preview-test-suite"
 
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
@@ -66,32 +66,32 @@ sys.exit(1 if f>0 else 0)
 `
 )
 
-func testSuiteEnabled(c *platformv1alpha1.Cellenza) bool {
+func testSuiteEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.TestSuite != nil && c.Spec.TestSuite.Enabled
 }
 
-func smokeEnabled(c *platformv1alpha1.Cellenza) bool {
+func smokeEnabled(c *platformv1alpha1.Preview) bool {
 	if c.Spec.TestSuite.Smoke == nil {
 		return true
 	}
 	return c.Spec.TestSuite.Smoke.Enabled
 }
 
-func regressionEnabled(c *platformv1alpha1.Cellenza) bool {
+func regressionEnabled(c *platformv1alpha1.Preview) bool {
 	if c.Spec.TestSuite.Regression == nil {
 		return true
 	}
 	return c.Spec.TestSuite.Regression.Enabled
 }
 
-func e2eEnabled(c *platformv1alpha1.Cellenza) bool {
+func e2eEnabled(c *platformv1alpha1.Preview) bool {
 	if c.Spec.TestSuite.E2E == nil {
 		return true
 	}
 	return c.Spec.TestSuite.E2E.Enabled
 }
 
-func ensureTestSuiteStatus(c *platformv1alpha1.Cellenza) *platformv1alpha1.TestSuiteStatus {
+func ensureTestSuiteStatus(c *platformv1alpha1.Preview) *platformv1alpha1.TestSuiteStatus {
 	if c.Status.Tests == nil {
 		c.Status.Tests = &platformv1alpha1.TestSuiteStatus{}
 	}
@@ -100,7 +100,7 @@ func ensureTestSuiteStatus(c *platformv1alpha1.Cellenza) *platformv1alpha1.TestS
 
 // reconcileTestSuite orchestrates the test pipeline sequentially:
 // checkpoint-save → smoke → restore → regression → restore → e2e
-func (r *CellenzaReconciler) reconcileTestSuite(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (ctrl.Result, error) {
+func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
 	if !testSuiteEnabled(c) {
 		return ctrl.Result{}, nil
 	}
@@ -268,7 +268,7 @@ func (r *CellenzaReconciler) reconcileTestSuite(ctx context.Context, c *platform
 }
 
 // checkOrCreateTestJob creates a test job if it doesn't exist, otherwise returns its current state and logs.
-func (r *CellenzaReconciler) checkOrCreateTestJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, jobName string, desired *batchv1.Job) (string, []string) {
+func (r *PreviewReconciler) checkOrCreateTestJob(ctx context.Context, c *platformv1alpha1.Preview, nsName, jobName string, desired *batchv1.Job) (string, []string) {
 	job := &batchv1.Job{}
 	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: nsName}, job)
 	if errors.IsNotFound(err) {
@@ -311,7 +311,7 @@ func (r *CellenzaReconciler) checkOrCreateTestJob(ctx context.Context, c *platfo
 }
 
 // ensureTestSuiteConfigMap creates the test suite ConfigMap with the smoke script.
-func (r *CellenzaReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) error {
+func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testSuiteConfigMap,
@@ -323,8 +323,8 @@ func (r *CellenzaReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *pl
 			return err
 		}
 		cm.Labels = map[string]string{
-			labelManagedBy:                "cellenza-operator",
-			labelCellenzaName:             c.Name,
+			labelManagedBy:                "preview-operator",
+			labelPreviewName:             c.Name,
 			"app.kubernetes.io/component": "test-suite",
 		}
 		cm.Data = map[string]string{
@@ -335,7 +335,7 @@ func (r *CellenzaReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *pl
 	return err
 }
 
-func (r *CellenzaReconciler) smokeTestJob(c *platformv1alpha1.Cellenza, nsName string) *batchv1.Job {
+func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
 	image := "python:3.12-slim"
 	if c.Spec.TestSuite.Smoke != nil && c.Spec.TestSuite.Smoke.Image != "" {
 		image = c.Spec.TestSuite.Smoke.Image
@@ -353,7 +353,7 @@ func (r *CellenzaReconciler) smokeTestJob(c *platformv1alpha1.Cellenza, nsName s
 	return job
 }
 
-func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsName, previewURL string) *batchv1.Job {
+func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {
 	image := mainAppImage(c)
 	if c.Spec.TestSuite.Regression != nil && c.Spec.TestSuite.Regression.Image != "" {
 		image = c.Spec.TestSuite.Regression.Image
@@ -376,7 +376,7 @@ func (r *CellenzaReconciler) regressionTestJob(c *platformv1alpha1.Cellenza, nsN
 // e2eTestJob builds a Job that runs real browser tests via Playwright.
 // An init container copies e2e.py from the app image into a shared emptyDir,
 // then the Playwright container (with Chromium pre-installed) executes the tests.
-func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, previewURL string) *batchv1.Job {
+func (r *PreviewReconciler) e2eTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {
 	appImage := mainAppImage(c)
 	pwImage := playwrightImage
 	if c.Spec.TestSuite.E2E != nil && c.Spec.TestSuite.E2E.Image != "" {
@@ -419,7 +419,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 			{Name: "APP_URL", Value: frontendServiceURL(c)},
 			{Name: "FRONTEND_URL", Value: frontendServiceURL(c)},
 			{Name: "PREVIEW_URL", Value: previewURL},
-			{Name: "CHECKPOINT_API", Value: fmt.Sprintf("http://cellenza-extension.cellenza-operator-system.svc.cluster.local:8090/api/previews/%s", c.Name)},
+			{Name: "CHECKPOINT_API", Value: fmt.Sprintf("http://preview-extension.preview-operator-system.svc.cluster.local:8090/api/previews/%s", c.Name)},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -448,8 +448,8 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": e2eJobName,
 					},
 				},
@@ -470,7 +470,7 @@ func (r *CellenzaReconciler) e2eTestJob(c *platformv1alpha1.Cellenza, nsName, pr
 }
 
 // testJob builds a Job that mounts a script from a ConfigMap.
-func (r *CellenzaReconciler) testJob(c *platformv1alpha1.Cellenza, nsName, jobName, image string, cmd []string, cmName, fileName, containerName string, withPostgres bool) *batchv1.Job {
+func (r *PreviewReconciler) testJob(c *platformv1alpha1.Preview, nsName, jobName, image string, cmd []string, cmName, fileName, containerName string, withPostgres bool) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttl := int32(300)
 
@@ -504,8 +504,8 @@ func (r *CellenzaReconciler) testJob(c *platformv1alpha1.Cellenza, nsName, jobNa
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -528,7 +528,7 @@ func (r *CellenzaReconciler) testJob(c *platformv1alpha1.Cellenza, nsName, jobNa
 }
 
 // testJobNoMount builds a Job without a ConfigMap volume (tests are in the image).
-func (r *CellenzaReconciler) testJobNoMount(c *platformv1alpha1.Cellenza, nsName, jobName, image string, cmd []string, containerName string, withPostgres bool) *batchv1.Job {
+func (r *PreviewReconciler) testJobNoMount(c *platformv1alpha1.Preview, nsName, jobName, image string, cmd []string, containerName string, withPostgres bool) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttl := int32(300)
 
@@ -559,8 +559,8 @@ func (r *CellenzaReconciler) testJobNoMount(c *platformv1alpha1.Cellenza, nsName
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -573,7 +573,7 @@ func (r *CellenzaReconciler) testJobNoMount(c *platformv1alpha1.Cellenza, nsName
 	}
 }
 
-func databaseEnabledForSpec(c *platformv1alpha1.Cellenza) bool {
+func databaseEnabledForSpec(c *platformv1alpha1.Preview) bool {
 	return c.Spec.Database != nil && c.Spec.Database.Enabled
 }
 
@@ -590,16 +590,16 @@ func testJobResources() corev1.ResourceRequirements {
 	}
 }
 
-func testJobLabels(c *platformv1alpha1.Cellenza, jobName string) map[string]string {
+func testJobLabels(c *platformv1alpha1.Preview, jobName string) map[string]string {
 	return map[string]string{
-		labelManagedBy:                "cellenza-operator",
-		labelCellenzaName:             c.Name,
+		labelManagedBy:                "preview-operator",
+		labelPreviewName:             c.Name,
 		"app.kubernetes.io/component": "test-suite",
 		"platform.company.io/task":    jobName,
 	}
 }
 
-func (r *CellenzaReconciler) setTestSuiteCondition(c *platformv1alpha1.Cellenza) {
+func (r *PreviewReconciler) setTestSuiteCondition(c *platformv1alpha1.Preview) {
 	tests := c.Status.Tests
 	if tests == nil {
 		return

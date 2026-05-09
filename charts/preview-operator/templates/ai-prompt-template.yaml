@@ -1,0 +1,12 @@
+{{- $prompt := .Values.ai.systemPrompt | default (.Files.Get "files/ai-system-prompt.txt") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-prompt-template
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "preview-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-prompt
+data:
+  ai-system-prompt.txt: |-
+{{- $prompt | nindent 4 }}

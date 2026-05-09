@@ -1,0 +1,16 @@
+apiVersion: v2
+name: preview-operator
+description: Kubernetes operator for managing ephemeral preview environments with optional PostgreSQL sidecar
+type: application
+version: 0.13.8
+appVersion: "0.13.8"
+keywords:
+  - kubernetes
+  - operator
+  - preview-environments
+  - platform-engineering
+home: https://github.com/ihsenalaya/preview-operator
+sources:
+  - https://github.com/ihsenalaya/preview-operator
+maintainers:
+  - name: ihsenalaya

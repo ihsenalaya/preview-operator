@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 	diagnosticConfidenceLow    = "low"
 )
 
-func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platformv1alpha1.Cellenza, reason string, reconcileErr error) *platformv1alpha1.DiagnosticsStatus {
+func (r *PreviewReconciler) collectDiagnostics(ctx context.Context, c *platformv1alpha1.Preview, reason string, reconcileErr error) *platformv1alpha1.DiagnosticsStatus {
 	nsName := c.Status.NamespaceName
 	if nsName == "" {
 		nsName = r.namespaceName(c)
@@ -46,7 +46,7 @@ func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platform
 		Component: diagnosticComponent(reason),
 		Message:   reconcileErr.Error(),
 		DebugCommands: []string{
-			fmt.Sprintf("kubectl describe cellenza %s", c.Name),
+			fmt.Sprintf("kubectl describe preview %s", c.Name),
 			fmt.Sprintf("kubectl get pods -n %s", nsName),
 			fmt.Sprintf("kubectl get events -n %s --sort-by=.lastTimestamp", nsName),
 		},
@@ -76,7 +76,7 @@ func (r *CellenzaReconciler) collectDiagnostics(ctx context.Context, c *platform
 	return diag
 }
 
-func (r *CellenzaReconciler) enrichDiagnostics(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string, diag *platformv1alpha1.DiagnosticsStatus) {
+func (r *PreviewReconciler) enrichDiagnostics(ctx context.Context, c *platformv1alpha1.Preview, nsName string, diag *platformv1alpha1.DiagnosticsStatus) {
 	diag.SignificantLogs = r.significantLogExcerpts(ctx, nsName)
 	diag.RootCause, diag.Confidence = inferRootCause(diag)
 	diag.Recommendations = diagnosticRecommendations(c, diag)
@@ -105,7 +105,7 @@ func diagnosticComponent(reason string) string {
 	}
 }
 
-func (r *CellenzaReconciler) databaseJobDiagnostic(ctx context.Context, nsName, jobName string) string {
+func (r *PreviewReconciler) databaseJobDiagnostic(ctx context.Context, nsName, jobName string) string {
 	job := &batchv1.Job{}
 	if err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: nsName}, job); err != nil {
 		return ""
@@ -121,7 +121,7 @@ func (r *CellenzaReconciler) databaseJobDiagnostic(ctx context.Context, nsName, 
 	return ""
 }
 
-func (r *CellenzaReconciler) deploymentDiagnostic(ctx context.Context, nsName, name string) string {
+func (r *PreviewReconciler) deploymentDiagnostic(ctx context.Context, nsName, name string) string {
 	deploy := &appsv1.Deployment{}
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: nsName}, deploy); err != nil {
 		return ""
@@ -156,7 +156,7 @@ func (r *CellenzaReconciler) deploymentDiagnostic(ctx context.Context, nsName, n
 func podMatchesDeployment(pod corev1.Pod, deploymentName string) bool {
 	app := pod.Labels["app"]
 	if deploymentName == componentApp {
-		return app == "cellenza-preview"
+		return app == "preview-preview"
 	}
 	return app == deploymentName
 }
@@ -183,7 +183,7 @@ func podDiagnosticMessage(pod corev1.Pod) string {
 	return ""
 }
 
-func (r *CellenzaReconciler) warningEvents(ctx context.Context, nsName string, limit int) []string {
+func (r *PreviewReconciler) warningEvents(ctx context.Context, nsName string, limit int) []string {
 	events := &corev1.EventList{}
 	if err := r.List(ctx, events, client.InNamespace(nsName)); err != nil {
 		if errors.IsNotFound(err) {
@@ -209,12 +209,12 @@ func (r *CellenzaReconciler) warningEvents(ctx context.Context, nsName string, l
 	return messages
 }
 
-func (r *CellenzaReconciler) podLogs(ctx context.Context, nsName string, lines int) []string {
+func (r *PreviewReconciler) podLogs(ctx context.Context, nsName string, lines int) []string {
 	if r.KubeClient == nil {
 		return nil
 	}
 	pods := &corev1.PodList{}
-	if err := r.List(ctx, pods, client.InNamespace(nsName), client.MatchingLabels{"app": "cellenza-preview"}); err != nil {
+	if err := r.List(ctx, pods, client.InNamespace(nsName), client.MatchingLabels{"app": "preview-preview"}); err != nil {
 		return nil
 	}
 	for _, pod := range pods.Items {
@@ -227,7 +227,7 @@ func (r *CellenzaReconciler) podLogs(ctx context.Context, nsName string, lines i
 	return nil
 }
 
-func (r *CellenzaReconciler) significantLogExcerpts(ctx context.Context, nsName string) []platformv1alpha1.DiagnosticLogExcerpt {
+func (r *PreviewReconciler) significantLogExcerpts(ctx context.Context, nsName string) []platformv1alpha1.DiagnosticLogExcerpt {
 	if r.KubeClient == nil {
 		return nil
 	}
@@ -239,7 +239,7 @@ func (r *CellenzaReconciler) significantLogExcerpts(ctx context.Context, nsName 
 	}{
 		{component: componentMigration, container: componentMigration, labels: client.MatchingLabels{"platform.company.io/task": componentMigration}},
 		{component: componentSeed, container: componentSeed, labels: client.MatchingLabels{"platform.company.io/task": componentSeed}},
-		{component: componentApp, container: componentApp, labels: client.MatchingLabels{"app": "cellenza-preview"}},
+		{component: componentApp, container: componentApp, labels: client.MatchingLabels{"app": "preview-preview"}},
 		{component: componentDatabase, container: "postgres", labels: client.MatchingLabels{"app": "postgres"}},
 	}
 
@@ -263,7 +263,7 @@ func (r *CellenzaReconciler) significantLogExcerpts(ctx context.Context, nsName 
 	return excerpts
 }
 
-func (r *CellenzaReconciler) firstPodName(ctx context.Context, nsName string, labels client.MatchingLabels) string {
+func (r *PreviewReconciler) firstPodName(ctx context.Context, nsName string, labels client.MatchingLabels) string {
 	pods := &corev1.PodList{}
 	if err := r.List(ctx, pods, client.InNamespace(nsName), labels); err != nil {
 		return ""
@@ -277,7 +277,7 @@ func (r *CellenzaReconciler) firstPodName(ctx context.Context, nsName string, la
 	return pods.Items[0].Name
 }
 
-func (r *CellenzaReconciler) fetchPodLogs(ctx context.Context, nsName, podName, container string, lines int) []string {
+func (r *PreviewReconciler) fetchPodLogs(ctx context.Context, nsName, podName, container string, lines int) []string {
 	tailLines := int64(lines)
 	req := r.KubeClient.CoreV1().Pods(nsName).GetLogs(podName, &corev1.PodLogOptions{
 		Container: container,
@@ -360,7 +360,7 @@ func inferRootCause(diag *platformv1alpha1.DiagnosticsStatus) (string, string) {
 	}
 }
 
-func diagnosticRecommendations(c *platformv1alpha1.Cellenza, diag *platformv1alpha1.DiagnosticsStatus) []string {
+func diagnosticRecommendations(c *platformv1alpha1.Preview, diag *platformv1alpha1.DiagnosticsStatus) []string {
 	rootCause := strings.ToLower(diag.RootCause)
 	switch {
 	case strings.Contains(rootCause, "image"):
@@ -373,13 +373,13 @@ func diagnosticRecommendations(c *platformv1alpha1.Cellenza, diag *platformv1alp
 		return []string{
 			"Check that the migration is idempotent and can run on a fresh preview database.",
 			"Look for duplicate table/index creation or schema ordering issues in the highlighted logs.",
-			fmt.Sprintf("After fixing the migration, request a DB reset with `kubectl patch cellenza %s --type=merge -p '{\"spec\":{\"database\":{\"resetRequested\":true}}}'`.", c.Name),
+			fmt.Sprintf("After fixing the migration, request a DB reset with `kubectl patch preview %s --type=merge -p '{\"spec\":{\"database\":{\"resetRequested\":true}}}'`.", c.Name),
 		}
 	case strings.Contains(rootCause, "seed"):
 		return []string{
 			"Make the seed script idempotent with upserts or conflict handling.",
 			"Check whether seed data assumes tables or migrations that did not complete.",
-			fmt.Sprintf("After fixing the seed, request a DB reset with `kubectl patch cellenza %s --type=merge -p '{\"spec\":{\"database\":{\"resetRequested\":true}}}'`.", c.Name),
+			fmt.Sprintf("After fixing the seed, request a DB reset with `kubectl patch preview %s --type=merge -p '{\"spec\":{\"database\":{\"resetRequested\":true}}}'`.", c.Name),
 		}
 	case strings.Contains(rootCause, "dependency"):
 		return []string{
@@ -413,7 +413,7 @@ func diagnosticRecommendations(c *platformv1alpha1.Cellenza, diag *platformv1alp
 	default:
 		return []string{
 			"Start with the highlighted logs and recent warning events in this comment.",
-			fmt.Sprintf("Run `kubectl describe cellenza %s` to inspect the full operator status.", c.Name),
+			fmt.Sprintf("Run `kubectl describe preview %s` to inspect the full operator status.", c.Name),
 			"Check the debug commands below for component-level troubleshooting.",
 		}
 	}

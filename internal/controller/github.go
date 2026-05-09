@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 const (
@@ -42,7 +42,7 @@ type githubIssueCommentResponse struct {
 	ID int64 `json:"id"`
 }
 
-func (r *CellenzaReconciler) syncGitHub(ctx context.Context, c *platformv1alpha1.Cellenza, state, environmentURL, description string, commentOnReady bool) {
+func (r *PreviewReconciler) syncGitHub(ctx context.Context, c *platformv1alpha1.Preview, state, environmentURL, description string, commentOnReady bool) {
 	logger := log.FromContext(ctx)
 	if !githubEnabled(c) {
 		return
@@ -85,7 +85,7 @@ func (r *CellenzaReconciler) syncGitHub(ctx context.Context, c *platformv1alpha1
 	r.recordGitHubSuccess(ctx, c, state, environmentURL, commentID)
 }
 
-func (r *CellenzaReconciler) postGitHubPhaseComment(ctx context.Context, c *platformv1alpha1.Cellenza, token string) error {
+func (r *PreviewReconciler) postGitHubPhaseComment(ctx context.Context, c *platformv1alpha1.Preview, token string) error {
 	spec := c.Spec.GitHub
 	if spec == nil || spec.Owner == "" || spec.Repo == "" {
 		return nil
@@ -109,11 +109,11 @@ func (r *CellenzaReconciler) postGitHubPhaseComment(ctx context.Context, c *plat
 	return r.githubPost(ctx, token, path, githubIssueCommentRequest{Body: body}, nil)
 }
 
-func githubEnabled(c *platformv1alpha1.Cellenza) bool {
+func githubEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.GitHub != nil && c.Spec.GitHub.Enabled
 }
 
-func githubAlreadyNotified(c *platformv1alpha1.Cellenza, state, environmentURL string, commentOnReady bool) bool {
+func githubAlreadyNotified(c *platformv1alpha1.Preview, state, environmentURL string, commentOnReady bool) bool {
 	if c.Status.GitHub == nil {
 		return false
 	}
@@ -129,7 +129,7 @@ func githubAlreadyNotified(c *platformv1alpha1.Cellenza, state, environmentURL s
 	return !commentOnReady || c.Status.GitHub.CommentID != 0
 }
 
-func (r *CellenzaReconciler) githubToken(ctx context.Context, c *platformv1alpha1.Cellenza) (string, error) {
+func (r *PreviewReconciler) githubToken(ctx context.Context, c *platformv1alpha1.Preview) (string, error) {
 	ref := c.Spec.GitHub.TokenSecretRef
 	if ref == nil || ref.Name == "" {
 		return "", fmt.Errorf("spec.github.tokenSecretRef.name is required when GitHub integration is enabled")
@@ -138,7 +138,7 @@ func (r *CellenzaReconciler) githubToken(ctx context.Context, c *platformv1alpha
 	return r.githubTokenFromRef(ctx, ref)
 }
 
-func (r *CellenzaReconciler) githubTokenFromRef(ctx context.Context, ref *platformv1alpha1.GitHubTokenSecretRef) (string, error) {
+func (r *PreviewReconciler) githubTokenFromRef(ctx context.Context, ref *platformv1alpha1.GitHubTokenSecretRef) (string, error) {
 	if ref == nil || ref.Name == "" {
 		return "", fmt.Errorf("github token secret reference is required")
 	}
@@ -167,7 +167,7 @@ func (r *CellenzaReconciler) githubTokenFromRef(ctx context.Context, ref *platfo
 	return strings.TrimSpace(string(tokenBytes)), nil
 }
 
-func (r *CellenzaReconciler) createGitHubDeploymentStatus(ctx context.Context, c *platformv1alpha1.Cellenza, token, state, environmentURL, description string) error {
+func (r *PreviewReconciler) createGitHubDeploymentStatus(ctx context.Context, c *platformv1alpha1.Preview, token, state, environmentURL, description string) error {
 	spec := c.Spec.GitHub
 	if spec.Owner == "" || spec.Repo == "" {
 		return fmt.Errorf("spec.github.owner and spec.github.repo are required")
@@ -191,7 +191,7 @@ func (r *CellenzaReconciler) createGitHubDeploymentStatus(ctx context.Context, c
 	return r.githubPost(ctx, token, path, payload, nil)
 }
 
-func (r *CellenzaReconciler) createGitHubReadyComment(ctx context.Context, c *platformv1alpha1.Cellenza, token, environmentURL string) (int64, error) {
+func (r *PreviewReconciler) createGitHubReadyComment(ctx context.Context, c *platformv1alpha1.Preview, token, environmentURL string) (int64, error) {
 	spec := c.Spec.GitHub
 	if spec.Owner == "" || spec.Repo == "" {
 		return 0, fmt.Errorf("spec.github.owner and spec.github.repo are required")
@@ -214,7 +214,7 @@ func (r *CellenzaReconciler) createGitHubReadyComment(ctx context.Context, c *pl
 	return response.ID, nil
 }
 
-func (r *CellenzaReconciler) updateGitHubReadyComment(ctx context.Context, c *platformv1alpha1.Cellenza, token, environmentURL string) error {
+func (r *PreviewReconciler) updateGitHubReadyComment(ctx context.Context, c *platformv1alpha1.Preview, token, environmentURL string) error {
 	if c.Status.GitHub == nil || c.Status.GitHub.CommentID == 0 {
 		return nil
 	}
@@ -233,7 +233,7 @@ func (r *CellenzaReconciler) updateGitHubReadyComment(ctx context.Context, c *pl
 	return r.githubRequest(ctx, http.MethodPatch, token, path, payload, nil)
 }
 
-func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string) string {
+func githubReadyCommentBody(c *platformv1alpha1.Preview, environmentURL string) string {
 	var b strings.Builder
 	b.WriteString("## Cellenza Preview Ready\n\n")
 	b.WriteString(fmt.Sprintf("**URL:** %s\n\n", environmentURL))
@@ -276,7 +276,7 @@ func githubReadyCommentBody(c *platformv1alpha1.Cellenza, environmentURL string)
 	return b.String()
 }
 
-func buildAIEnrichmentSection(c *platformv1alpha1.Cellenza) string {
+func buildAIEnrichmentSection(c *platformv1alpha1.Preview) string {
 	aiStatus := c.Status.AIEnrichment
 	if aiStatus == nil {
 		return ""
@@ -313,7 +313,7 @@ func statusIcon(status string) string {
 	}
 }
 
-func githubFailedCommentBody(c *platformv1alpha1.Cellenza) string {
+func githubFailedCommentBody(c *platformv1alpha1.Preview) string {
 	var b strings.Builder
 	b.WriteString("## Cellenza Preview Failed\n\n")
 	b.WriteString(fmt.Sprintf("Environment: `%s`\n", githubEnvironment(c)))
@@ -395,7 +395,7 @@ func defaultStatus(value string) string {
 	return value
 }
 
-func (r *CellenzaReconciler) postTestResultsComment(ctx context.Context, c *platformv1alpha1.Cellenza) {
+func (r *PreviewReconciler) postTestResultsComment(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 	if !githubEnabled(c) || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
 		return
@@ -431,7 +431,7 @@ func (r *CellenzaReconciler) postTestResultsComment(ctx context.Context, c *plat
 	_ = r.Status().Update(ctx, c)
 }
 
-func (r *CellenzaReconciler) syncGitHubAIComment(ctx context.Context, c *platformv1alpha1.Cellenza) {
+func (r *PreviewReconciler) syncGitHubAIComment(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 	if !githubEnabled(c) || c.Status.Phase != platformv1alpha1.PhaseRunning || c.Status.URL == "" {
 		return
@@ -456,7 +456,7 @@ func (r *CellenzaReconciler) syncGitHubAIComment(ctx context.Context, c *platfor
 	}
 }
 
-func buildTestResultsCommentBody(c *platformv1alpha1.Cellenza) string {
+func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
 	tests := c.Status.Tests
 	if tests == nil {
 		return "## Cellenza Test Suite\n\nNo test results available."
@@ -508,7 +508,7 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Cellenza) string {
 	return b.String()
 }
 
-func (r *CellenzaReconciler) updateGitHubTestsComment(ctx context.Context, c *platformv1alpha1.Cellenza, token string) error {
+func (r *PreviewReconciler) updateGitHubTestsComment(ctx context.Context, c *platformv1alpha1.Preview, token string) error {
 	if c.Status.GitHub == nil || c.Status.GitHub.TestsCommentID == 0 {
 		return nil
 	}
@@ -542,11 +542,11 @@ func testResultBadge(phase string) string {
 	}
 }
 
-func (r *CellenzaReconciler) githubPost(ctx context.Context, token, path string, payload any, response any) error {
+func (r *PreviewReconciler) githubPost(ctx context.Context, token, path string, payload any, response any) error {
 	return r.githubRequest(ctx, http.MethodPost, token, path, payload, response)
 }
 
-func (r *CellenzaReconciler) githubRequest(ctx context.Context, method, token, path string, payload any, response any) error {
+func (r *PreviewReconciler) githubRequest(ctx context.Context, method, token, path string, payload any, response any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -595,7 +595,7 @@ func (r *CellenzaReconciler) githubRequest(ctx context.Context, method, token, p
 	return nil
 }
 
-func (r *CellenzaReconciler) recordGitHubSuccess(ctx context.Context, c *platformv1alpha1.Cellenza, state, environmentURL string, commentID int64) {
+func (r *PreviewReconciler) recordGitHubSuccess(ctx context.Context, c *platformv1alpha1.Preview, state, environmentURL string, commentID int64) {
 	status := c.Status.GitHub
 	if status == nil {
 		status = &platformv1alpha1.GitHubIntegrationStatus{}
@@ -613,7 +613,7 @@ func (r *CellenzaReconciler) recordGitHubSuccess(ctx context.Context, c *platfor
 	_ = r.Status().Update(ctx, c)
 }
 
-func (r *CellenzaReconciler) recordGitHubError(ctx context.Context, c *platformv1alpha1.Cellenza, err error) {
+func (r *PreviewReconciler) recordGitHubError(ctx context.Context, c *platformv1alpha1.Preview, err error) {
 	status := c.Status.GitHub
 	if status == nil {
 		status = &platformv1alpha1.GitHubIntegrationStatus{}
@@ -623,7 +623,7 @@ func (r *CellenzaReconciler) recordGitHubError(ctx context.Context, c *platformv
 	_ = r.Status().Update(ctx, c)
 }
 
-func githubEnvironment(c *platformv1alpha1.Cellenza) string {
+func githubEnvironment(c *platformv1alpha1.Preview) string {
 	if c.Spec.GitHub != nil && c.Spec.GitHub.Environment != "" {
 		return c.Spec.GitHub.Environment
 	}
@@ -647,7 +647,7 @@ func githubDeploymentStateForPhase(phase platformv1alpha1.EnvironmentPhase) stri
 	}
 }
 
-func githubDescriptionForPhase(c *platformv1alpha1.Cellenza) string {
+func githubDescriptionForPhase(c *platformv1alpha1.Preview) string {
 	switch c.Status.Phase {
 	case platformv1alpha1.PhasePending:
 		return "Preview environment is waiting for approval"
@@ -664,7 +664,7 @@ func githubDescriptionForPhase(c *platformv1alpha1.Cellenza) string {
 	}
 }
 
-func syncGitHubAfterStatus(ctx context.Context, r *CellenzaReconciler, c *platformv1alpha1.Cellenza, environmentURL string) {
+func syncGitHubAfterStatus(ctx context.Context, r *PreviewReconciler, c *platformv1alpha1.Preview, environmentURL string) {
 	if !githubEnabled(c) {
 		return
 	}

@@ -74,7 +74,7 @@ rules:
 - apiGroups:
   - platform.company.io
   resources:
-  - cellenzas
+  - previews
   verbs:
   - create
   - delete
@@ -86,13 +86,13 @@ rules:
 - apiGroups:
   - platform.company.io
   resources:
-  - cellenzas/finalizers
+  - previews/finalizers
   verbs:
   - update
 - apiGroups:
   - platform.company.io
   resources:
-  - cellenzas/status
+  - previews/status
   verbs:
   - get
   - patch

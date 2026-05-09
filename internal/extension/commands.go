@@ -15,10 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
-// parsePRArg extracts the cellenza name from an arg like "pr-42", "42", or "#42".
+// parsePRArg extracts the preview name from an arg like "pr-42", "42", or "#42".
 func parsePRArg(args []string) string {
 	if len(args) == 0 {
 		return ""
@@ -30,8 +30,8 @@ func parsePRArg(args []string) string {
 	return s
 }
 
-func (s *Server) getCellenza(ctx context.Context, name string) (*platformv1alpha1.Cellenza, error) {
-	cz := &platformv1alpha1.Cellenza{}
+func (s *Server) getPreview(ctx context.Context, name string) (*platformv1alpha1.Preview, error) {
+	cz := &platformv1alpha1.Preview{}
 	if err := s.crClient.Get(ctx, types.NamespacedName{Name: name}, cz); err != nil {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		return s.cmdList(ctx)
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
-		return fmt.Sprintf("Environnement `%s` introuvable.\n\nUtilise `@cellenza list` pour voir les environnements actifs.", name)
+		return fmt.Sprintf("Environnement `%s` introuvable.\n\nUtilise `@preview list` pour voir les environnements actifs.", name)
 	}
 
 	var b strings.Builder
@@ -129,17 +129,17 @@ func (s *Server) cmdStatus(ctx context.Context, args []string) string {
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n---\n`@cellenza logs %s` · `@cellenza extend %s` · `@cellenza reset-db %s` · `@cellenza retest-ai %s` · `@cellenza save-db %s post-seed` · `@cellenza restore-db %s post-seed`", name, name, name, name, name, name))
+	b.WriteString(fmt.Sprintf("\n---\n`@preview logs %s` · `@preview extend %s` · `@preview reset-db %s` · `@preview retest-ai %s` · `@preview save-db %s post-seed` · `@preview restore-db %s post-seed`", name, name, name, name, name, name))
 	return b.String()
 }
 
 func (s *Server) cmdLogs(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza logs pr-<N>`"
+		return "Usage: `@preview logs pr-<N>`"
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -157,7 +157,7 @@ func (s *Server) cmdLogs(ctx context.Context, args []string) string {
 	}
 
 	if len(logs) == 0 {
-		return fmt.Sprintf("Aucun log disponible pour `%s` (phase: `%s`).\n\nEssaie:\n```bash\nkubectl logs -n %s -l app=cellenza-preview --tail=50\n```",
+		return fmt.Sprintf("Aucun log disponible pour `%s` (phase: `%s`).\n\nEssaie:\n```bash\nkubectl logs -n %s -l app=preview-preview --tail=50\n```",
 			name, cz.Status.Phase, nsName)
 	}
 
@@ -170,7 +170,7 @@ func (s *Server) fetchLogs(ctx context.Context, nsName string, lines int) []stri
 		return nil
 	}
 	pods := &corev1.PodList{}
-	if err := s.crClient.List(ctx, pods, client.InNamespace(nsName), client.MatchingLabels{"app": "cellenza-preview"}); err != nil {
+	if err := s.crClient.List(ctx, pods, client.InNamespace(nsName), client.MatchingLabels{"app": "preview-preview"}); err != nil {
 		return nil
 	}
 	for _, pod := range pods.Items {
@@ -195,7 +195,7 @@ func (s *Server) fetchLogs(ctx context.Context, nsName string, lines int) []stri
 func (s *Server) cmdExtend(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza extend pr-<N> [24h]`"
+		return "Usage: `@preview extend pr-<N> [24h]`"
 	}
 
 	duration := "24h"
@@ -210,7 +210,7 @@ func (s *Server) cmdExtend(ctx context.Context, args []string) string {
 		return fmt.Sprintf("Durée invalide: `%s`. Exemples: `24h`, `48h`, `120m`.", duration)
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -242,10 +242,10 @@ func (s *Server) cmdExtend(ctx context.Context, args []string) string {
 func (s *Server) cmdWake(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza wake pr-<N>`"
+		return "Usage: `@preview wake pr-<N>`"
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -267,10 +267,10 @@ func (s *Server) cmdWake(ctx context.Context, args []string) string {
 func (s *Server) cmdResetDB(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza reset-db pr-<N>`"
+		return "Usage: `@preview reset-db pr-<N>`"
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -285,7 +285,7 @@ func (s *Server) cmdResetDB(ctx context.Context, args []string) string {
 		return fmt.Sprintf("Erreur lors du reset: %v", err)
 	}
 
-	return fmt.Sprintf("**Reset DB lancé** pour `%s`\n\nL'opérateur va:\n1. Supprimer les jobs migration et seed\n2. Recréer la base de données\n3. Rejouer les migrations\n4. Rejouer le seed\n\nSuivi: `@cellenza status %s`", name, name)
+	return fmt.Sprintf("**Reset DB lancé** pour `%s`\n\nL'opérateur va:\n1. Supprimer les jobs migration et seed\n2. Recréer la base de données\n3. Rejouer les migrations\n4. Rejouer le seed\n\nSuivi: `@preview status %s`", name, name)
 }
 
 func (s *Server) cmdSaveDB(ctx context.Context, args []string) string {
@@ -294,7 +294,7 @@ func (s *Server) cmdSaveDB(ctx context.Context, args []string) string {
 		return err.Error()
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -305,7 +305,7 @@ func (s *Server) cmdSaveDB(ctx context.Context, args []string) string {
 		return fmt.Sprintf("Erreur lors de la sauvegarde du checkpoint: %v", err)
 	}
 
-	return fmt.Sprintf("**Checkpoint DB lancé** pour `%s`\n\n- Action: save\n- Checkpoint: `%s`\n\nSuivi: `@cellenza list-checkpoints %s`", name, checkpoint, name)
+	return fmt.Sprintf("**Checkpoint DB lancé** pour `%s`\n\n- Action: save\n- Checkpoint: `%s`\n\nSuivi: `@preview list-checkpoints %s`", name, checkpoint, name)
 }
 
 func (s *Server) cmdRestoreDB(ctx context.Context, args []string) string {
@@ -314,7 +314,7 @@ func (s *Server) cmdRestoreDB(ctx context.Context, args []string) string {
 		return err.Error()
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -325,16 +325,16 @@ func (s *Server) cmdRestoreDB(ctx context.Context, args []string) string {
 		return fmt.Sprintf("Erreur lors de la restauration du checkpoint: %v", err)
 	}
 
-	return fmt.Sprintf("**Restauration DB lancée** pour `%s`\n\n- Action: restore\n- Checkpoint: `%s`\n\nSuivi: `@cellenza status %s`", name, checkpoint, name)
+	return fmt.Sprintf("**Restauration DB lancée** pour `%s`\n\n- Action: restore\n- Checkpoint: `%s`\n\nSuivi: `@preview status %s`", name, checkpoint, name)
 }
 
 func (s *Server) cmdListCheckpoints(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza list-checkpoints pr-<N>`"
+		return "Usage: `@preview list-checkpoints pr-<N>`"
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -352,19 +352,19 @@ func (s *Server) cmdListCheckpoints(ctx context.Context, args []string) string {
 func checkpointCommandArgs(args []string) (string, string, error) {
 	name := parsePRArg(args)
 	if name == "" || len(args) < 2 {
-		return "", "", fmt.Errorf("Usage: `@cellenza save-db pr-<N> <nom>` ou `@cellenza restore-db pr-<N> <nom>`")
+		return "", "", fmt.Errorf("Usage: `@preview save-db pr-<N> <nom>` ou `@preview restore-db pr-<N> <nom>`")
 	}
 	return name, args[1], nil
 }
 
-func checkpointNames(cz *platformv1alpha1.Cellenza) []string {
+func checkpointNames(cz *platformv1alpha1.Preview) []string {
 	if cz.Status.Database == nil {
 		return nil
 	}
 	return cz.Status.Database.Checkpoints
 }
 
-func checkpointExists(cz *platformv1alpha1.Cellenza, checkpoint string) bool {
+func checkpointExists(cz *platformv1alpha1.Preview, checkpoint string) bool {
 	for _, name := range checkpointNames(cz) {
 		if name == checkpoint {
 			return true
@@ -374,18 +374,18 @@ func checkpointExists(cz *platformv1alpha1.Cellenza, checkpoint string) bool {
 }
 
 const (
-	aiPromptNamespace = "cellenza-operator-system"
+	aiPromptNamespace = "preview-operator-system"
 	aiPromptKey       = "instructions"
 )
 
 func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" || len(args) < 2 {
-		return "Usage: `@cellenza set-prompt pr-<N> <instructions>`\n\nExample: `@cellenza set-prompt pr-42 Ne génère pas de tests pour les endpoints HTML`"
+		return "Usage: `@preview set-prompt pr-<N> <instructions>`\n\nExample: `@preview set-prompt pr-42 Ne génère pas de tests pour les endpoints HTML`"
 	}
 
-	if _, err := s.getCellenza(ctx, name); err != nil {
-		return fmt.Sprintf("Environnement `%s` introuvable.\n\nUtilise `@cellenza list` pour voir les environnements actifs.", name)
+	if _, err := s.getPreview(ctx, name); err != nil {
+		return fmt.Sprintf("Environnement `%s` introuvable.\n\nUtilise `@preview list` pour voir les environnements actifs.", name)
 	}
 
 	instructions := strings.Join(args[1:], " ")
@@ -399,8 +399,8 @@ func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
 				Name:      cmName,
 				Namespace: aiPromptNamespace,
 				Labels: map[string]string{
-					"app.kubernetes.io/managed-by":      "cellenza-operator",
-					"platform.company.io/cellenza-name": name,
+					"app.kubernetes.io/managed-by":      "preview-operator",
+					"platform.company.io/preview-name": name,
 					"app.kubernetes.io/component":       "ai-prompt",
 				},
 			},
@@ -419,20 +419,20 @@ func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
 		}
 	}
 
-	return fmt.Sprintf("**Prompt IA mis à jour** pour `%s`\n\nInstructions enregistrées:\n```\n%s\n```\n\nLance `@cellenza retest-ai %s` pour régénérer avec le nouveau prompt.", name, instructions, name)
+	return fmt.Sprintf("**Prompt IA mis à jour** pour `%s`\n\nInstructions enregistrées:\n```\n%s\n```\n\nLance `@preview retest-ai %s` pour régénérer avec le nouveau prompt.", name, instructions, name)
 }
 
 func (s *Server) cmdShowPrompt(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza show-prompt pr-<N>`"
+		return "Usage: `@preview show-prompt pr-<N>`"
 	}
 
 	cmName := "ai-prompt-" + name
 	cm := &corev1.ConfigMap{}
 	err := s.crClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: aiPromptNamespace}, cm)
 	if errors.IsNotFound(err) {
-		return fmt.Sprintf("Aucun prompt personnalisé pour `%s`.\n\nUtilise `@cellenza set-prompt %s <instructions>` pour en définir un.", name, name)
+		return fmt.Sprintf("Aucun prompt personnalisé pour `%s`.\n\nUtilise `@preview set-prompt %s <instructions>` pour en définir un.", name, name)
 	}
 	if err != nil {
 		return fmt.Sprintf("Erreur: %v", err)
@@ -448,10 +448,10 @@ func (s *Server) cmdShowPrompt(ctx context.Context, args []string) string {
 func (s *Server) cmdRunSQL(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" || len(args) < 2 {
-		return "Usage: `@cellenza run-sql pr-<N> <sql>`\n\nExample: `@cellenza run-sql pr-42 SELECT COUNT(*) FROM products;`"
+		return "Usage: `@preview run-sql pr-<N> <sql>`\n\nExample: `@preview run-sql pr-42 SELECT COUNT(*) FROM products;`"
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -473,7 +473,7 @@ func (s *Server) cmdRunSQL(ctx context.Context, args []string) string {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
 			Namespace: nsName,
-			Labels:    map[string]string{"app.kubernetes.io/managed-by": "cellenza-extension"},
+			Labels:    map[string]string{"app.kubernetes.io/managed-by": "preview-extension"},
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            &backoffLimit,
@@ -542,10 +542,10 @@ func mustParseQuantity(s string) *resource.Quantity {
 func (s *Server) cmdRetestAI(ctx context.Context, args []string) string {
 	name := parsePRArg(args)
 	if name == "" {
-		return "Usage: `@cellenza retest-ai pr-<N>`"
+		return "Usage: `@preview retest-ai pr-<N>`"
 	}
 
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		return fmt.Sprintf("Environnement `%s` introuvable.", name)
 	}
@@ -553,7 +553,7 @@ func (s *Server) cmdRetestAI(ctx context.Context, args []string) string {
 		return fmt.Sprintf("`%s` n'a pas l'enrichissement IA activé (`spec.aiEnrichment.enabled: false`).", name)
 	}
 	if cz.Spec.AIEnrichment.RerunRequested || (cz.Status.AIEnrichment != nil && cz.Status.AIEnrichment.RerunOnly) {
-		return fmt.Sprintf("Un rerun IA est déjà en cours pour `%s`.\n\nSuivi: `@cellenza status %s`", name, name)
+		return fmt.Sprintf("Un rerun IA est déjà en cours pour `%s`.\n\nSuivi: `@preview status %s`", name, name)
 	}
 
 	patch := client.MergeFrom(cz.DeepCopy())
@@ -574,7 +574,7 @@ func (s *Server) cmdRetestAI(ctx context.Context, args []string) string {
 		steps = append(steps, "3. Rejouer `ai-seed` puis `ai-tests`")
 	}
 
-	return fmt.Sprintf("**Rerun IA lancé** pour `%s`\n\nL'opérateur va:\n%s\n\nSuivi: `@cellenza status %s`", name, strings.Join(steps, "\n"), name)
+	return fmt.Sprintf("**Rerun IA lancé** pour `%s`\n\nL'opérateur va:\n%s\n\nSuivi: `@preview status %s`", name, strings.Join(steps, "\n"), name)
 }
 
 func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
@@ -582,7 +582,7 @@ func (s *Server) cmdEnrich(ctx context.Context, args []string) string {
 }
 
 func (s *Server) cmdList(ctx context.Context) string {
-	list := &platformv1alpha1.CellenzaList{}
+	list := &platformv1alpha1.PreviewList{}
 	if err := s.crClient.List(ctx, list); err != nil {
 		return fmt.Sprintf("Erreur lors de la liste: %v", err)
 	}
@@ -615,30 +615,30 @@ func (s *Server) cmdList(ctx context.Context) string {
 		))
 	}
 
-	b.WriteString("\n`@cellenza status pr-<N>` pour les détails d'un environnement.")
+	b.WriteString("\n`@preview status pr-<N>` pour les détails d'un environnement.")
 	return b.String()
 }
 
 func cmdHelp() string { //nolint:misspell
-	return `**Cellenza Extension — Commandes disponibles**
+	return `**Preview Extension — Commandes disponibles**
 
 | Commande | Description |
 |---|---|
-| ` + "`@cellenza list`" + ` | Liste tous les environnements actifs |
-| ` + "`@cellenza status pr-42`" + ` | État détaillé d'un environnement |
-| ` + "`@cellenza logs pr-42`" + ` | Derniers logs du pod applicatif |
-| ` + "`@cellenza extend pr-42 [24h]`" + ` | Prolonge le TTL |
-| ` + "`@cellenza wake pr-42`" + ` | Redémarre un environnement mis en veille |
-| ` + "`@cellenza reset-db pr-42`" + ` | Recrée la base de données + rejoue seed |
-| ` + "`@cellenza save-db pr-42 post-seed`" + ` | Sauvegarde un checkpoint DB sous ce nom |
-| ` + "`@cellenza restore-db pr-42 post-seed`" + ` | Restaure la DB depuis un checkpoint |
-| ` + "`@cellenza list-checkpoints pr-42`" + ` | Liste les checkpoints DB disponibles |
-| ` + "`@cellenza run-sql pr-42 <sql>`" + ` | Exécute du SQL arbitraire sur la base de données |
-| ` + "`@cellenza retest-ai pr-42`" + ` | Relance un cycle IA-only géré par l'opérateur |
-| ` + "`@cellenza enrich pr-42`" + ` | Alias rétrocompatible de ` + "`retest-ai`" + ` |
-| ` + "`@cellenza set-prompt pr-42 <instructions>`" + ` | Définit les instructions IA pour cet environnement |
-| ` + "`@cellenza show-prompt pr-42`" + ` | Affiche le prompt IA actuel |
-| ` + "`@cellenza help`" + ` | Affiche cette aide |`
+| ` + "`@preview list`" + ` | Liste tous les environnements actifs |
+| ` + "`@preview status pr-42`" + ` | État détaillé d'un environnement |
+| ` + "`@preview logs pr-42`" + ` | Derniers logs du pod applicatif |
+| ` + "`@preview extend pr-42 [24h]`" + ` | Prolonge le TTL |
+| ` + "`@preview wake pr-42`" + ` | Redémarre un environnement mis en veille |
+| ` + "`@preview reset-db pr-42`" + ` | Recrée la base de données + rejoue seed |
+| ` + "`@preview save-db pr-42 post-seed`" + ` | Sauvegarde un checkpoint DB sous ce nom |
+| ` + "`@preview restore-db pr-42 post-seed`" + ` | Restaure la DB depuis un checkpoint |
+| ` + "`@preview list-checkpoints pr-42`" + ` | Liste les checkpoints DB disponibles |
+| ` + "`@preview run-sql pr-42 <sql>`" + ` | Exécute du SQL arbitraire sur la base de données |
+| ` + "`@preview retest-ai pr-42`" + ` | Relance un cycle IA-only géré par l'opérateur |
+| ` + "`@preview enrich pr-42`" + ` | Alias rétrocompatible de ` + "`retest-ai`" + ` |
+| ` + "`@preview set-prompt pr-42 <instructions>`" + ` | Définit les instructions IA pour cet environnement |
+| ` + "`@preview show-prompt pr-42`" + ` | Affiche le prompt IA actuel |
+| ` + "`@preview help`" + ` | Affiche cette aide |`
 }
 
 func phaseIcon(phase platformv1alpha1.EnvironmentPhase) string {
@@ -678,11 +678,11 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dm", m)
 }
 
-func aiEnabled(cz *platformv1alpha1.Cellenza) bool {
+func aiEnabled(cz *platformv1alpha1.Preview) bool {
 	return cz.Spec.AIEnrichment != nil && cz.Spec.AIEnrichment.Enabled
 }
 
-func aiSeedTaskEnabled(cz *platformv1alpha1.Cellenza) bool {
+func aiSeedTaskEnabled(cz *platformv1alpha1.Preview) bool {
 	if !aiEnabled(cz) {
 		return false
 	}
@@ -692,7 +692,7 @@ func aiSeedTaskEnabled(cz *platformv1alpha1.Cellenza) bool {
 	return cz.Spec.AIEnrichment.Seed.Enabled
 }
 
-func aiTestsTaskEnabled(cz *platformv1alpha1.Cellenza) bool {
+func aiTestsTaskEnabled(cz *platformv1alpha1.Preview) bool {
 	if !aiEnabled(cz) {
 		return false
 	}

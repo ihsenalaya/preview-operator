@@ -21,9 +21,9 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
-	"github.com/company/cellenza-operator/internal/controller"
-	webhookv1alpha1 "github.com/company/cellenza-operator/internal/webhook/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/controller"
+	webhookv1alpha1 "github.com/ihsenalaya/preview-operator/internal/webhook/v1alpha1"
 )
 
 var (
@@ -92,7 +92,7 @@ func main() {
 		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "cellenza-operator-lock",
+		LeaderElectionID:       "preview-operator-lock",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -105,7 +105,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.CellenzaReconciler{
+	if err = (&controller.PreviewReconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		APIReader:         mgr.GetAPIReader(),
@@ -116,13 +116,13 @@ func main() {
 		AIAPIBaseURL:      aiAPIURL,
 		AIHTTPClient:      &http.Client{Timeout: 60 * time.Second},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Cellenza")
+		setupLog.Error(err, "unable to create controller", "controller", "Preview")
 		os.Exit(1)
 	}
 
 	if enableWebhooks {
 		if err = webhookv1alpha1.SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Cellenza")
+			setupLog.Error(err, "unable to create webhook", "webhook", "Preview")
 			os.Exit(1)
 		}
 	}

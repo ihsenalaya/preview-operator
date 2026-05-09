@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 const (
@@ -64,7 +64,7 @@ func checkpointRestoreJobName(name string) string {
 	return checkpointRestoreJobPrefix + name
 }
 
-func (r *CellenzaReconciler) reconcileCheckpoints(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, ctrl.Result, error) {
+func (r *PreviewReconciler) reconcileCheckpoints(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, ctrl.Result, error) {
 	if !databaseEnabled(c) || c.Spec.Database == nil {
 		return false, ctrl.Result{}, nil
 	}
@@ -91,7 +91,7 @@ func (r *CellenzaReconciler) reconcileCheckpoints(ctx context.Context, c *platfo
 	return false, ctrl.Result{}, nil
 }
 
-func (r *CellenzaReconciler) reconcileCheckpointSave(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, checkpoint string) (ctrl.Result, error) {
+func (r *PreviewReconciler) reconcileCheckpointSave(ctx context.Context, c *platformv1alpha1.Preview, nsName, checkpoint string) (ctrl.Result, error) {
 	if err := validateCheckpointName(checkpoint); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -141,7 +141,7 @@ func (r *CellenzaReconciler) reconcileCheckpointSave(ctx context.Context, c *pla
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *CellenzaReconciler) reconcileCheckpointRestore(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, checkpoint string) (ctrl.Result, error) {
+func (r *PreviewReconciler) reconcileCheckpointRestore(ctx context.Context, c *platformv1alpha1.Preview, nsName, checkpoint string) (ctrl.Result, error) {
 	if err := validateCheckpointName(checkpoint); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -187,7 +187,7 @@ func (r *CellenzaReconciler) reconcileCheckpointRestore(ctx context.Context, c *
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *CellenzaReconciler) clearCheckpointRequest(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string, saved bool) error {
+func (r *PreviewReconciler) clearCheckpointRequest(ctx context.Context, c *platformv1alpha1.Preview, nsName string, saved bool) error {
 	wasReady := c.Status.Database != nil && c.Status.Database.Ready
 	base := client.MergeFrom(c.DeepCopy())
 	if saved {
@@ -199,7 +199,7 @@ func (r *CellenzaReconciler) clearCheckpointRequest(ctx context.Context, c *plat
 		return err
 	}
 
-	if err := r.refreshCellenza(ctx, types.NamespacedName{Name: c.Name, Namespace: c.Namespace}, c); err != nil {
+	if err := r.refreshPreview(ctx, types.NamespacedName{Name: c.Name, Namespace: c.Namespace}, c); err != nil {
 		return err
 	}
 	names, err := r.listCheckpointNames(ctx, nsName)
@@ -212,7 +212,7 @@ func (r *CellenzaReconciler) clearCheckpointRequest(ctx context.Context, c *plat
 	return r.Status().Update(ctx, c)
 }
 
-func (r *CellenzaReconciler) listCheckpointNames(ctx context.Context, nsName string) ([]string, error) {
+func (r *PreviewReconciler) listCheckpointNames(ctx context.Context, nsName string) ([]string, error) {
 	list := &corev1.ConfigMapList{}
 	if err := r.List(ctx, list, client.InNamespace(nsName)); err != nil {
 		return nil, err
@@ -228,7 +228,7 @@ func (r *CellenzaReconciler) listCheckpointNames(ctx context.Context, nsName str
 	return names, nil
 }
 
-func (r *CellenzaReconciler) ensureCheckpointConfigMap(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, checkpoint string) (*corev1.ConfigMap, error) {
+func (r *PreviewReconciler) ensureCheckpointConfigMap(ctx context.Context, c *platformv1alpha1.Preview, nsName, checkpoint string) (*corev1.ConfigMap, error) {
 	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: checkpointConfigMapName(checkpoint), Namespace: nsName}
 	if err := r.Get(ctx, key, cm); err != nil {
@@ -243,7 +243,7 @@ func (r *CellenzaReconciler) ensureCheckpointConfigMap(ctx context.Context, c *p
 	return cm, nil
 }
 
-func (r *CellenzaReconciler) fetchCheckpointDump(ctx context.Context, nsName, jobName string) (string, error) {
+func (r *PreviewReconciler) fetchCheckpointDump(ctx context.Context, nsName, jobName string) (string, error) {
 	if r.KubeClient == nil {
 		return "", fmt.Errorf("kubernetes client is required to read checkpoint job logs")
 	}
@@ -274,7 +274,7 @@ func (r *CellenzaReconciler) fetchCheckpointDump(ctx context.Context, nsName, jo
 	return strings.TrimSpace(string(data)), nil
 }
 
-func (r *CellenzaReconciler) storeCheckpointConfigMap(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, checkpoint, dump string) error {
+func (r *PreviewReconciler) storeCheckpointConfigMap(ctx context.Context, c *platformv1alpha1.Preview, nsName, checkpoint, dump string) error {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      checkpointConfigMapName(checkpoint),
@@ -286,8 +286,8 @@ func (r *CellenzaReconciler) storeCheckpointConfigMap(ctx context.Context, c *pl
 			return err
 		}
 		cm.Labels = map[string]string{
-			labelManagedBy:                "cellenza-operator",
-			labelCellenzaName:             c.Name,
+			labelManagedBy:                "preview-operator",
+			labelPreviewName:             c.Name,
 			"app.kubernetes.io/component": "db-checkpoint",
 		}
 		cm.Data = map[string]string{
@@ -298,7 +298,7 @@ func (r *CellenzaReconciler) storeCheckpointConfigMap(ctx context.Context, c *pl
 	return err
 }
 
-func (r *CellenzaReconciler) checkpointSaveJob(c *platformv1alpha1.Cellenza, nsName, checkpoint string) *batchv1.Job {
+func (r *PreviewReconciler) checkpointSaveJob(c *platformv1alpha1.Preview, nsName, checkpoint string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttl := int32(300)
 	image := fmt.Sprintf("postgres:%s-alpine", databaseVersion(c))
@@ -308,8 +308,8 @@ func (r *CellenzaReconciler) checkpointSaveJob(c *platformv1alpha1.Cellenza, nsN
 			Name:      checkpointSaveJobName(checkpoint),
 			Namespace: nsName,
 			Labels: map[string]string{
-				labelManagedBy:                "cellenza-operator",
-				labelCellenzaName:             c.Name,
+				labelManagedBy:                "preview-operator",
+				labelPreviewName:             c.Name,
 				"app.kubernetes.io/component": "db-checkpoint",
 				"platform.company.io/task":    checkpointSaveTaskLabel,
 			},
@@ -320,8 +320,8 @@ func (r *CellenzaReconciler) checkpointSaveJob(c *platformv1alpha1.Cellenza, nsN
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": checkpointSaveTaskLabel,
 					},
 				},
@@ -363,7 +363,7 @@ func (r *CellenzaReconciler) checkpointSaveJob(c *platformv1alpha1.Cellenza, nsN
 	}
 }
 
-func (r *CellenzaReconciler) checkpointRestoreJob(c *platformv1alpha1.Cellenza, nsName, checkpoint string) *batchv1.Job {
+func (r *PreviewReconciler) checkpointRestoreJob(c *platformv1alpha1.Preview, nsName, checkpoint string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttl := int32(300)
 	image := fmt.Sprintf("postgres:%s-alpine", databaseVersion(c))
@@ -374,8 +374,8 @@ func (r *CellenzaReconciler) checkpointRestoreJob(c *platformv1alpha1.Cellenza, 
 			Name:      jobName,
 			Namespace: nsName,
 			Labels: map[string]string{
-				labelManagedBy:                "cellenza-operator",
-				labelCellenzaName:             c.Name,
+				labelManagedBy:                "preview-operator",
+				labelPreviewName:             c.Name,
 				"app.kubernetes.io/component": "db-checkpoint",
 				"platform.company.io/task":    checkpointRestoreTaskLabel,
 			},
@@ -386,8 +386,8 @@ func (r *CellenzaReconciler) checkpointRestoreJob(c *platformv1alpha1.Cellenza, 
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": checkpointRestoreTaskLabel,
 					},
 				},
@@ -473,7 +473,7 @@ func restoreCheckpointScript() string {
 
 // ensureSuiteCheckpointSaved creates and waits for the suite checkpoint-save job.
 // Returns (true, nil) once the dump is stored in the ConfigMap.
-func (r *CellenzaReconciler) ensureSuiteCheckpointSaved(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, error) {
+func (r *PreviewReconciler) ensureSuiteCheckpointSaved(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, error) {
 	// Idempotent: if ConfigMap already exists, we're done.
 	cmKey := types.NamespacedName{Name: checkpointConfigMapName(suiteCheckpointName), Namespace: nsName}
 	if err := r.Get(ctx, cmKey, &corev1.ConfigMap{}); err == nil {
@@ -510,7 +510,7 @@ func (r *CellenzaReconciler) ensureSuiteCheckpointSaved(ctx context.Context, c *
 
 // ensureSuiteCheckpointRestored creates and waits for a restore job identified by jobName.
 // Returns (true, nil) once the restore job has succeeded.
-func (r *CellenzaReconciler) ensureSuiteCheckpointRestored(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, jobName string) (bool, error) {
+func (r *PreviewReconciler) ensureSuiteCheckpointRestored(ctx context.Context, c *platformv1alpha1.Preview, nsName, jobName string) (bool, error) {
 	if _, err := r.ensureCheckpointConfigMap(ctx, c, nsName, suiteCheckpointName); err != nil {
 		return false, fmt.Errorf("suite checkpoint not found: %w", err)
 	}

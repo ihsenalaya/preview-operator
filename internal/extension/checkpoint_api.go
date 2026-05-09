@@ -11,7 +11,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 var checkpointNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -81,7 +81,7 @@ func parseCheckpointAPIPath(path string) (name, checkpoint string, restore, ok b
 }
 
 func (s *Server) handleCheckpointList(ctx context.Context, w http.ResponseWriter, name string) {
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		http.Error(w, "preview not found", http.StatusNotFound)
 		return
@@ -94,7 +94,7 @@ func (s *Server) handleCheckpointList(ctx context.Context, w http.ResponseWriter
 }
 
 func (s *Server) handleCheckpointSave(ctx context.Context, w http.ResponseWriter, name, checkpoint string) {
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		http.Error(w, "preview not found", http.StatusNotFound)
 		return
@@ -117,7 +117,7 @@ func (s *Server) handleCheckpointSave(ctx context.Context, w http.ResponseWriter
 }
 
 func (s *Server) handleCheckpointRestore(ctx context.Context, w http.ResponseWriter, name, checkpoint string) {
-	cz, err := s.getCellenza(ctx, name)
+	cz, err := s.getPreview(ctx, name)
 	if err != nil {
 		http.Error(w, "preview not found", http.StatusNotFound)
 		return
@@ -143,7 +143,7 @@ func (s *Server) handleCheckpointRestore(ctx context.Context, w http.ResponseWri
 	})
 }
 
-func (s *Server) startCheckpointSave(ctx context.Context, cz *platformv1alpha1.Cellenza, checkpoint string) error {
+func (s *Server) startCheckpointSave(ctx context.Context, cz *platformv1alpha1.Preview, checkpoint string) error {
 	if cz.Spec.Database == nil || !cz.Spec.Database.Enabled {
 		return fmt.Errorf("database is not enabled for this preview")
 	}
@@ -156,7 +156,7 @@ func (s *Server) startCheckpointSave(ctx context.Context, cz *platformv1alpha1.C
 	return s.crClient.Patch(ctx, cz, patch)
 }
 
-func (s *Server) startCheckpointRestore(ctx context.Context, cz *platformv1alpha1.Cellenza, checkpoint string) error {
+func (s *Server) startCheckpointRestore(ctx context.Context, cz *platformv1alpha1.Preview, checkpoint string) error {
 	if cz.Spec.Database == nil || !cz.Spec.Database.Enabled {
 		return fmt.Errorf("database is not enabled for this preview")
 	}
@@ -172,12 +172,12 @@ func (s *Server) startCheckpointRestore(ctx context.Context, cz *platformv1alpha
 	return s.crClient.Patch(ctx, cz, patch)
 }
 
-func (s *Server) waitForCheckpointAction(ctx context.Context, name, checkpoint, action string) (*platformv1alpha1.Cellenza, error) {
+func (s *Server) waitForCheckpointAction(ctx context.Context, name, checkpoint, action string) (*platformv1alpha1.Preview, error) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
 	for {
-		cz, err := s.getCellenza(ctx, name)
+		cz, err := s.getPreview(ctx, name)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func (s *Server) waitForCheckpointAction(ctx context.Context, name, checkpoint, 
 	}
 }
 
-func checkpointActionDone(cz *platformv1alpha1.Cellenza, checkpoint, action string) bool {
+func checkpointActionDone(cz *platformv1alpha1.Preview, checkpoint, action string) bool {
 	if cz.Spec.Database == nil {
 		return false
 	}

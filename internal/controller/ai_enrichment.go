@@ -18,8 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
-	"github.com/company/cellenza-operator/internal/ai"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/ai"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 	aiTestJobName            = "ai-tests"
 	aiSchemaJobName          = "ai-schema-dump"
 	aiSystemPromptConfigMap  = "ai-prompt-template"
-	defaultAISecretNamespace = "cellenza-operator-system"
+	defaultAISecretNamespace = "preview-operator-system"
 	defaultAISecretKey       = "api-key"
 	defaultAISchemaDumpImage = "postgres:15-alpine"
 	defaultAIInternalAppURL  = "http://app:80"
@@ -48,21 +48,21 @@ func aiPromptConfigMapName(czName string) string {
 	return "ai-prompt-" + czName
 }
 
-func (r *CellenzaReconciler) settingsReader() client.Reader {
+func (r *PreviewReconciler) settingsReader() client.Reader {
 	if r.APIReader != nil {
 		return r.APIReader
 	}
 	return r.Client
 }
 
-func (r *CellenzaReconciler) operatorNamespace() string {
+func (r *PreviewReconciler) operatorNamespace() string {
 	if strings.TrimSpace(r.OperatorNamespace) == "" {
 		return defaultAISecretNamespace
 	}
 	return strings.TrimSpace(r.OperatorNamespace)
 }
 
-func (r *CellenzaReconciler) fetchSystemPrompt(ctx context.Context) string {
+func (r *PreviewReconciler) fetchSystemPrompt(ctx context.Context) string {
 	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: aiSystemPromptConfigMap, Namespace: r.operatorNamespace()}
 	if err := r.settingsReader().Get(ctx, key, cm); err != nil {
@@ -71,7 +71,7 @@ func (r *CellenzaReconciler) fetchSystemPrompt(ctx context.Context) string {
 	return strings.TrimSpace(cm.Data[aiSystemPromptKey])
 }
 
-func (r *CellenzaReconciler) fetchExtraInstructions(ctx context.Context, c *platformv1alpha1.Cellenza) string {
+func (r *PreviewReconciler) fetchExtraInstructions(ctx context.Context, c *platformv1alpha1.Preview) string {
 	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: aiPromptConfigMapName(c.Name), Namespace: defaultAISecretNamespace}
 	if err := r.settingsReader().Get(ctx, key, cm); err != nil {
@@ -80,19 +80,19 @@ func (r *CellenzaReconciler) fetchExtraInstructions(ctx context.Context, c *plat
 	return strings.TrimSpace(cm.Data[aiPromptConfigMapKey])
 }
 
-func aiEnrichmentEnabled(c *platformv1alpha1.Cellenza) bool {
+func aiEnrichmentEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Enabled
 }
 
-func aiRerunRequested(c *platformv1alpha1.Cellenza) bool {
+func aiRerunRequested(c *platformv1alpha1.Preview) bool {
 	return aiEnrichmentEnabled(c) && c.Spec.AIEnrichment.RerunRequested
 }
 
-func aiRerunOnly(c *platformv1alpha1.Cellenza) bool {
+func aiRerunOnly(c *platformv1alpha1.Preview) bool {
 	return aiRerunRequested(c) || (c.Status.AIEnrichment != nil && c.Status.AIEnrichment.RerunOnly)
 }
 
-func aiSeedEnabled(c *platformv1alpha1.Cellenza) bool {
+func aiSeedEnabled(c *platformv1alpha1.Preview) bool {
 	if !aiEnrichmentEnabled(c) {
 		return false
 	}
@@ -102,7 +102,7 @@ func aiSeedEnabled(c *platformv1alpha1.Cellenza) bool {
 	return c.Spec.AIEnrichment.Seed.Enabled
 }
 
-func aiTestsEnabled(c *platformv1alpha1.Cellenza) bool {
+func aiTestsEnabled(c *platformv1alpha1.Preview) bool {
 	if !aiEnrichmentEnabled(c) {
 		return false
 	}
@@ -112,7 +112,7 @@ func aiTestsEnabled(c *platformv1alpha1.Cellenza) bool {
 	return c.Spec.AIEnrichment.Tests.Enabled
 }
 
-func (r *CellenzaReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha1.Cellenza, token string) (string, error) {
+func (r *PreviewReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha1.Preview, token string) (string, error) {
 	if !githubEnabled(c) || c.Spec.GitHub == nil || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
 		return "", nil
 	}
@@ -156,7 +156,7 @@ func (r *CellenzaReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha
 	return string(body), nil
 }
 
-func (r *CellenzaReconciler) fetchDBSchema(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, bool, error) {
+func (r *PreviewReconciler) fetchDBSchema(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (string, bool, error) {
 	if !databaseEnabled(c) {
 		return "", true, nil
 	}
@@ -217,7 +217,7 @@ func (r *CellenzaReconciler) fetchDBSchema(ctx context.Context, c *platformv1alp
 	return schema, true, nil
 }
 
-func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (bool, error) {
+func (r *PreviewReconciler) generateAndStoreAIContent(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, error) {
 	if c.Spec.AIEnrichment == nil || !c.Spec.AIEnrichment.Enabled {
 		return true, nil
 	}
@@ -285,8 +285,8 @@ func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *p
 			return err
 		}
 		configMap.Labels = map[string]string{
-			labelManagedBy:                "cellenza-operator",
-			labelCellenzaName:             c.Name,
+			labelManagedBy:                "preview-operator",
+			labelPreviewName:             c.Name,
 			"app.kubernetes.io/component": "ai-enrichment",
 		}
 		configMap.Data = map[string]string{
@@ -302,14 +302,14 @@ func (r *CellenzaReconciler) generateAndStoreAIContent(ctx context.Context, c *p
 	return true, nil
 }
 
-func (r *CellenzaReconciler) aiGitHubToken(ctx context.Context, c *platformv1alpha1.Cellenza) (string, error) {
+func (r *PreviewReconciler) aiGitHubToken(ctx context.Context, c *platformv1alpha1.Preview) (string, error) {
 	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.GitHubTokenSecretRef != nil && c.Spec.AIEnrichment.GitHubTokenSecretRef.Name != "" {
 		return r.githubTokenFromRef(ctx, c.Spec.AIEnrichment.GitHubTokenSecretRef)
 	}
 	return r.githubToken(ctx, c)
 }
 
-func (r *CellenzaReconciler) aiAPIKey(ctx context.Context, c *platformv1alpha1.Cellenza) (string, error) {
+func (r *PreviewReconciler) aiAPIKey(ctx context.Context, c *platformv1alpha1.Preview) (string, error) {
 	spec := c.Spec.AIEnrichment
 	if spec == nil || spec.APISecretRef == nil || spec.APISecretRef.Name == "" {
 		return "", fmt.Errorf("spec.aiEnrichment.apiSecretRef.name is required when AI enrichment is enabled")
@@ -339,7 +339,7 @@ func (r *CellenzaReconciler) aiAPIKey(ctx context.Context, c *platformv1alpha1.C
 	return strings.TrimSpace(string(value)), nil
 }
 
-func (r *CellenzaReconciler) aiSchemaDumpJob(c *platformv1alpha1.Cellenza, nsName string) *batchv1.Job {
+func (r *PreviewReconciler) aiSchemaDumpJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
 	backoffLimit := int32(1)
 	ttlSecondsAfterFinished := int32(60)
 
@@ -348,8 +348,8 @@ func (r *CellenzaReconciler) aiSchemaDumpJob(c *platformv1alpha1.Cellenza, nsNam
 			Name:      aiSchemaJobName,
 			Namespace: nsName,
 			Labels: map[string]string{
-				labelManagedBy:                "cellenza-operator",
-				labelCellenzaName:             c.Name,
+				labelManagedBy:                "preview-operator",
+				labelPreviewName:             c.Name,
 				"app.kubernetes.io/component": "ai-enrichment",
 				"platform.company.io/task":    "schema-dump",
 			},
@@ -360,8 +360,8 @@ func (r *CellenzaReconciler) aiSchemaDumpJob(c *platformv1alpha1.Cellenza, nsNam
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": "schema-dump",
 					},
 				},
@@ -408,7 +408,7 @@ func (r *CellenzaReconciler) aiSchemaDumpJob(c *platformv1alpha1.Cellenza, nsNam
 	}
 }
 
-func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (ctrl.Result, error) {
+func (r *PreviewReconciler) reconcileAIEnrichment(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
 	if !aiEnrichmentEnabled(c) {
 		return ctrl.Result{}, nil
 	}
@@ -432,7 +432,7 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 			if err := r.Status().Update(ctx, c); err != nil {
 				return ctrl.Result{}, err
 			}
-			if err := r.refreshCellenza(ctx, types.NamespacedName{Name: c.Name, Namespace: c.Namespace}, c); err != nil {
+			if err := r.refreshPreview(ctx, types.NamespacedName{Name: c.Name, Namespace: c.Namespace}, c); err != nil {
 				return ctrl.Result{}, err
 			}
 			aiStatus = ensureAIEnrichmentStatus(c)
@@ -507,14 +507,14 @@ func (r *CellenzaReconciler) reconcileAIEnrichment(ctx context.Context, c *platf
 	return ctrl.Result{}, nil
 }
 
-func (r *CellenzaReconciler) completeAIRerun(ctx context.Context, c *platformv1alpha1.Cellenza) error {
+func (r *PreviewReconciler) completeAIRerun(ctx context.Context, c *platformv1alpha1.Preview) error {
 	if c.Status.AIEnrichment != nil && c.Status.AIEnrichment.RerunOnly {
 		statusBase := c.DeepCopy()
 		c.Status.AIEnrichment.RerunOnly = false
 		if err := r.Status().Patch(ctx, c, client.MergeFrom(statusBase)); err != nil {
 			return err
 		}
-		if err := r.refreshCellenza(ctx, client.ObjectKeyFromObject(c), c); err != nil {
+		if err := r.refreshPreview(ctx, client.ObjectKeyFromObject(c), c); err != nil {
 			return err
 		}
 	}
@@ -528,14 +528,14 @@ func (r *CellenzaReconciler) completeAIRerun(ctx context.Context, c *platformv1a
 	return r.Patch(ctx, c, client.MergeFrom(specBase))
 }
 
-func (r *CellenzaReconciler) reconcileAISeedJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, error) {
+func (r *PreviewReconciler) reconcileAISeedJob(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (string, error) {
 	if !aiSeedEnabled(c) {
 		return phaseSkipped, nil
 	}
 	return r.reconcileAIJob(ctx, c, nsName, aiSeedJobName, r.aiSeedJob(c, nsName), true)
 }
 
-func (r *CellenzaReconciler) reconcileAITestJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName string) (string, []string, error) {
+func (r *PreviewReconciler) reconcileAITestJob(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (string, []string, error) {
 	if !aiTestsEnabled(c) {
 		return phaseSkipped, nil, nil
 	}
@@ -553,7 +553,7 @@ func (r *CellenzaReconciler) reconcileAITestJob(ctx context.Context, c *platform
 	return state, extractAITestResults(lines), err
 }
 
-func (r *CellenzaReconciler) reconcileAIJob(ctx context.Context, c *platformv1alpha1.Cellenza, nsName, jobName string, desired *batchv1.Job, preserveLogs bool) (string, error) {
+func (r *PreviewReconciler) reconcileAIJob(ctx context.Context, c *platformv1alpha1.Preview, nsName, jobName string, desired *batchv1.Job, preserveLogs bool) (string, error) {
 	job := &batchv1.Job{}
 	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: nsName}, job)
 	if errors.IsNotFound(err) {
@@ -589,7 +589,7 @@ func (r *CellenzaReconciler) reconcileAIJob(ctx context.Context, c *platformv1al
 	return phaseRunning, nil
 }
 
-func (r *CellenzaReconciler) aiSeedJob(c *platformv1alpha1.Cellenza, nsName string) *batchv1.Job {
+func (r *PreviewReconciler) aiSeedJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
 	image := defaultAISchemaDumpImage
 	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Seed != nil && c.Spec.AIEnrichment.Seed.Image != "" {
 		image = c.Spec.AIEnrichment.Seed.Image
@@ -600,7 +600,7 @@ func (r *CellenzaReconciler) aiSeedJob(c *platformv1alpha1.Cellenza, nsName stri
 	return r.aiConfigMapBackedJob(c, nsName, aiSeedJobName, image, []string{"sh", "-c", "psql -h postgres -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -f /data/seed.sql"}, "seed.sql", "ai-seed", &backoffLimit, &ttlSecondsAfterFinished, true)
 }
 
-func (r *CellenzaReconciler) aiTestJob(c *platformv1alpha1.Cellenza, nsName string) *batchv1.Job {
+func (r *PreviewReconciler) aiTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
 	image := defaultAITestImage
 	if c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Tests != nil && c.Spec.AIEnrichment.Tests.Image != "" {
 		image = c.Spec.AIEnrichment.Tests.Image
@@ -613,7 +613,7 @@ func (r *CellenzaReconciler) aiTestJob(c *platformv1alpha1.Cellenza, nsName stri
 	return job
 }
 
-func (r *CellenzaReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Cellenza, nsName, jobName, image string, command []string, fileName, containerName string, backoffLimit, ttl *int32, withPostgresSecret bool) *batchv1.Job {
+func (r *PreviewReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Preview, nsName, jobName, image string, command []string, fileName, containerName string, backoffLimit, ttl *int32, withPostgresSecret bool) *batchv1.Job {
 	container := corev1.Container{
 		Name:            containerName,
 		Image:           image,
@@ -655,8 +655,8 @@ func (r *CellenzaReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Cellenza, 
 			Name:      jobName,
 			Namespace: nsName,
 			Labels: map[string]string{
-				labelManagedBy:                "cellenza-operator",
-				labelCellenzaName:             c.Name,
+				labelManagedBy:                "preview-operator",
+				labelPreviewName:             c.Name,
 				"app.kubernetes.io/component": "ai-enrichment",
 				"platform.company.io/task":    jobName,
 			},
@@ -667,8 +667,8 @@ func (r *CellenzaReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Cellenza, 
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						labelManagedBy:             "cellenza-operator",
-						labelCellenzaName:          c.Name,
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:          c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -693,14 +693,14 @@ func (r *CellenzaReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Cellenza, 
 	}
 }
 
-func ensureAIEnrichmentStatus(c *platformv1alpha1.Cellenza) *platformv1alpha1.AIEnrichmentStatus {
+func ensureAIEnrichmentStatus(c *platformv1alpha1.Preview) *platformv1alpha1.AIEnrichmentStatus {
 	if c.Status.AIEnrichment == nil {
 		c.Status.AIEnrichment = &platformv1alpha1.AIEnrichmentStatus{}
 	}
 	return c.Status.AIEnrichment
 }
 
-func (r *CellenzaReconciler) markAIEnrichmentFailed(c *platformv1alpha1.Cellenza, msg string) {
+func (r *PreviewReconciler) markAIEnrichmentFailed(c *platformv1alpha1.Preview, msg string) {
 	aiStatus := ensureAIEnrichmentStatus(c)
 	aiStatus.Phase = phaseFailed
 	aiStatus.Error = msg
@@ -710,7 +710,7 @@ func (r *CellenzaReconciler) markAIEnrichmentFailed(c *platformv1alpha1.Cellenza
 	setAIEnrichmentCondition(c)
 }
 
-func buildAIEnrichmentSummary(c *platformv1alpha1.Cellenza) string {
+func buildAIEnrichmentSummary(c *platformv1alpha1.Preview) string {
 	aiStatus := c.Status.AIEnrichment
 	if aiStatus == nil {
 		return "AI enrichment not started"
@@ -728,7 +728,7 @@ func buildAIEnrichmentSummary(c *platformv1alpha1.Cellenza) string {
 	return "AI enrichment " + strings.Join(parts, ", ")
 }
 
-func setAIEnrichmentCondition(c *platformv1alpha1.Cellenza) {
+func setAIEnrichmentCondition(c *platformv1alpha1.Preview) {
 	aiStatus := c.Status.AIEnrichment
 	if aiStatus == nil {
 		return

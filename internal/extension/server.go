@@ -118,7 +118,7 @@ func (s *Server) writeSSE(w http.ResponseWriter, id, role, content string) {
 			ID:      id,
 			Object:  "chat.completion.chunk",
 			Created: time.Now().Unix(),
-			Model:   "cellenza-extension",
+			Model:   "preview-extension",
 			Choices: []sseChoice{{
 				Index: 0,
 				Delta: sseDelta{Role: role, Content: content},
@@ -128,7 +128,7 @@ func (s *Server) writeSSE(w http.ResponseWriter, id, role, content string) {
 			ID:      id,
 			Object:  "chat.completion.chunk",
 			Created: time.Now().Unix(),
-			Model:   "cellenza-extension",
+			Model:   "preview-extension",
 			Choices: []sseChoice{{
 				Index:        0,
 				Delta:        sseDelta{},
@@ -149,8 +149,8 @@ func (s *Server) writeSSEDone(w http.ResponseWriter, _ string) {
 // execute parses the user message and dispatches to the right command.
 func (s *Server) execute(ctx context.Context, msg string) string {
 	msg = strings.TrimSpace(msg)
-	// Strip @cellenza prefix
-	for _, prefix := range []string{"@cellenza ", "@cellenza"} {
+	// Strip @preview prefix
+	for _, prefix := range []string{"@preview ", "@preview"} {
 		if rest, ok := strings.CutPrefix(msg, prefix); ok {
 			msg = rest
 			break

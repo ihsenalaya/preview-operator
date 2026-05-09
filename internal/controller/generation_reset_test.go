@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,18 +14,18 @@ import (
 
 func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "pr-34",
 			Generation: 12,
 		},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Database: &platformv1alpha1.DatabaseSpec{
 				Enabled:           true,
 				CheckpointRestore: "post-seed",
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			ObservedGeneration: 11,
 		},
 	}
@@ -38,7 +38,7 @@ func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 		WithObjects(c, job, cm).
 		Build()
 
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: cl,
 		Scheme: scheme,
 	}
@@ -47,9 +47,9 @@ func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 		t.Fatalf("resetDerivedStateForNewGeneration returned error: %v", err)
 	}
 
-	updated := &platformv1alpha1.Cellenza{}
+	updated := &platformv1alpha1.Preview{}
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: "pr-34"}, updated); err != nil {
-		t.Fatalf("failed to fetch updated cellenza: %v", err)
+		t.Fatalf("failed to fetch updated preview: %v", err)
 	}
 	if updated.Status.ObservedGeneration != updated.Generation {
 		t.Fatalf("observedGeneration = %d, want %d", updated.Status.ObservedGeneration, updated.Generation)
@@ -65,18 +65,18 @@ func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 
 func TestResetDerivedStateSkipsTransientAIRerunRequests(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "pr-34",
 			Generation: 12,
 		},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled:        true,
 				RerunRequested: true,
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			ObservedGeneration: 11,
 			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
 				Phase: phaseFailed,
@@ -92,7 +92,7 @@ func TestResetDerivedStateSkipsTransientAIRerunRequests(t *testing.T) {
 		WithObjects(c, job, cm).
 		Build()
 
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: cl,
 		Scheme: scheme,
 	}
@@ -101,9 +101,9 @@ func TestResetDerivedStateSkipsTransientAIRerunRequests(t *testing.T) {
 		t.Fatalf("resetDerivedStateForNewGeneration returned error: %v", err)
 	}
 
-	updated := &platformv1alpha1.Cellenza{}
+	updated := &platformv1alpha1.Preview{}
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: "pr-34"}, updated); err != nil {
-		t.Fatalf("failed to fetch updated cellenza: %v", err)
+		t.Fatalf("failed to fetch updated preview: %v", err)
 	}
 	if updated.Status.ObservedGeneration != updated.Generation {
 		t.Fatalf("observedGeneration = %d, want %d", updated.Status.ObservedGeneration, updated.Generation)

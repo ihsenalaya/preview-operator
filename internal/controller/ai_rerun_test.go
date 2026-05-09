@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,9 +15,9 @@ import (
 
 func TestHandleAIRerunRequestedClearsDerivedState(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-34"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			PRNumber: 34,
 			Database: &platformv1alpha1.DatabaseSpec{Enabled: true},
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
@@ -25,7 +25,7 @@ func TestHandleAIRerunRequestedClearsDerivedState(t *testing.T) {
 				RerunRequested: true,
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			Database: &platformv1alpha1.DatabaseStatus{
 				Ready:     true,
 				Migration: phaseSucceeded,
@@ -63,7 +63,7 @@ func TestHandleAIRerunRequestedClearsDerivedState(t *testing.T) {
 		WithObjects(objects...).
 		Build()
 
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: cl,
 		Scheme: scheme,
 	}
@@ -79,9 +79,9 @@ func TestHandleAIRerunRequestedClearsDerivedState(t *testing.T) {
 		t.Fatalf("expected AI rerun request to trigger requeue, got %#v", result)
 	}
 
-	updated := &platformv1alpha1.Cellenza{}
+	updated := &platformv1alpha1.Preview{}
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: "pr-34"}, updated); err != nil {
-		t.Fatalf("failed to fetch updated cellenza: %v", err)
+		t.Fatalf("failed to fetch updated preview: %v", err)
 	}
 	if updated.Status.Database == nil {
 		t.Fatalf("expected database status to remain present")
@@ -121,15 +121,15 @@ func TestHandleAIRerunRequestedClearsDerivedState(t *testing.T) {
 
 func TestReconcileAIEnrichmentCompletesAIRerun(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-34"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled:        true,
 				RerunRequested: true,
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
 				Phase:     phaseSucceeded,
 				RerunOnly: true,
@@ -143,7 +143,7 @@ func TestReconcileAIEnrichmentCompletesAIRerun(t *testing.T) {
 		WithObjects(c).
 		Build()
 
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: cl,
 		Scheme: scheme,
 	}
@@ -152,9 +152,9 @@ func TestReconcileAIEnrichmentCompletesAIRerun(t *testing.T) {
 		t.Fatalf("reconcileAIEnrichment returned error: %v", err)
 	}
 
-	updated := &platformv1alpha1.Cellenza{}
+	updated := &platformv1alpha1.Preview{}
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: "pr-34"}, updated); err != nil {
-		t.Fatalf("failed to fetch updated cellenza: %v", err)
+		t.Fatalf("failed to fetch updated preview: %v", err)
 	}
 	if updated.Spec.AIEnrichment == nil || updated.Spec.AIEnrichment.RerunRequested {
 		t.Fatalf("expected rerunRequested to be cleared, got %#v", updated.Spec.AIEnrichment)

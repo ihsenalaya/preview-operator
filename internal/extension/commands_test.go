@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,9 +21,9 @@ func TestCmdStatusShowsAIState(t *testing.T) {
 		t.Fatalf("failed to register scheme: %v", err)
 	}
 
-	cz := &platformv1alpha1.Cellenza{
+	cz := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-42"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Branch:       "feature/ai",
 			PRNumber:     42,
 			ResourceTier: platformv1alpha1.TierMedium,
@@ -32,7 +32,7 @@ func TestCmdStatusShowsAIState(t *testing.T) {
 				Enabled: true,
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			Phase: platformv1alpha1.PhaseRunning,
 			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
 				Phase:       "Failed",
@@ -69,9 +69,9 @@ func TestCmdStatusShowsAIRerunMode(t *testing.T) {
 		t.Fatalf("failed to register scheme: %v", err)
 	}
 
-	cz := &platformv1alpha1.Cellenza{
+	cz := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-42"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Branch:       "feature/ai",
 			PRNumber:     42,
 			ResourceTier: platformv1alpha1.TierMedium,
@@ -80,7 +80,7 @@ func TestCmdStatusShowsAIRerunMode(t *testing.T) {
 				Enabled: true,
 			},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			Phase: platformv1alpha1.PhaseRunning,
 			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
 				Phase:     "Running",
@@ -105,9 +105,9 @@ func TestCmdRetestAIRequestsOperatorManagedRerun(t *testing.T) {
 		t.Fatalf("failed to register scheme: %v", err)
 	}
 
-	cz := &platformv1alpha1.Cellenza{
+	cz := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-42"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			PRNumber: 42,
 			Database: &platformv1alpha1.DatabaseSpec{Enabled: true},
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
@@ -132,9 +132,9 @@ func TestCmdRetestAIRequestsOperatorManagedRerun(t *testing.T) {
 		}
 	}
 
-	updated := &platformv1alpha1.Cellenza{}
+	updated := &platformv1alpha1.Preview{}
 	if err := server.crClient.Get(context.Background(), client.ObjectKey{Name: "pr-42"}, updated); err != nil {
-		t.Fatalf("failed to fetch updated cellenza: %v", err)
+		t.Fatalf("failed to fetch updated preview: %v", err)
 	}
 	if updated.Spec.AIEnrichment == nil || !updated.Spec.AIEnrichment.RerunRequested {
 		t.Fatalf("expected rerunRequested to be set, got %#v", updated.Spec.AIEnrichment)
@@ -147,7 +147,7 @@ func TestCmdRetestAIRejectsWhenAIDisabled(t *testing.T) {
 		t.Fatalf("failed to register scheme: %v", err)
 	}
 
-	cz := &platformv1alpha1.Cellenza{
+	cz := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-42"},
 	}
 
@@ -167,12 +167,12 @@ func TestCmdListCheckpoints(t *testing.T) {
 		t.Fatalf("failed to register scheme: %v", err)
 	}
 
-	cz := &platformv1alpha1.Cellenza{
+	cz := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-42"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Database: &platformv1alpha1.DatabaseSpec{Enabled: true},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			Database: &platformv1alpha1.DatabaseStatus{
 				Checkpoints: []string{"post-seed", "post-order"},
 			},
@@ -197,12 +197,12 @@ func TestCheckpointAPIList(t *testing.T) {
 		t.Fatalf("failed to register scheme: %v", err)
 	}
 
-	cz := &platformv1alpha1.Cellenza{
+	cz := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-42"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Database: &platformv1alpha1.DatabaseSpec{Enabled: true},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			Database: &platformv1alpha1.DatabaseStatus{
 				Checkpoints: []string{"post-seed"},
 			},

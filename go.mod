@@ -1,4 +1,4 @@
-module github.com/company/cellenza-operator
+module github.com/ihsenalaya/preview-operator
 
 go 1.25.0
 

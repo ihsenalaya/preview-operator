@@ -1,0 +1,20 @@
+apiVersion: platform.company.io/v1alpha1
+kind: Preview
+metadata:
+  name: demo
+spec:
+  branch: demo
+  prNumber: 1
+  image: ghcr.io/ihsenalaya/preview-demo-app:0.5.1
+  resourceTier: medium
+  ttl: 72h
+  database:
+    enabled: true
+    version: "15"
+    databaseName: appdb
+  telemetry:
+    enabled: true
+    serviceName: preview-demo-app
+    autoInstrumentation:
+      language: python
+      instrumentationRef: observability/python

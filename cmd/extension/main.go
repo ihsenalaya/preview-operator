@@ -15,8 +15,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
-	"github.com/company/cellenza-operator/internal/extension"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/extension"
 )
 
 func main() {
@@ -47,6 +47,6 @@ func main() {
 	webhookSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 
 	srv := extension.NewServer(crClient, kubeClient, webhookSecret)
-	log.Printf("Cellenza Extension listening on %s", addr)
+	log.Printf("Preview Extension listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, srv))
 }

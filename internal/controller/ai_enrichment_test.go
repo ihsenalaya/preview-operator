@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -25,7 +25,7 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestFetchPRDiffReturnsBody(t *testing.T) {
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		GitHubAPIBaseURL: "https://api.github.test",
 		GitHubHTTPClient: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 			if r.Method != http.MethodGet {
@@ -40,8 +40,8 @@ func TestFetchPRDiffReturnsBody(t *testing.T) {
 			}, nil
 		})},
 	}
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			PRNumber: 21,
 			GitHub: &platformv1alpha1.GitHubIntegrationSpec{
 				Enabled: true,
@@ -61,8 +61,8 @@ func TestFetchPRDiffReturnsBody(t *testing.T) {
 }
 
 func TestFetchPRDiffSkipsWhenGitHubDisabled(t *testing.T) {
-	reconciler := &CellenzaReconciler{}
-	diff, err := reconciler.fetchPRDiff(context.Background(), &platformv1alpha1.Cellenza{}, "token")
+	reconciler := &PreviewReconciler{}
+	diff, err := reconciler.fetchPRDiff(context.Background(), &platformv1alpha1.Preview{}, "token")
 	if err != nil {
 		t.Fatalf("fetchPRDiff returned error: %v", err)
 	}
@@ -73,8 +73,8 @@ func TestFetchPRDiffSkipsWhenGitHubDisabled(t *testing.T) {
 
 func TestAIGitHubTokenUsesDedicatedSecretWhenConfigured(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled: true,
 				GitHubTokenSecretRef: &platformv1alpha1.GitHubTokenSecretRef{
@@ -99,7 +99,7 @@ func TestAIGitHubTokenUsesDedicatedSecretWhenConfigured(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "controller-github-token", Namespace: defaultGitHubSecretNamespace},
 		Data:       map[string][]byte{defaultGitHubTokenSecretKey: []byte("controller-token")},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, aiSecret, controllerSecret).Build(),
 		Scheme: scheme,
 	}
@@ -115,8 +115,8 @@ func TestAIGitHubTokenUsesDedicatedSecretWhenConfigured(t *testing.T) {
 
 func TestAIGitHubTokenFallsBackToControllerSecret(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 			GitHub: &platformv1alpha1.GitHubIntegrationSpec{
 				Enabled: true,
@@ -131,7 +131,7 @@ func TestAIGitHubTokenFallsBackToControllerSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "controller-github-token", Namespace: defaultGitHubSecretNamespace},
 		Data:       map[string][]byte{defaultGitHubTokenSecretKey: []byte("controller-token")},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, controllerSecret).Build(),
 		Scheme: scheme,
 	}
@@ -146,8 +146,8 @@ func TestAIGitHubTokenFallsBackToControllerSecret(t *testing.T) {
 }
 
 func TestAISchemaDumpJobBuildsExpectedSpec(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{ObjectMeta: metav1.ObjectMeta{Name: "pr-21"}}
-	reconciler := &CellenzaReconciler{}
+	c := &platformv1alpha1.Preview{ObjectMeta: metav1.ObjectMeta{Name: "pr-21"}}
+	reconciler := &PreviewReconciler{}
 
 	job := reconciler.aiSchemaDumpJob(c, "preview-pr-21")
 	if job.Name != aiSchemaJobName {
@@ -166,13 +166,13 @@ func TestAISchemaDumpJobBuildsExpectedSpec(t *testing.T) {
 
 func TestFetchDBSchemaCreatesJobWhenMissing(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Database: &platformv1alpha1.DatabaseSpec{Enabled: true},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
 		Scheme: scheme,
 	}
@@ -193,9 +193,9 @@ func TestFetchDBSchemaCreatesJobWhenMissing(t *testing.T) {
 
 func TestReconcileResourceQuotaAddsAIHeadroom(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-23"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			ResourceTier: platformv1alpha1.TierMedium,
 			Database: &platformv1alpha1.DatabaseSpec{
 				Enabled: true,
@@ -205,7 +205,7 @@ func TestReconcileResourceQuotaAddsAIHeadroom(t *testing.T) {
 			},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
 		Scheme: scheme,
 	}
@@ -215,7 +215,7 @@ func TestReconcileResourceQuotaAddsAIHeadroom(t *testing.T) {
 	}
 
 	quota := &corev1.ResourceQuota{}
-	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: "cellenza-quota", Namespace: "preview-pr-23"}, quota); err != nil {
+	if err := reconciler.Get(context.Background(), types.NamespacedName{Name: "preview-quota", Namespace: "preview-pr-23"}, quota); err != nil {
 		t.Fatalf("expected resourcequota to be created: %v", err)
 	}
 
@@ -238,14 +238,14 @@ func TestReconcileResourceQuotaAddsAIHeadroom(t *testing.T) {
 
 func TestGenerateAndStoreAIContentSkipsWhenConfigMapExists(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
 	}
 	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: aiEnrichmentConfigMap, Namespace: "preview-pr-21"}}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, cm).Build(),
 		Scheme: scheme,
 	}
@@ -261,9 +261,9 @@ func TestGenerateAndStoreAIContentSkipsWhenConfigMapExists(t *testing.T) {
 
 func TestGenerateAndStoreAIContentCreatesConfigMap(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Branch:   "feature/ai",
 			PRNumber: 21,
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
@@ -279,7 +279,7 @@ func TestGenerateAndStoreAIContentCreatesConfigMap(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "ai-api", Namespace: defaultAISecretNamespace},
 		Data:       map[string][]byte{defaultAISecretKey: []byte("test-key")},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret).Build(),
 		Scheme:       scheme,
 		AIAPIBaseURL: "https://ai.example.test",
@@ -316,9 +316,9 @@ func TestGenerateAndStoreAIContentCreatesConfigMap(t *testing.T) {
 
 func TestGenerateAndStoreAIContentUsesSystemPromptConfigMap(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			Branch:   "feature/ai",
 			PRNumber: 21,
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
@@ -344,7 +344,7 @@ func TestGenerateAndStoreAIContentUsesSystemPromptConfigMap(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret, systemPrompt, prPrompt).Build()
 
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client:            fakeClient,
 		APIReader:         fakeClient,
 		Scheme:            scheme,
@@ -441,7 +441,7 @@ func TestAIEnrichmentEnabled(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &platformv1alpha1.Cellenza{Spec: platformv1alpha1.CellenzaSpec{AIEnrichment: tt.spec}}
+			c := &platformv1alpha1.Preview{Spec: platformv1alpha1.PreviewSpec{AIEnrichment: tt.spec}}
 			if got := aiEnrichmentEnabled(c); got != tt.want {
 				t.Errorf("aiEnrichmentEnabled = %v, want %v", got, tt.want)
 			}
@@ -450,8 +450,8 @@ func TestAIEnrichmentEnabled(t *testing.T) {
 }
 
 func TestAIEnrichmentTaskDefaults(t *testing.T) {
-	enabled := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	enabled := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
 	}
@@ -462,8 +462,8 @@ func TestAIEnrichmentTaskDefaults(t *testing.T) {
 		t.Fatal("expected test task to default to enabled when omitted")
 	}
 
-	disabled := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	disabled := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled: true,
 				Seed:    &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: false},
@@ -480,11 +480,11 @@ func TestAIEnrichmentTaskDefaults(t *testing.T) {
 }
 
 func TestSetAIEnrichmentConditionReflectsFailure(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
 				Phase:       phaseFailed,
 				SeedStatus:  phaseSucceeded,
@@ -509,11 +509,11 @@ func TestSetAIEnrichmentConditionReflectsFailure(t *testing.T) {
 }
 
 func TestBuildAIEnrichmentSectionShowsDefaultTasks(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentStatus{
 				SeedStatus:  phaseSucceeded,
 				TestsStatus: phaseFailed,
@@ -536,15 +536,15 @@ func TestBuildAIEnrichmentSectionShowsDefaultTasks(t *testing.T) {
 }
 
 func TestAITestJobSpec(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Tests: &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: true},
 			},
 		},
 	}
-	reconciler := &CellenzaReconciler{}
+	reconciler := &PreviewReconciler{}
 	job := reconciler.aiTestJob(c, "preview-pr-21")
 
 	container := job.Spec.Template.Spec.Containers[0]
@@ -572,15 +572,15 @@ func TestAITestJobSpec(t *testing.T) {
 }
 
 func TestAISeedJobSpec(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Seed: &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: true},
 			},
 		},
 	}
-	reconciler := &CellenzaReconciler{}
+	reconciler := &PreviewReconciler{}
 	job := reconciler.aiSeedJob(c, "preview-pr-21")
 
 	container := job.Spec.Template.Spec.Containers[0]
@@ -603,14 +603,14 @@ func TestAISeedJobSpec(t *testing.T) {
 }
 
 func TestReconcileAISeedJobSkipsWhenDisabled(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Seed: &platformv1alpha1.AIEnrichmentTaskSpec{Enabled: false},
 			},
 		},
 	}
-	reconciler := &CellenzaReconciler{}
+	reconciler := &PreviewReconciler{}
 	state, err := reconciler.reconcileAISeedJob(context.Background(), c, "preview-pr-21")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -622,13 +622,13 @@ func TestReconcileAISeedJobSkipsWhenDisabled(t *testing.T) {
 
 func TestReconcileAISeedJobRunsWhenTaskSpecOmitted(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
 		Scheme: scheme,
 	}
@@ -649,13 +649,13 @@ func TestReconcileAISeedJobRunsWhenTaskSpecOmitted(t *testing.T) {
 
 func TestReconcileAITestJobRunsWhenTaskSpecOmitted(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
 		Scheme: scheme,
 	}
@@ -679,11 +679,11 @@ func TestReconcileAITestJobRunsWhenTaskSpecOmitted(t *testing.T) {
 
 func TestReconcileAIJobReturnsRunningOnCreate(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec:       platformv1alpha1.CellenzaSpec{},
+		Spec:       platformv1alpha1.PreviewSpec{},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c).Build(),
 		Scheme: scheme,
 	}
@@ -700,14 +700,14 @@ func TestReconcileAIJobReturnsRunningOnCreate(t *testing.T) {
 
 func TestReconcileAIJobReturnsSucceededWhenJobDone(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
 	}
 	existingJob := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{Name: aiTestJobName, Namespace: "preview-pr-21"},
 		Status:     batchv1.JobStatus{Succeeded: 1},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, existingJob).Build(),
 		Scheme: scheme,
 	}
@@ -724,9 +724,9 @@ func TestReconcileAIJobReturnsSucceededWhenJobDone(t *testing.T) {
 
 func TestReconcileAISeedJobKeepsCompletedJobUntilTTL(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
 	}
@@ -734,7 +734,7 @@ func TestReconcileAISeedJobKeepsCompletedJobUntilTTL(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: aiSeedJobName, Namespace: "preview-pr-21"},
 		Status:     batchv1.JobStatus{Succeeded: 1},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, existingJob).Build(),
 		Scheme: scheme,
 	}
@@ -755,7 +755,7 @@ func TestReconcileAISeedJobKeepsCompletedJobUntilTTL(t *testing.T) {
 
 func TestReconcileAIJobReturnsFailedWhenJobFailed(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{ObjectMeta: metav1.ObjectMeta{Name: "pr-21"}}
+	c := &platformv1alpha1.Preview{ObjectMeta: metav1.ObjectMeta{Name: "pr-21"}}
 	existingJob := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{Name: aiTestJobName, Namespace: "preview-pr-21"},
 		Status: batchv1.JobStatus{
@@ -766,7 +766,7 @@ func TestReconcileAIJobReturnsFailedWhenJobFailed(t *testing.T) {
 			}},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, existingJob).Build(),
 		Scheme: scheme,
 	}
@@ -783,15 +783,15 @@ func TestReconcileAIJobReturnsFailedWhenJobFailed(t *testing.T) {
 
 func TestAIAPIKey_missingSecret(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled:      true,
 				APISecretRef: &platformv1alpha1.SecretKeyRef{Name: "missing-secret"},
 			},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
 		Scheme: scheme,
 	}
@@ -803,8 +803,8 @@ func TestAIAPIKey_missingSecret(t *testing.T) {
 
 func TestAIAPIKey_missingKeyInSecret(t *testing.T) {
 	scheme := testAIScheme(t)
-	c := &platformv1alpha1.Cellenza{
-		Spec: platformv1alpha1.CellenzaSpec{
+	c := &platformv1alpha1.Preview{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled:      true,
 				APISecretRef: &platformv1alpha1.SecretKeyRef{Name: "ai-api"},
@@ -815,7 +815,7 @@ func TestAIAPIKey_missingKeyInSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "ai-api", Namespace: defaultAISecretNamespace},
 		Data:       map[string][]byte{"wrong-key": []byte("value")},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret).Build(),
 		Scheme: scheme,
 	}
@@ -831,16 +831,16 @@ func TestGenerateAndStoreAIContent_missingAPIURL(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "ai-api", Namespace: defaultAISecretNamespace},
 		Data:       map[string][]byte{defaultAISecretKey: []byte("sk-test")},
 	}
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		ObjectMeta: metav1.ObjectMeta{Name: "pr-21"},
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{
 				Enabled:      true,
 				APISecretRef: &platformv1alpha1.SecretKeyRef{Name: "ai-api"},
 			},
 		},
 	}
-	reconciler := &CellenzaReconciler{
+	reconciler := &PreviewReconciler{
 		Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(c, secret).Build(),
 		Scheme:       scheme,
 		AIAPIBaseURL: "", // not configured

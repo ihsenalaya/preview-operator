@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "preview-operator.fullname" . }}-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "preview-operator.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: https
+    port: {{ .Values.metrics.port }}
+    protocol: TCP
+    targetPort: {{ .Values.metrics.port }}
+  selector:
+    {{- include "preview-operator.selectorLabels" . | nindent 4 }}

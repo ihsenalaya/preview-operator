@@ -10,9 +10,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-platform-company-io-v1alpha1-cellenza
+      path: /mutate-platform-company-io-v1alpha1-preview
   failurePolicy: Fail
-  name: mcellenza.kb.io
+  name: mpreview.kb.io
   rules:
   - apiGroups:
     - platform.company.io
@@ -22,7 +22,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - cellenzas
+    - previews
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -36,9 +36,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-platform-company-io-v1alpha1-cellenza
+      path: /validate-platform-company-io-v1alpha1-preview
   failurePolicy: Fail
-  name: vcellenza.kb.io
+  name: vpreview.kb.io
   rules:
   - apiGroups:
     - platform.company.io
@@ -48,5 +48,5 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - cellenzas
+    - previews
   sideEffects: None

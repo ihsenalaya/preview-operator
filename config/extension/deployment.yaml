@@ -2,24 +2,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cellenza-extension
-  namespace: cellenza-operator-system
+  name: preview-extension
+  namespace: preview-operator-system
   labels:
-    app: cellenza-extension
+    app: preview-extension
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cellenza-extension
+      app: preview-extension
   template:
     metadata:
       labels:
-        app: cellenza-extension
+        app: preview-extension
     spec:
-      serviceAccountName: cellenza-extension
+      serviceAccountName: preview-extension
       containers:
         - name: extension
-          image: ghcr.io/ihsenalaya/cellenza-extension:0.12.6
+          image: ghcr.io/ihsenalaya/preview-extension:0.12.6
           ports:
             - containerPort: 8090
               name: http
@@ -29,7 +29,7 @@ spec:
             - name: GITHUB_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: cellenza-extension-secret
+                  name: preview-extension-secret
                   key: webhook-secret
                   optional: true
           resources:
@@ -55,11 +55,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cellenza-extension
-  namespace: cellenza-operator-system
+  name: preview-extension
+  namespace: preview-operator-system
 spec:
   selector:
-    app: cellenza-extension
+    app: preview-extension
   ports:
     - port: 8090
       targetPort: 8090

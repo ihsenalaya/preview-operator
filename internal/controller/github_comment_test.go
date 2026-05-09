@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	platformv1alpha1 "github.com/company/cellenza-operator/api/v1alpha1"
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 func TestBuildTestResultsCommentBodyIncludesAIEnrichment(t *testing.T) {
-	c := &platformv1alpha1.Cellenza{
+	c := &platformv1alpha1.Preview{
 		Spec: platformv1alpha1.CellenzaSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},

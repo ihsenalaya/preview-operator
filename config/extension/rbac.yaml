@@ -2,19 +2,19 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cellenza-extension
-  namespace: cellenza-operator-system
+  name: preview-extension
+  namespace: preview-operator-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cellenza-extension
+  name: preview-extension
 rules:
   - apiGroups: ["platform.company.io"]
-    resources: ["cellenzas"]
+    resources: ["previews"]
     verbs: ["get", "list", "watch", "patch", "update"]
   - apiGroups: ["platform.company.io"]
-    resources: ["cellenzas/status"]
+    resources: ["previews/status"]
     verbs: ["get", "patch", "update"]
   - apiGroups: [""]
     resources: ["pods"]
@@ -29,12 +29,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: cellenza-extension
+  name: preview-extension
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cellenza-extension
+  name: preview-extension
 subjects:
   - kind: ServiceAccount
-    name: cellenza-extension
-    namespace: cellenza-operator-system
+    name: preview-extension
+    namespace: preview-operator-system
