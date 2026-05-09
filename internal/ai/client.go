@@ -55,7 +55,26 @@ type GenerateResponse struct {
 }
 
 // Generate calls the AI API and returns seed SQL and a test script.
+// If the generated test script contains SQL syntax (a common LLM mistake), it
+// retries once with an explicit correction prompt before giving up.
 func (c *Client) Generate(ctx context.Context, req GenerateRequest) (*GenerateResponse, error) {
+	result, err := c.generate(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if violation := sqlInPythonViolation(result.TestScript); violation != "" {
+		req.ExtraInstructions = "CORRECTION REQUIRED: The previous test_script contained SQL syntax inside Python code (" + violation + "). " +
+			"This causes a Python SyntaxError. Fix: replace every SQL expression with an HTTP GET or POST call to discover or create the resource via the API. " +
+			req.ExtraInstructions
+		result, err = c.generate(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+func (c *Client) generate(ctx context.Context, req GenerateRequest) (*GenerateResponse, error) {
 	systemPrompt := buildSystemPrompt(req.SystemPrompt, req.ExtraInstructions)
 	userPrompt := buildUserPrompt(req)
 
@@ -131,6 +150,17 @@ func (c *Client) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		SeedSQL:    generated.SeedSQL,
 		TestScript: generated.TestScript,
 	}, nil
+}
+
+// sqlInPythonViolation returns a short description of the first SQL-in-Python
+// pattern found, or an empty string if the script looks clean.
+var sqlKeywordRE = regexp.MustCompile(`(?i)\(\s*(SELECT|INSERT\s+INTO|UPDATE\s+\w|DELETE\s+FROM)\s+`)
+
+func sqlInPythonViolation(script string) string {
+	if m := sqlKeywordRE.FindString(script); m != "" {
+		return strings.TrimSpace(m)
+	}
+	return ""
 }
 
 const defaultSystemPrompt = `You are a developer tool for Kubernetes preview environments.
