@@ -1042,16 +1042,19 @@ spec:
                     type: string
                 type: object
               kagent:
-                description: Kagent describes the kagent Task trigger state.
+                description: Kagent describes the kagent analysis state.
                 properties:
-                  taskName:
-                    description: TaskName is the name of the kagent Task CR created
-                      for failure analysis.
+                  phase:
+                    description: Phase is the current state of the kagent analysis (Running, Succeeded, Failed).
                     type: string
                   triggeredAt:
-                    description: TriggeredAt is when the kagent Task was created.
+                    description: TriggeredAt is when the kagent analysis was started.
                     format: date-time
                     type: string
+                  commentId:
+                    description: CommentID is the GitHub PR comment ID where the analysis was posted.
+                    format: int64
+                    type: integer
                 type: object
               url:
                 description: URL is the ingress URL of the preview environment

@@ -1,46 +1,95 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
+	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
-// kagentAgentGVK is the GVK for the kagent Agent CR (v0.9+, v1alpha2).
-var kagentAgentGVK = schema.GroupVersionKind{
-	Group:   "kagent.dev",
-	Version: "v1alpha2",
-	Kind:    "Agent",
+// a2aMessage is the JSON-RPC 2.0 envelope sent to a kagent agent.
+type a2aMessage struct {
+	JSONRPC string     `json:"jsonrpc"`
+	Method  string     `json:"method"`
+	ID      string     `json:"id"`
+	Params  a2aParams  `json:"params"`
+}
+
+type a2aParams struct {
+	Message a2aUserMessage `json:"message"`
+}
+
+type a2aUserMessage struct {
+	Role      string     `json:"role"`
+	MessageID string     `json:"messageId"`
+	Parts     []a2aPart  `json:"parts"`
+}
+
+type a2aPart struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+// a2aResponse is the JSON-RPC 2.0 response from a kagent agent.
+type a2aResponse struct {
+	Result *a2aResult `json:"result"`
+	Error  *a2aError  `json:"error"`
+}
+
+type a2aResult struct {
+	Status *a2aStatus `json:"status"`
+}
+
+type a2aStatus struct {
+	State   string     `json:"state"`
+	Message *a2aAgentMessage `json:"message"`
+}
+
+type a2aAgentMessage struct {
+	Parts []a2aAgentPart `json:"parts"`
+}
+
+type a2aAgentPart struct {
+	Kind string `json:"kind"`
+	Text string `json:"text"`
+}
+
+type a2aError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 func kagentEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.Kagent != nil && c.Spec.Kagent.Enabled
 }
 
-func kagentNamespace(c *platformv1alpha1.Preview) string {
-	if c.Spec.Kagent == nil || c.Spec.Kagent.Namespace == "" {
-		return "kagent-system"
+func kagentAgentURL(c *platformv1alpha1.Preview) string {
+	ns := "kagent-system"
+	name := "preview-troubleshooter-agent"
+	if c.Spec.Kagent != nil {
+		if c.Spec.Kagent.Namespace != "" {
+			ns = c.Spec.Kagent.Namespace
+		}
+		if c.Spec.Kagent.AgentName != "" {
+			name = c.Spec.Kagent.AgentName
+		}
 	}
-	return c.Spec.Kagent.Namespace
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
-func kagentAgentCRName(c *platformv1alpha1.Preview) string {
-	return fmt.Sprintf("%s-failure-analysis", c.Name)
-}
-
-// triggerKagentAnalysis creates a kagent Agent CR when the test suite has failed.
-// The Agent is pre-loaded with the failure context as its system message so it is
-// immediately usable from the kagent UI without any manual configuration.
-// It is idempotent: if the Agent already exists or was already recorded in status, it is a no-op.
+// triggerKagentAnalysis calls the preview-troubleshooter-agent via the A2A
+// JSON-RPC API, waits for the analysis, and posts it as a GitHub PR comment.
+// It is idempotent: if status.kagent.commentId is already set, it is a no-op.
 func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 
@@ -50,123 +99,154 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 	if c.Status.Tests == nil || c.Status.Tests.Phase != phaseFailed {
 		return
 	}
-	if c.Status.Kagent != nil && c.Status.Kagent.TaskName != "" {
-		return // already triggered
-	}
-
-	agentName := kagentAgentCRName(c)
-	ns := kagentNamespace(c)
-
-	existing := &unstructured.Unstructured{}
-	existing.SetGroupVersionKind(kagentAgentGVK)
-	err := r.Get(ctx, types.NamespacedName{Name: agentName, Namespace: ns}, existing)
-	if err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "Failed to check kagent Agent existence", "agent", agentName)
+	// Idempotency guard — already posted.
+	if c.Status.Kagent != nil && c.Status.Kagent.CommentID != 0 {
 		return
 	}
 
-	if errors.IsNotFound(err) {
-		agent := buildKagentAgent(c, agentName, ns)
-		if createErr := r.Create(ctx, agent); createErr != nil {
-			logger.Error(createErr, "Failed to create kagent Agent", "agent", agentName)
-			return
-		}
-		logger.Info("Created kagent failure-analysis Agent", "agent", agentName, "namespace", ns)
-	} else {
-		logger.Info("kagent Agent already exists", "agent", agentName)
+	r.setKagentPhase(ctx, c, "Running")
+
+	analysis, err := r.callKagentAgent(ctx, c)
+	if err != nil {
+		logger.Error(err, "kagent analysis failed", "preview", c.Name)
+		r.setKagentPhase(ctx, c, phaseFailed)
+		return
 	}
 
-	r.recordKagentTriggered(ctx, c, agentName)
+	commentID, err := r.postKagentComment(ctx, c, analysis)
+	if err != nil {
+		logger.Error(err, "Failed to post kagent comment to GitHub", "preview", c.Name)
+		r.setKagentPhase(ctx, c, phaseFailed)
+		return
+	}
+
+	if c.Status.Kagent == nil {
+		c.Status.Kagent = &platformv1alpha1.KagentStatus{}
+	}
+	c.Status.Kagent.Phase = phaseSucceeded
+	c.Status.Kagent.CommentID = commentID
+	_ = r.Status().Update(ctx, c)
+	logger.Info("kagent analysis posted to GitHub", "commentId", commentID)
 }
 
-func buildKagentAgent(c *platformv1alpha1.Preview, agentName, ns string) *unstructured.Unstructured {
-	agent := &unstructured.Unstructured{}
-	agent.SetGroupVersionKind(kagentAgentGVK)
-	agent.SetName(agentName)
-	agent.SetNamespace(ns)
-	agent.SetLabels(map[string]string{
-		labelManagedBy:   "preview-operator",
-		labelPreviewName: c.Name,
-	})
+// callKagentAgent sends a message to the agent via A2A JSON-RPC and returns
+// the text of the agent's response.
+func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview) (string, error) {
+	agentURL := kagentAgentURL(c)
 
-	// Build tools list: use the built-in kagent tool server for k8s inspection.
-	tools := []interface{}{
-		map[string]interface{}{
-			"type": "McpServer",
-			"mcpServer": map[string]interface{}{
-				"kind":     "RemoteMCPServer",
-				"apiGroup": "kagent.dev",
-				"name":     "kagent-tool-server",
-				"toolNames": []interface{}{
-					"k8s_get_pod_logs",
-					"k8s_get_resources",
-					"k8s_get_events",
-					"k8s_describe_resource",
-					"k8s_get_resource_yaml",
-				},
+	payload := a2aMessage{
+		JSONRPC: "2.0",
+		Method:  "message/send",
+		ID:      uuid.New().String(),
+		Params: a2aParams{
+			Message: a2aUserMessage{
+				Role:      "user",
+				MessageID: uuid.New().String(),
+				Parts:     []a2aPart{{Type: "text", Text: buildAnalysisPrompt(c)}},
 			},
 		},
 	}
 
-	_ = unstructured.SetNestedField(agent.Object, "Declarative", "spec", "type")
-	_ = unstructured.SetNestedField(agent.Object,
-		fmt.Sprintf("Failure analysis agent for Preview %q (PR #%d)", c.Name, c.Spec.PRNumber),
-		"spec", "description")
-	_ = unstructured.SetNestedField(agent.Object, "default-model-config", "spec", "declarative", "modelConfig")
-	_ = unstructured.SetNestedField(agent.Object, buildKagentSystemMessage(c), "spec", "declarative", "systemMessage")
-	_ = unstructured.SetNestedSlice(agent.Object, tools, "spec", "declarative", "tools")
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("marshal A2A payload: %w", err)
+	}
 
-	return agent
+	// Allow up to 3 minutes for the LLM to complete.
+	httpCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodPost, agentURL, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("A2A call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read A2A response: %w", err)
+	}
+
+	var a2aResp a2aResponse
+	if err := json.Unmarshal(rawBody, &a2aResp); err != nil {
+		return "", fmt.Errorf("unmarshal A2A response: %w", err)
+	}
+
+	if a2aResp.Error != nil {
+		return "", fmt.Errorf("A2A error %d: %s", a2aResp.Error.Code, a2aResp.Error.Message)
+	}
+	if a2aResp.Result == nil || a2aResp.Result.Status == nil {
+		return "", fmt.Errorf("empty A2A result")
+	}
+	if a2aResp.Result.Status.State == "failed" {
+		return "", fmt.Errorf("agent returned failed state")
+	}
+	if a2aResp.Result.Status.Message == nil {
+		return "", fmt.Errorf("agent returned no message")
+	}
+
+	var texts []string
+	for _, part := range a2aResp.Result.Status.Message.Parts {
+		if part.Kind == "text" && part.Text != "" {
+			texts = append(texts, part.Text)
+		}
+	}
+	if len(texts) == 0 {
+		return "", fmt.Errorf("agent returned empty text parts")
+	}
+	return strings.Join(texts, "\n"), nil
 }
 
-func buildKagentSystemMessage(c *platformv1alpha1.Preview) string {
+func buildAnalysisPrompt(c *platformv1alpha1.Preview) string {
 	tests := c.Status.Tests
 
-	var failedSuites []string
+	var failed []string
 	if tests != nil {
 		if tests.Smoke.Phase == phaseFailed {
-			failedSuites = append(failedSuites, "smoke")
+			failed = append(failed, "smoke")
 		}
 		if tests.Contract.Phase == phaseFailed {
-			failedSuites = append(failedSuites, "microcks-contract")
+			failed = append(failed, "microcks-contract")
 		}
 		if tests.Regression.Phase == phaseFailed {
-			failedSuites = append(failedSuites, "regression")
+			failed = append(failed, "regression")
 		}
 		if tests.E2E.Phase == phaseFailed {
-			failedSuites = append(failedSuites, "e2e")
+			failed = append(failed, "e2e")
 		}
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "You are a failure-analysis agent for the Preview environment %q.\n\n", c.Name)
+	fmt.Fprintf(&b, "Analyze the test failure for preview environment %q.\n\n", c.Name)
 	fmt.Fprintf(&b, "Context:\n")
-	fmt.Fprintf(&b, "  PR #%d — branch %q\n", c.Spec.PRNumber, c.Spec.Branch)
+	fmt.Fprintf(&b, "  PR #%d — branch: %s\n", c.Spec.PRNumber, c.Spec.Branch)
 	fmt.Fprintf(&b, "  Namespace: %s\n", c.Status.NamespaceName)
-
-	if len(failedSuites) > 0 {
-		fmt.Fprintf(&b, "  Failed suites: %s\n", strings.Join(failedSuites, ", "))
+	if len(failed) > 0 {
+		fmt.Fprintf(&b, "  Failed suites: %s\n", strings.Join(failed, ", "))
 	}
-
-	if c.Spec.GitHub != nil && c.Spec.GitHub.Owner != "" {
+	if c.Spec.GitHub != nil {
 		fmt.Fprintf(&b, "  GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
 	}
-
-	b.WriteString("\nWhen asked to analyze the failure:\n")
-	b.WriteString("1. Inspect the namespace resources, pod logs, jobs, and events.\n")
-	b.WriteString("2. Identify the root cause of each failed test suite.\n")
-	b.WriteString("3. Post a structured failure analysis as a GitHub PR comment using this format:\n")
-	b.WriteString("   Risk level | Failed suite | Evidence | Likely cause | Suggested fix | Confidence\n")
-
+	b.WriteString("\nInspect the namespace, job logs, pod events, and Jaeger traces for the ")
+	b.WriteString("service named idp-preview-" + c.Name + ". ")
+	b.WriteString("Produce a structured failure analysis in the format described in your system prompt.")
 	return b.String()
 }
 
-func (r *PreviewReconciler) recordKagentTriggered(ctx context.Context, c *platformv1alpha1.Preview, agentName string) {
+func (r *PreviewReconciler) setKagentPhase(ctx context.Context, c *platformv1alpha1.Preview, phase string) {
 	if c.Status.Kagent == nil {
 		c.Status.Kagent = &platformv1alpha1.KagentStatus{}
 	}
-	c.Status.Kagent.TaskName = agentName
-	now := metav1.Now()
-	c.Status.Kagent.TriggeredAt = &now
+	c.Status.Kagent.Phase = phase
+	if phase == "Running" {
+		now := metav1.Now()
+		c.Status.Kagent.TriggeredAt = &now
+	}
 	_ = r.Status().Update(ctx, c)
 }

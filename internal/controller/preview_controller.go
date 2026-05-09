@@ -886,7 +886,7 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/",
+										Path: "/healthz",
 										Port: intstr.FromInt(8080),
 									},
 								},
@@ -1254,7 +1254,7 @@ func (r *PreviewReconciler) reconcileService(ctx context.Context, c *platformv1a
 			Selector: map[string]string{"app": "preview-preview"},
 			Ports: []corev1.ServicePort{
 				{
-					Port:       80,
+					Port:       8080,
 					TargetPort: intstr.FromInt(8080),
 					Protocol:   corev1.ProtocolTCP,
 				},

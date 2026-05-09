@@ -552,6 +552,30 @@ func testResultBadge(phase string) string {
 	}
 }
 
+// postKagentComment posts the kagent failure analysis as a new GitHub PR comment.
+// Returns the comment ID so the caller can store it in status for idempotency.
+func (r *PreviewReconciler) postKagentComment(ctx context.Context, c *platformv1alpha1.Preview, analysis string) (int64, error) {
+	if !githubEnabled(c) || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
+		return 0, nil
+	}
+	token, err := r.githubToken(ctx, c)
+	if err != nil {
+		return 0, fmt.Errorf("read GitHub token: %w", err)
+	}
+
+	body := "## AI Failure Analysis by kagent\n\n" + analysis
+	var resp githubIssueCommentResponse
+	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
+		url.PathEscape(c.Spec.GitHub.Owner),
+		url.PathEscape(c.Spec.GitHub.Repo),
+		c.Spec.PRNumber,
+	)
+	if err := r.githubPost(ctx, token, path, githubIssueCommentRequest{Body: body}, &resp); err != nil {
+		return 0, err
+	}
+	return resp.ID, nil
+}
+
 func (r *PreviewReconciler) githubPost(ctx context.Context, token, path string, payload any, response any) error {
 	return r.githubRequest(ctx, http.MethodPost, token, path, payload, response)
 }

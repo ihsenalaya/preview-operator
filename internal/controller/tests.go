@@ -123,7 +123,7 @@ sys.exit(1)
 	// smokeScript is embedded in the operator — no external file required.
 	// It tests the health endpoint and the main products endpoint.
 	smokeScript = `import requests,sys,os
-BASE=os.environ.get('APP_URL','http://app:8080')
+BASE=os.environ.get('APP_URL','http://app')
 checks=[('/healthz',200),('/api/products',200)]
 p,f=0,0
 for path,code in checks:
@@ -752,7 +752,7 @@ func (r *PreviewReconciler) testJobNoMount(c *platformv1alpha1.Preview, nsName, 
 		Name:            containerName,
 		Image:           image,
 		Command:         cmd,
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Resources:       testJobResources(),
 	}
 	if withPostgres && databaseEnabledForSpec(c) {

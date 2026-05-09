@@ -343,13 +343,18 @@ type KagentIntegrationSpec struct {
 
 // KagentStatus describes the kagent analysis triggered for this preview.
 type KagentStatus struct {
-	// TaskName is the name of the kagent Task CR created in the kagent namespace.
+	// Phase is the current state: Pending, Running, Succeeded, Failed.
 	// +optional
-	TaskName string `json:"taskName,omitempty"`
+	Phase string `json:"phase,omitempty"`
 
-	// TriggeredAt is when the kagent Task was created.
+	// TriggeredAt is when the kagent analysis was started.
 	// +optional
 	TriggeredAt *metav1.Time `json:"triggeredAt,omitempty"`
+
+	// CommentID is the GitHub PR comment ID where the analysis was posted.
+	// Non-zero means the analysis has already been posted — prevents re-posting.
+	// +optional
+	CommentID int64 `json:"commentId,omitempty"`
 }
 
 // PreviewSpec defines the desired state
