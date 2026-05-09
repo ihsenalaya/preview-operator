@@ -131,8 +131,8 @@ for i in range(max_poll):
         continue
     p,f=0,0
     for tc in result.get('testCaseResults',[]):
+        op=tc.get('operationName','?')
         for step in tc.get('testStepResults',[]):
-            op=step.get('operationName','?')
             if step.get('success',False):
                 print('PASS contract '+op)
                 p+=1
