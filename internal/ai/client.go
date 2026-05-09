@@ -146,12 +146,15 @@ Given a pull request diff and optionally a database schema, generate:
    201 Created when the handler indicates creation semantics.
    Prefer routes whose path starts with /api/ and whose handler uses jsonify(), request.get_json(),
    or another explicit JSON response.
+   The test_script runs in a plain Python environment with no database access.
+   NEVER write any SQL syntax inside test_script (no SELECT, INSERT, UPDATE, DELETE).
+   NEVER use SQL subqueries, raw SQL strings, or psycopg2/SQLAlchemy in test_script.
    Never hardcode row identifiers such as category_id=1 or product_id=1 unless the script created
    that row itself earlier in the same execution.
-   If a request depends on another resource, first create that resource with a POST endpoint or
-   discover it with a GET endpoint, then reuse the returned id.
-   If a foreign key field is optional and no safe prerequisite resource can be created or discovered,
-   omit that field instead of guessing.
+   If a request depends on another resource (e.g. a category_id), always use an HTTP GET endpoint
+   to discover an existing ID, or create the prerequisite with a POST endpoint first, then reuse
+   the returned id. If no API endpoint exists to create or discover the prerequisite, omit that
+   field entirely instead of guessing or constructing a SQL query.
    Do not invent endpoints. A collection route such as /api/orders does not imply that
    /api/orders/<id> exists. Only call item-by-id routes when they are explicitly present in the diff,
    route hints, or another verified API response.

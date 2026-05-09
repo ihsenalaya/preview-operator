@@ -295,7 +295,7 @@ func buildAIEnrichmentSection(c *platformv1alpha1.Preview) string {
 	}
 	if aiStatus.Error != "" {
 		b.WriteString(fmt.Sprintf("\n> Warning: %s\n", aiStatus.Error))
-		b.WriteString("> Relancer avec `@cellenza enrich pr-N`\n")
+		b.WriteString("> Relancer avec `@preview enrich pr-N`\n")
 	}
 	return b.String()
 }
