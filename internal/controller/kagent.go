@@ -93,8 +93,8 @@ func kagentAgentURL(c *platformv1alpha1.Preview) string {
 }
 
 // triggerKagentAnalysis calls the preview-troubleshooter-agent via the A2A
-// JSON-RPC API, waits for the analysis, and posts it as a GitHub PR comment.
-// It is idempotent: if status.kagent.commentId is already set, it is a no-op.
+// JSON-RPC API, waits for the analysis, and posts (or updates) a GitHub PR comment.
+// It fires once per test run: when tests.phase=Failed and kagent.phase≠Succeeded.
 func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 
@@ -104,8 +104,8 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 	if c.Status.Tests == nil || c.Status.Tests.Phase != phaseFailed {
 		return
 	}
-	// Idempotency guard — already posted.
-	if c.Status.Kagent != nil && c.Status.Kagent.CommentID != 0 {
+	// Idempotency guard — already completed for this test run.
+	if c.Status.Kagent != nil && c.Status.Kagent.Phase == phaseSucceeded {
 		return
 	}
 	// Don't retry while already running or within 5 minutes of last attempt.

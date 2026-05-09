@@ -240,10 +240,10 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 		if result, err := r.reconcileTestSuite(ctx, preview, nsName); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
-		// Retry kagent analysis on every reconcile until it succeeds (CommentID set).
+		// Retry kagent analysis until it succeeds (phase=Succeeded).
 		r.triggerKagentAnalysis(ctx, preview)
 		if kagentEnabled(preview) && preview.Status.Kagent != nil &&
-			preview.Status.Kagent.Phase == phaseFailed && preview.Status.Kagent.CommentID == 0 {
+			preview.Status.Kagent.Phase == phaseFailed {
 			return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 		}
 	}
@@ -363,7 +363,16 @@ func (r *PreviewReconciler) resetDerivedStateForNewGeneration(ctx context.Contex
 	c.Status.ObservedGeneration = c.Generation
 	c.Status.Tests = nil
 	c.Status.AIEnrichment = nil
+	// Preserve CommentID so the next kagent run updates the existing PR comment
+	// rather than creating a duplicate. Clear phase/triggeredAt so it reruns.
+	var kagentCommentID int64
+	if c.Status.Kagent != nil {
+		kagentCommentID = c.Status.Kagent.CommentID
+	}
 	c.Status.Kagent = nil
+	if kagentCommentID != 0 {
+		c.Status.Kagent = &platformv1alpha1.KagentStatus{CommentID: kagentCommentID}
+	}
 	if c.Status.GitHub != nil {
 		c.Status.GitHub.TestsCommentID = 0
 		c.Status.GitHub.CommentID = 0

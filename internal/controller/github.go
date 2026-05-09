@@ -552,8 +552,9 @@ func testResultBadge(phase string) string {
 	}
 }
 
-// postKagentComment posts the kagent failure analysis as a new GitHub PR comment.
-// Returns the comment ID so the caller can store it in status for idempotency.
+// postKagentComment posts or updates the kagent failure analysis as a GitHub PR comment.
+// If a commentId already exists in status (from a previous run), it PATCHes that comment
+// so the PR always has exactly one kagent comment, updated with the latest analysis.
 func (r *PreviewReconciler) postKagentComment(ctx context.Context, c *platformv1alpha1.Preview, analysis string) (int64, error) {
 	if !githubEnabled(c) || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
 		return 0, nil
@@ -564,6 +565,22 @@ func (r *PreviewReconciler) postKagentComment(ctx context.Context, c *platformv1
 	}
 
 	body := "## AI Failure Analysis by kagent\n\n" + analysis
+
+	// If a comment already exists from a previous run, update it (PATCH).
+	if c.Status.Kagent != nil && c.Status.Kagent.CommentID != 0 {
+		path := fmt.Sprintf("/repos/%s/%s/issues/comments/%d",
+			url.PathEscape(c.Spec.GitHub.Owner),
+			url.PathEscape(c.Spec.GitHub.Repo),
+			c.Status.Kagent.CommentID,
+		)
+		var resp githubIssueCommentResponse
+		if err := r.githubRequest(ctx, http.MethodPatch, token, path, githubIssueCommentRequest{Body: body}, &resp); err != nil {
+			return 0, err
+		}
+		return resp.ID, nil
+	}
+
+	// No existing comment — create a new one (POST).
 	var resp githubIssueCommentResponse
 	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
 		url.PathEscape(c.Spec.GitHub.Owner),
