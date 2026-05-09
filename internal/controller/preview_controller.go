@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -17,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -54,6 +55,8 @@ type PreviewReconciler struct {
 	AIAPIBaseURL      string
 	AIHTTPClient      *http.Client
 	KubeClient        kubernetes.Interface
+	PreviewDomain     string // base domain, e.g. "preview.ihsenalaya.xyz"
+	IstioEnabled      bool   // auto-detected at startup
 }
 
 // +kubebuilder:rbac:groups=platform.company.io,resources=previews,verbs=get;list;watch;create;update;patch;delete
@@ -197,15 +200,15 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 		return r.setFailedStatus(ctx, preview, "ServiceFailed", err)
 	}
 
-	if err := r.reconcileIngress(ctx, preview, nsName); err != nil {
-		return r.setFailedStatus(ctx, preview, "IngressFailed", err)
+	if err := r.reconcileExposure(ctx, preview, nsName); err != nil {
+		return r.setFailedStatus(ctx, preview, "ExposureFailed", err)
 	}
 
 	if handled, result, err := r.handleAppAvailability(ctx, preview, nsName); handled {
 		return result, err
 	}
 
-	previewURL := fmt.Sprintf("http://pr-%d.preview.localtest.me:8080", preview.Spec.PRNumber)
+	previewURL := r.previewURL(preview)
 	if statusChanged := preview.Status.Phase != platformv1alpha1.PhaseRunning || preview.Status.URL != previewURL; statusChanged {
 		r.markRunningStatus(preview, nsName, previewURL)
 		if err := r.Status().Update(ctx, preview); err != nil {
@@ -1087,66 +1090,6 @@ func (r *PreviewReconciler) reconcileMultiServices(ctx context.Context, c *platf
 	return nil
 }
 
-// reconcileMultiServiceIngress creates a single Ingress with path-based routing to each service.
-func (r *PreviewReconciler) reconcileMultiServiceIngress(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
-	pathType := networkingv1.PathTypePrefix
-	host := fmt.Sprintf("pr-%d.preview.localtest.me", c.Spec.PRNumber)
-
-	type svcPath struct {
-		prefix  string
-		svcName string
-		port    int32
-	}
-	var paths []svcPath
-	for _, svc := range c.Spec.Services {
-		if svc.PathPrefix == "" {
-			continue
-		}
-		port := svc.Port
-		if port == 0 {
-			port = 8080
-		}
-		paths = append(paths, svcPath{prefix: svc.PathPrefix, svcName: serviceDeploymentName(svc.Name), port: port})
-	}
-	sort.Slice(paths, func(i, j int) bool { return len(paths[i].prefix) > len(paths[j].prefix) })
-
-	if len(paths) == 0 {
-		return nil
-	}
-
-	var ingressPaths []networkingv1.HTTPIngressPath
-	for _, p := range paths {
-		ingressPaths = append(ingressPaths, networkingv1.HTTPIngressPath{
-			Path:     p.prefix,
-			PathType: &pathType,
-			Backend: networkingv1.IngressBackend{
-				Service: &networkingv1.IngressServiceBackend{
-					Name: p.svcName,
-					Port: networkingv1.ServiceBackendPort{Number: p.port},
-				},
-			},
-		})
-	}
-
-	ing := &networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, ing, func() error {
-		if err := controllerutil.SetControllerReference(c, ing, r.Scheme); err != nil {
-			return err
-		}
-		ing.Labels = map[string]string{labelManagedBy: "preview-operator"}
-		ing.Spec = networkingv1.IngressSpec{
-			IngressClassName: strPtr("nginx"),
-			Rules: []networkingv1.IngressRule{{
-				Host: host,
-				IngressRuleValue: networkingv1.IngressRuleValue{
-					HTTP: &networkingv1.HTTPIngressRuleValue{Paths: ingressPaths},
-				},
-			}},
-		}
-		return nil
-	})
-	return err
-}
 
 
 func (r *PreviewReconciler) handleAppAvailability(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, ctrl.Result, error) {
@@ -1294,57 +1237,6 @@ func (r *PreviewReconciler) reconcileService(ctx context.Context, c *platformv1a
 	return err
 }
 
-// reconcileIngress creates/updates the ingress
-func (r *PreviewReconciler) reconcileIngress(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
-	if multiServiceEnabled(c) {
-		return r.reconcileMultiServiceIngress(ctx, c, nsName)
-	}
-	pathType := networkingv1.PathTypePrefix
-	host := fmt.Sprintf("pr-%d.preview.localtest.me", c.Spec.PRNumber)
-
-	ing := &networkingv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app",
-			Namespace: nsName,
-		},
-	}
-
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, ing, func() error {
-		if err := controllerutil.SetControllerReference(c, ing, r.Scheme); err != nil {
-			return err
-		}
-		ing.Labels = map[string]string{labelManagedBy: "preview-operator"}
-		ing.Annotations = map[string]string{
-			"nginx.ingress.kubernetes.io/rewrite-target": "/",
-		}
-		ing.Spec = networkingv1.IngressSpec{
-			IngressClassName: strPtr("nginx"),
-			Rules: []networkingv1.IngressRule{
-				{
-					Host: host,
-					IngressRuleValue: networkingv1.IngressRuleValue{
-						HTTP: &networkingv1.HTTPIngressRuleValue{
-							Paths: []networkingv1.HTTPIngressPath{
-								{
-									Path:     "/",
-									PathType: &pathType,
-									Backend: networkingv1.IngressBackend{
-										Service: &networkingv1.IngressServiceBackend{
-											Name: "app",
-											Port: networkingv1.ServiceBackendPort{Number: 80},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		return nil
-	})
-	return err
-}
 
 // reconcilePostgresSecret creates a Secret with unique credentials the first time only.
 // If the Secret already exists its data is never overwritten, preserving credentials across reconcile loops.
@@ -1827,14 +1719,28 @@ func (r *PreviewReconciler) deleteAIResources(ctx context.Context, nsName string
 
 // SetupWithManager registers the controller
 func (r *PreviewReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	r.IstioEnabled = istioAvailable(mgr.GetRESTMapper())
+
+	b := ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Preview{}).
 		Owns(&corev1.Namespace{}).
 		Owns(&corev1.ResourceQuota{}).
 		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&batchv1.Job{}).
-		Owns(&corev1.Service{}).
-		Owns(&networkingv1.Ingress{}).
-		Complete(r)
+		Owns(&corev1.Service{})
+
+	if r.IstioEnabled {
+		vs := &unstructured.Unstructured{}
+		vs.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "networking.istio.io",
+			Version: "v1beta1",
+			Kind:    "VirtualService",
+		})
+		b = b.Owns(vs)
+	} else {
+		b = b.Owns(&networkingv1.Ingress{})
+	}
+
+	return b.Complete(r)
 }

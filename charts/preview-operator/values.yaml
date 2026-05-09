@@ -37,6 +37,12 @@ ai:
   apiURL: "https://models.inference.ai.azure.com"
   systemPrompt: ""
 
+# Base domain for preview URLs.
+# Each PR gets: http://pr-<N>.<previewDomain>
+# Requires a wildcard DNS record: *.<previewDomain> → Istio Gateway or Ingress IP
+# Example: "preview.ihsenalaya.xyz"
+previewDomain: ""
+
 nodeSelector: {}
 tolerations: []
 affinity: {}

@@ -75,6 +75,7 @@ func main() {
 	if operatorNamespace == "" {
 		operatorNamespace = os.Getenv("POD_NAMESPACE")
 	}
+	previewDomain := os.Getenv("PREVIEW_DOMAIN")
 
 	metricsOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
@@ -115,6 +116,7 @@ func main() {
 		KubeClient:        kubeClient,
 		AIAPIBaseURL:      aiAPIURL,
 		AIHTTPClient:      &http.Client{Timeout: 60 * time.Second},
+		PreviewDomain:     previewDomain,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Preview")
 		os.Exit(1)

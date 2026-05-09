@@ -42,6 +42,8 @@ spec:
         env:
         - name: AI_API_URL
           value: {{ .Values.ai.apiURL | quote }}
+        - name: PREVIEW_DOMAIN
+          value: {{ .Values.previewDomain | quote }}
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
