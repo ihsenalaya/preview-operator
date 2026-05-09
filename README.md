@@ -4,8 +4,8 @@
 
 ```bash
 kubectl apply -f pr-42.yaml
-# → http://pr-42.preview.localtest.me/        (frontend)
-# → http://pr-42.preview.localtest.me/api     (backend)
+# → http://pr-42.preview.ihsenalaya.xyz        (frontend — public, no port-forward)
+# → http://pr-42.preview.ihsenalaya.xyz/api    (backend)
 # → operator runs AI enrichment → smoke → regression → E2E
 # → results posted to the GitHub PR as a comment
 # → kubectl delete preview pr-42 → full cleanup
@@ -104,7 +104,7 @@ kubectl apply -f pr-42.yaml
 │    ├── reconcileCheckpoints()    → save/restore jobs                       │
 │    ├── reconcileDeployment()     → svc-backend + svc-frontend (or app)    │
 │    ├── reconcileService()        → ClusterIP Services                      │
-│    ├── reconcileIngress()        → nginx Ingress, path-based routing       │
+│    ├── reconcileExposure()       → VirtualService (Istio) or Ingress (auto-detected)│
 │    ├── handleAppAvailability()   → RequeueAfter=10s if not yet ready      │
 │    ├── markRunningStatus()       → phase=Running, URL, conditions         │
 │    ├── syncGitHubAfterStatus()   → Deployment: success + PR comment       │
@@ -164,7 +164,7 @@ cluster
 │     ├── svc-backend Service       │
 │     ├── svc-frontend Deployment   │
 │     ├── svc-frontend Service      │
-│     ├── Ingress: pr-1.preview.*   │
+│     ├── VirtualService/Ingress    │  pr-1.preview.ihsenalaya.xyz
 │     ├── ConfigMap: ai-enrichment  │
 │     ├── ConfigMap: db-checkpoint-after-seed │
 │     └── Jobs: postgres-migrate, ai-seed,   │
@@ -185,7 +185,7 @@ cluster
 | Kubernetes | 1.25+ | Kind, k3s, GKE, AKS, EKS, or any conformant cluster |
 | Helm | 3.12+ | |
 | cert-manager | 1.13+ | Required for webhook TLS — skip with `--set webhook.enabled=false` |
-| ingress-nginx | any recent | Exposes preview URLs |
+| ingress-nginx **or** Istio | any recent | Exposes preview URLs — operator auto-detects which is installed |
 | kubectl | 1.25+ | |
 | OpenTelemetry Operator | optional | Required only for `telemetry.autoInstrumentation` |
 
@@ -217,7 +217,7 @@ kubectl get nodes
 # preview-control-plane  Ready    control-plane   …     v1.35.0
 ```
 
-Preview URLs will be reachable at `http://pr-42.preview.localtest.me:8080` — `localtest.me` resolves to `127.0.0.1`, no DNS configuration needed.
+Preview URLs will be reachable at `http://pr-42.preview.localtest.me:8080` via port-forward. For public URLs without port-forward, install Istio and set `--set previewDomain=preview.<YOUR_ZONE>` (see Step 3b).
 
 ### Step 1 — Add Helm repositories
 
@@ -243,9 +243,11 @@ kubectl -n cert-manager rollout status deployment/cert-manager --timeout=120s
 kubectl -n cert-manager rollout status deployment/cert-manager-webhook --timeout=120s
 ```
 
-### Step 3 — Install ingress-nginx
+### Step 3 — Install ingress-nginx (local / fallback)
 
-**Kind clusters** — admission webhooks must be disabled (webhook cert is self-signed and not trusted by the Kind API server):
+> Skip if using Istio (Step 3b). The operator auto-detects which is available.
+
+**Kind clusters** — admission webhooks must be disabled:
 
 ```bash
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
@@ -257,22 +259,57 @@ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
 kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=120s
 ```
 
-**Production clusters** — keep the admission webhook:
+**Production clusters:**
 
 ```bash
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --create-namespace \
-  --wait
+  --namespace ingress-nginx --create-namespace --wait
 ```
 
-> If already installed without the flag and you see `x509: certificate signed by unknown authority`:
-> ```bash
-> kubectl delete validatingwebhookconfiguration ingress-nginx-admission --ignore-not-found
-> helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
->   --namespace ingress-nginx \
->   --set controller.admissionWebhooks.enabled=false --wait
-> ```
+### Step 3b — Install Istio (recommended for AKS / public URLs)
+
+The operator creates a `VirtualService` per PR pointing to a shared `Gateway`. Each PR gets a public URL — no port-forward.
+
+```bash
+# Install istioctl
+curl -sL "https://github.com/istio/istio/releases/download/1.23.0/istioctl-1.23.0-linux-amd64.tar.gz" \
+  | tar -xz -C /usr/local/bin
+
+# Install Istio with ingress gateway
+istioctl install --set profile=minimal \
+  --set components.ingressGateways[0].enabled=true \
+  --set components.ingressGateways[0].name=istio-ingressgateway -y
+
+# Get gateway IP
+ISTIO_IP=$(kubectl get svc istio-ingressgateway -n istio-system \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Wildcard DNS (Azure example)
+az network dns record-set a add-record \
+  --zone-name <ZONE> --resource-group <RG> \
+  --record-set-name "*.preview" --ipv4-address "$ISTIO_IP" --ttl 300
+
+# Shared gateway (one per cluster)
+kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: preview-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.preview.<ZONE>"
+EOF
+```
+
+Then pass `--set previewDomain=preview.<ZONE>` when installing the operator (Step 6).
 
 ### Step 4 — Install OpenTelemetry Operator (optional)
 
@@ -327,7 +364,8 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.12 \
+  --set image.tag=1.0.19 \
+  --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
@@ -340,7 +378,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.12 \
+  --set image.tag=1.0.19 \
   --set webhook.enabled=false
 ```
 
@@ -2087,6 +2125,12 @@ ai:
   systemPrompt: |               # override the default AI system prompt
     You are a developer tool for preview environments.
     Generate realistic data that matches the PR diff and DB schema.
+
+# Base domain for preview URLs — each PR gets http://pr-<N>.<previewDomain>
+# Requires a wildcard DNS record: *.<previewDomain> → Istio Gateway or Ingress IP
+# Example: "preview.ihsenalaya.xyz"
+# Leave empty to use the localtest.me fallback (no DNS setup, requires port-forward)
+previewDomain: ""
 
 imagePullSecrets: []
 
