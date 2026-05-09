@@ -94,7 +94,7 @@ func (r *PreviewReconciler) postGitHubPhaseComment(ctx context.Context, c *platf
 	var body string
 	switch c.Status.Phase {
 	case platformv1alpha1.PhaseProvisioning:
-		body = fmt.Sprintf("**Cellenza Preview Provisioning**\n\nEnvironment: `%s`\n\nCreating namespace, PostgreSQL, database tasks, and Kubernetes resources.", githubEnvironment(c))
+		body = fmt.Sprintf("**Preview Provisioning**\n\nEnvironment: `%s`\n\nCreating namespace, PostgreSQL, database tasks, and Kubernetes resources.", githubEnvironment(c))
 	case platformv1alpha1.PhaseFailed:
 		body = githubFailedCommentBody(c)
 	default:
@@ -235,7 +235,7 @@ func (r *PreviewReconciler) updateGitHubReadyComment(ctx context.Context, c *pla
 
 func githubReadyCommentBody(c *platformv1alpha1.Preview, environmentURL string) string {
 	var b strings.Builder
-	b.WriteString("## Cellenza Preview Ready\n\n")
+	b.WriteString("## Preview Ready\n\n")
 	b.WriteString(fmt.Sprintf("**URL:** %s\n\n", environmentURL))
 	b.WriteString(fmt.Sprintf("Environment: `%s`\n", githubEnvironment(c)))
 	b.WriteString(fmt.Sprintf("Namespace: `%s`\n", c.Status.NamespaceName))
@@ -272,7 +272,7 @@ func githubReadyCommentBody(c *platformv1alpha1.Preview, environmentURL string) 
 	b.WriteString(".\n")
 
 	b.WriteString(buildAIEnrichmentSection(c))
-	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
+	b.WriteString("\nManaged by [preview-operator](https://github.com/ihsenalaya/preview-operator)")
 	return b.String()
 }
 
@@ -315,7 +315,7 @@ func statusIcon(status string) string {
 
 func githubFailedCommentBody(c *platformv1alpha1.Preview) string {
 	var b strings.Builder
-	b.WriteString("## Cellenza Preview Failed\n\n")
+	b.WriteString("## Preview Failed\n\n")
 	b.WriteString(fmt.Sprintf("Environment: `%s`\n", githubEnvironment(c)))
 	if c.Status.NamespaceName != "" {
 		b.WriteString(fmt.Sprintf("Namespace: `%s`\n", c.Status.NamespaceName))
@@ -459,11 +459,11 @@ func (r *PreviewReconciler) syncGitHubAIComment(ctx context.Context, c *platform
 func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
 	tests := c.Status.Tests
 	if tests == nil {
-		return "## Cellenza Test Suite\n\nNo test results available."
+		return "## Test Suite\n\nNo test results available."
 	}
 
 	var b strings.Builder
-	b.WriteString("## Cellenza Test Suite Results\n\n")
+	b.WriteString("## Test Suite Results\n\n")
 
 	overallIcon := "✅"
 	if tests.Phase == phaseFailed {
@@ -514,7 +514,7 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
 	}
 
 	b.WriteString(fmt.Sprintf("\n**Preview URL:** %s\n", c.Status.URL))
-	b.WriteString("\nManaged by [Cellenza Operator](https://github.com/ihsenalaya/cellenza-operator)")
+	b.WriteString("\nManaged by [preview-operator](https://github.com/ihsenalaya/preview-operator)")
 	return b.String()
 }
 
