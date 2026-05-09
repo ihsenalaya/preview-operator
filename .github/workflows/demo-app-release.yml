@@ -20,7 +20,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/cellenza-demo-app
+          images: ghcr.io/${{ github.repository_owner }}/preview-demo-app
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

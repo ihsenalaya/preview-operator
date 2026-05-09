@@ -28,8 +28,8 @@ jobs:
     - name: Sync chart version with git tag
       run: |
         VERSION="${GITHUB_REF_NAME#v}"
-        sed -i "s/^version:.*/version: ${VERSION}/" charts/cellenza-operator/Chart.yaml
-        sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/cellenza-operator/Chart.yaml
+        sed -i "s/^version:.*/version: ${VERSION}/" charts/preview-operator/Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/preview-operator/Chart.yaml
 
     - name: Release chart via chart-releaser
       uses: helm/chart-releaser-action@v1.6.0
@@ -41,6 +41,6 @@ jobs:
     - name: Push chart to GHCR (OCI)
       run: |
         VERSION="${GITHUB_REF_NAME#v}"
-        helm package charts/cellenza-operator --version "${VERSION}"
+        helm package charts/preview-operator --version "${VERSION}"
         echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
-        helm push "cellenza-operator-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}/charts"
+        helm push "preview-operator-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}/charts"
