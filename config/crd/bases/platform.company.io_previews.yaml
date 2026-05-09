@@ -579,6 +579,45 @@ spec:
                 description: TestSuite configures automated smoke, regression, and
                   E2E tests run after deployment.
                 properties:
+                  contractTesting:
+                    description: ContractTesting configures the Microcks-based contract
+                      test job run after smoke tests.
+                    properties:
+                      apiName:
+                        description: APIName is the Microcks service name (default:
+                          Preview App).
+                        type: string
+                      apiVersion:
+                        description: APIVersion is the Microcks service version (default:
+                          1.0.0).
+                        type: string
+                      credentialsSecretName:
+                        description: CredentialsSecretName is an optional Secret holding
+                          OAuth2 client_id and client_secret for Microcks.
+                        type: string
+                      enabled:
+                        description: Enabled controls whether the contract test step
+                          runs.
+                        type: boolean
+                      keycloakURL:
+                        description: KeycloakURL is the OAuth2 token endpoint for Microcks
+                          authentication.
+                        type: string
+                      microcksURL:
+                        description: MicrocksURL is the base URL of the Microcks instance.
+                        type: string
+                      testRunner:
+                        description: 'TestRunner selects the Microcks test runner (default:
+                          OPEN_API_SCHEMA).'
+                        type: string
+                      timeoutSeconds:
+                        description: TimeoutSeconds is the maximum wait time for the
+                          Microcks test run (default 120).
+                        format: int32
+                        type: integer
+                    required:
+                    - microcksURL
+                    type: object
                   e2e:
                     description: |-
                       E2E configures the end-to-end test job (full user flows).
@@ -643,6 +682,22 @@ spec:
                           to the app image.
                         type: string
                     type: object
+                type: object
+              kagent:
+                description: Kagent configures the kagent AI agent integration for
+                  automated failure analysis.
+                properties:
+                  agentName:
+                    description: AgentName is the kagent Agent CR name (default:
+                      preview-troubleshooter-agent).
+                    type: string
+                  enabled:
+                    description: Enabled controls whether the kagent integration is
+                      active.
+                    type: boolean
+                  namespace:
+                    description: Namespace where kagent is installed (default: kagent-system).
+                    type: string
                 type: object
               ttl:
                 default: 48h
@@ -908,6 +963,26 @@ spec:
               tests:
                 description: Tests describes the observed test suite state.
                 properties:
+                  contract:
+                    description: Contract holds the Microcks contract test results.
+                    properties:
+                      failed:
+                        description: Failed is the number of failing test cases.
+                        type: integer
+                      output:
+                        description: Output contains the PASS/FAIL lines from the
+                          test job.
+                        items:
+                          type: string
+                        type: array
+                      passed:
+                        description: Passed is the number of passing test cases.
+                        type: integer
+                      phase:
+                        description: 'Phase: Pending | Running | Succeeded | Failed
+                          | Skipped'
+                        type: string
+                    type: object
                   e2e:
                     description: E2E holds the end-to-end test results.
                     properties:
@@ -975,6 +1050,18 @@ spec:
                     description: |-
                       Step tracks the current stage in the sequential pipeline:
                       saving → smoke → restore-regression → regression → restore-e2e → e2e
+                    type: string
+                type: object
+              kagent:
+                description: Kagent describes the kagent Task trigger state.
+                properties:
+                  taskName:
+                    description: TaskName is the name of the kagent Task CR created
+                      for failure analysis.
+                    type: string
+                  triggeredAt:
+                    description: TriggeredAt is when the kagent Task was created.
+                    format: date-time
                     type: string
                 type: object
               url:

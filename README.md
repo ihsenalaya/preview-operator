@@ -301,70 +301,143 @@ kubectl port-forward -n observability svc/jaeger 16686:16686
 
 ### Step 6 — Install the Preview Operator
 
-**Via OCI (GHCR) — recommended:**
+Build the image locally and load it into Kind (no registry push needed for local dev):
 
 ```bash
-# Always apply the CRD first when installing or upgrading
-helm show crds oci://ghcr.io/ihsenalaya/charts/preview-operator --version 0.13.8 \
-  | tail -n +3 \
-  | kubectl apply -f -
+# 1. Build
+cd preview-operator
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.1 .
 
-helm install preview-operator \
-  oci://ghcr.io/ihsenalaya/charts/preview-operator \
-  --version 0.13.8 \
+# 2. Load into Kind
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.1
+
+# 3. Apply CRD manually (Helm does not update CRDs on upgrade)
+kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
+
+# 4. Install the Helm chart from the local directory
+helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --wait
+  --set image.tag=1.0.1 \
+  --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
 kubectl get crd previews.platform.company.io
 ```
 
-> `tail -n +3` strips the two-line Helm OCI pull header (`Pulled: …` / `Digest: …`) that `helm show crds` prepends before the YAML.
-
-**Without cert-manager (no admission webhooks):**
+**Without cert-manager (disable webhooks):**
 
 ```bash
-helm install preview-operator \
-  oci://ghcr.io/ihsenalaya/charts/preview-operator \
-  --version 0.13.8 \
+helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set webhook.enabled=false \
-  --wait
+  --set image.tag=1.0.1 \
+  --set webhook.enabled=false
 ```
-
-> Without webhooks, spec defaults are not applied at admission time and invalid specs fail at reconcile time rather than being rejected at apply.
 
 **Verify:**
 
 ```bash
 kubectl get pods -n preview-operator-system
-# preview-operator-647dc9db-xxxxx   1/1   Running   0   30s
+# preview-operator-xxxxx   1/1   Running   0   30s
 
 kubectl get crd previews.platform.company.io
-# NAME                             CREATED AT
-# previews.platform.company.io   2026-05-08T09:00:00Z
+# NAME                           CREATED AT
+# previews.platform.company.io  2026-05-09T10:19:27Z
+```
+
+### Step 6b — Install Microcks
+
+```bash
+NODE_IP=$(kubectl get nodes -o wide | grep control-plane | awk '{print $6}')
+
+helm install microcks microcks/microcks \
+  --namespace microcks \
+  --create-namespace \
+  --set "microcks.url=microcks.${NODE_IP}.nip.io" \
+  --set "microcks.ingressClassName=nginx" \
+  --set "microcks.generateCert=false" \
+  --set "keycloak.url=keycloak.${NODE_IP}.nip.io" \
+  --set "keycloak.ingressClassName=nginx" \
+  --set "keycloak.generateCert=false"
+
+kubectl -n microcks rollout status deployment/microcks --timeout=180s
+```
+
+The operator's contract test jobs call `http://microcks.microcks.svc.cluster.local:8080` — in-cluster, no ingress required.
+
+### Step 6c — Install kagent
+
+```bash
+# CRDs first — required before main chart
+helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
+  --namespace kagent-system \
+  --create-namespace
+
+helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
+  --namespace kagent-system
+
+kubectl -n kagent-system rollout status deployment/kagent-controller --timeout=120s
+```
+
+**Create the Azure OpenAI secret and configure the ModelConfig:**
+
+```bash
+# Get the API key
+AOAI_KEY=$(az cognitiveservices account keys list \
+  --name "preview-openai" --resource-group "<YOUR_RG>" \
+  --query "key1" -o tsv)
+
+# Secret for kagent agents
+kubectl create secret generic kagent-openai \
+  --namespace kagent-system \
+  --from-literal=OPENAI_API_KEY="$AOAI_KEY"
+
+# Secret for operator AI enrichment
+kubectl create secret generic azure-openai-credentials \
+  --namespace preview-operator-system \
+  --from-literal=api-key="$AOAI_KEY"
+
+# Configure ModelConfig
+kubectl patch modelconfig default-model-config -n kagent-system --type=merge -p '{
+  "spec": {
+    "provider": "AzureOpenAI",
+    "model": "gpt-4o-mini",
+    "apiKeySecret": "kagent-openai",
+    "apiKeySecretKey": "OPENAI_API_KEY",
+    "azureOpenAI": {
+      "azureEndpoint": "https://preview-openai-<ID>.openai.azure.com",
+      "azureDeployment": "gpt-4o-mini",
+      "apiVersion": "2024-10-21"
+    }
+  }
+}'
+
+# Deploy the troubleshooter agent (from idp-preview repo)
+kubectl apply -f ../idp-preview/k8s/kagent/rbac-readonly.yaml
+kubectl apply -f ../idp-preview/k8s/kagent/preview-troubleshooter-agent.yaml
 ```
 
 ### Upgrading the operator
 
 ```bash
-# Step 1 — CRD first (Helm never auto-updates CRDs)
-helm show crds oci://ghcr.io/ihsenalaya/charts/preview-operator --version 0.13.8 \
-  | tail -n +3 \
-  | kubectl apply -f -
+# Rebuild and reload
+docker build -t ghcr.io/ihsenalaya/preview-operator:<NEW_VERSION> .
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:<NEW_VERSION>
 
-# Step 2 — Operator image
-helm upgrade preview-operator \
-  oci://ghcr.io/ihsenalaya/charts/preview-operator \
-  --version 0.13.8 \
-  --namespace preview-operator-system
+# Apply updated CRD first
+kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
+
+# Upgrade Helm release
+helm upgrade preview-operator ./charts/preview-operator \
+  --namespace preview-operator-system \
+  --set image.tag=<NEW_VERSION> \
+  --reuse-values
 
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
 ```
 
-> **Why CRD first?** If a new operator version writes a new status field that is not in the CRD schema, the API server silently strips it on every write. The controller then re-writes it on the next reconcile, causing an **infinite reconcile loop** every few seconds. Always apply the CRD before the operator image.
+> **Why CRD first?** If a new operator version writes a new status field not in the CRD schema, the API server silently strips it, causing an **infinite reconcile loop**. Always apply the CRD before the operator image.
 
 ### Uninstalling
 

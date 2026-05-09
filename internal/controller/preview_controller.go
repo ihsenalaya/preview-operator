@@ -70,7 +70,7 @@ type PreviewReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kagent.dev,resources=tasks,verbs=get;create
+// +kubebuilder:rbac:groups=kagent.dev,resources=agents,verbs=get;create
 
 func (r *PreviewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -513,11 +513,11 @@ func appServiceURL(c *platformv1alpha1.Preview) string {
 		svc := c.Spec.Services[0]
 		port := svc.Port
 		if port == 0 {
-			port = 80
+			port = 8080
 		}
 		return fmt.Sprintf("http://%s:%d", serviceDeploymentName(svc.Name), port)
 	}
-	return "http://app:80"
+	return "http://app:8080"
 }
 
 // frontendServiceURL returns the in-cluster URL of the service with pathPrefix "/".
@@ -527,7 +527,7 @@ func frontendServiceURL(c *platformv1alpha1.Preview) string {
 		if svc.PathPrefix == "/" {
 			port := svc.Port
 			if port == 0 {
-				port = 80
+				port = 8080
 			}
 			return fmt.Sprintf("http://%s:%d", serviceDeploymentName(svc.Name), port)
 		}
@@ -870,7 +870,7 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 							Name:  "app",
 							Image: c.Spec.Image,
 							Ports: []corev1.ContainerPort{
-								{ContainerPort: 80, Protocol: corev1.ProtocolTCP},
+								{ContainerPort: 8080, Protocol: corev1.ProtocolTCP},
 							},
 							Env: env,
 							Resources: corev1.ResourceRequirements{
@@ -887,7 +887,7 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
-										Port: intstr.FromInt(80),
+										Port: intstr.FromInt(8080),
 									},
 								},
 								InitialDelaySeconds: 5,
@@ -956,7 +956,7 @@ func (r *PreviewReconciler) reconcileServiceDeployments(ctx context.Context, c *
 		}
 		port := svc.Port
 		if port == 0 {
-			port = 80
+			port = 8080
 		}
 
 		env := []corev1.EnvVar{
@@ -1033,7 +1033,7 @@ func (r *PreviewReconciler) reconcileMultiServices(ctx context.Context, c *platf
 		deployName := serviceDeploymentName(svc.Name)
 		port := svc.Port
 		if port == 0 {
-			port = 80
+			port = 8080
 		}
 		k8sSvc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: deployName, Namespace: nsName}}
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, k8sSvc, func() error {
@@ -1076,7 +1076,7 @@ func (r *PreviewReconciler) reconcileMultiServiceIngress(ctx context.Context, c 
 		}
 		port := svc.Port
 		if port == 0 {
-			port = 80
+			port = 8080
 		}
 		paths = append(paths, svcPath{prefix: svc.PathPrefix, svcName: serviceDeploymentName(svc.Name), port: port})
 	}
@@ -1255,7 +1255,7 @@ func (r *PreviewReconciler) reconcileService(ctx context.Context, c *platformv1a
 			Ports: []corev1.ServicePort{
 				{
 					Port:       80,
-					TargetPort: intstr.FromInt(80),
+					TargetPort: intstr.FromInt(8080),
 					Protocol:   corev1.ProtocolTCP,
 				},
 			},

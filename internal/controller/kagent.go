@@ -15,10 +15,11 @@ import (
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
-var kagentTaskGVK = schema.GroupVersionKind{
+// kagentAgentGVK is the GVK for the kagent Agent CR (v0.9+, v1alpha2).
+var kagentAgentGVK = schema.GroupVersionKind{
 	Group:   "kagent.dev",
-	Version: "v1alpha1",
-	Kind:    "Task",
+	Version: "v1alpha2",
+	Kind:    "Agent",
 }
 
 func kagentEnabled(c *platformv1alpha1.Preview) bool {
@@ -32,19 +33,14 @@ func kagentNamespace(c *platformv1alpha1.Preview) string {
 	return c.Spec.Kagent.Namespace
 }
 
-func kagentAgentName(c *platformv1alpha1.Preview) string {
-	if c.Spec.Kagent == nil || c.Spec.Kagent.AgentName == "" {
-		return "preview-troubleshooter-agent"
-	}
-	return c.Spec.Kagent.AgentName
-}
-
-func kagentTaskName(c *platformv1alpha1.Preview) string {
+func kagentAgentCRName(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("%s-failure-analysis", c.Name)
 }
 
-// triggerKagentAnalysis creates a kagent Task CR when the test suite has failed.
-// It is idempotent: if the Task already exists or was already recorded in status, it is a no-op.
+// triggerKagentAnalysis creates a kagent Agent CR when the test suite has failed.
+// The Agent is pre-loaded with the failure context as its system message so it is
+// immediately usable from the kagent UI without any manual configuration.
+// It is idempotent: if the Agent already exists or was already recorded in status, it is a no-op.
 func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 
@@ -58,47 +54,72 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 		return // already triggered
 	}
 
-	taskName := kagentTaskName(c)
+	agentName := kagentAgentCRName(c)
 	ns := kagentNamespace(c)
 
-	// Check if the Task already exists (e.g. created by a previous reconcile that crashed before status update).
 	existing := &unstructured.Unstructured{}
-	existing.SetGroupVersionKind(kagentTaskGVK)
-	err := r.Get(ctx, types.NamespacedName{Name: taskName, Namespace: ns}, existing)
+	existing.SetGroupVersionKind(kagentAgentGVK)
+	err := r.Get(ctx, types.NamespacedName{Name: agentName, Namespace: ns}, existing)
 	if err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "Failed to check kagent Task existence", "task", taskName)
+		logger.Error(err, "Failed to check kagent Agent existence", "agent", agentName)
 		return
 	}
 
 	if errors.IsNotFound(err) {
-		task := buildKagentTask(c, taskName, ns)
-		if createErr := r.Create(ctx, task); createErr != nil {
-			logger.Error(createErr, "Failed to create kagent Task", "task", taskName)
+		agent := buildKagentAgent(c, agentName, ns)
+		if createErr := r.Create(ctx, agent); createErr != nil {
+			logger.Error(createErr, "Failed to create kagent Agent", "agent", agentName)
 			return
 		}
-		logger.Info("Triggered kagent failure analysis", "task", taskName, "namespace", ns)
+		logger.Info("Created kagent failure-analysis Agent", "agent", agentName, "namespace", ns)
 	} else {
-		logger.Info("kagent Task already exists", "task", taskName)
+		logger.Info("kagent Agent already exists", "agent", agentName)
 	}
 
-	r.recordKagentTriggered(ctx, c, taskName)
+	r.recordKagentTriggered(ctx, c, agentName)
 }
 
-func buildKagentTask(c *platformv1alpha1.Preview, taskName, ns string) *unstructured.Unstructured {
-	task := &unstructured.Unstructured{}
-	task.SetGroupVersionKind(kagentTaskGVK)
-	task.SetName(taskName)
-	task.SetNamespace(ns)
-	task.SetLabels(map[string]string{
+func buildKagentAgent(c *platformv1alpha1.Preview, agentName, ns string) *unstructured.Unstructured {
+	agent := &unstructured.Unstructured{}
+	agent.SetGroupVersionKind(kagentAgentGVK)
+	agent.SetName(agentName)
+	agent.SetNamespace(ns)
+	agent.SetLabels(map[string]string{
 		labelManagedBy:   "preview-operator",
 		labelPreviewName: c.Name,
 	})
-	_ = unstructured.SetNestedField(task.Object, kagentAgentName(c), "spec", "agentRef", "name")
-	_ = unstructured.SetNestedField(task.Object, buildKagentPrompt(c), "spec", "prompt")
-	return task
+
+	// Build tools list: use the built-in kagent tool server for k8s inspection.
+	tools := []interface{}{
+		map[string]interface{}{
+			"type": "McpServer",
+			"mcpServer": map[string]interface{}{
+				"kind":     "RemoteMCPServer",
+				"apiGroup": "kagent.dev",
+				"name":     "kagent-tool-server",
+				"toolNames": []interface{}{
+					"k8s_get_pod_logs",
+					"k8s_get_resources",
+					"k8s_get_events",
+					"k8s_describe_resource",
+					"k8s_get_resource_yaml",
+				},
+			},
+		},
+	}
+
+	_ = unstructured.SetNestedField(agent.Object, "Declarative", "spec", "type")
+	_ = unstructured.SetNestedField(agent.Object,
+		fmt.Sprintf("Failure analysis agent for Preview %q (PR #%d)", c.Name, c.Spec.PRNumber),
+		"spec", "description")
+	_ = unstructured.SetNestedField(agent.Object, "default-model-config", "spec", "declarative", "modelConfig")
+	_ = unstructured.SetNestedField(agent.Object, buildKagentSystemMessage(c), "spec", "declarative", "systemMessage")
+	_ = unstructured.SetNestedSlice(agent.Object, tools, "spec", "declarative", "tools")
+
+	return agent
 }
 
-func buildKagentPrompt(c *platformv1alpha1.Preview) string {
+func buildKagentSystemMessage(c *platformv1alpha1.Preview) string {
 	tests := c.Status.Tests
 
 	var failedSuites []string
@@ -118,30 +139,33 @@ func buildKagentPrompt(c *platformv1alpha1.Preview) string {
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Analyze the test failure in Preview environment %q (PR #%d, branch %q).\n\n",
-		c.Name, c.Spec.PRNumber, c.Spec.Branch)
-	fmt.Fprintf(&b, "Namespace: %s\n", c.Status.NamespaceName)
+	fmt.Fprintf(&b, "You are a failure-analysis agent for the Preview environment %q.\n\n", c.Name)
+	fmt.Fprintf(&b, "Context:\n")
+	fmt.Fprintf(&b, "  PR #%d — branch %q\n", c.Spec.PRNumber, c.Spec.Branch)
+	fmt.Fprintf(&b, "  Namespace: %s\n", c.Status.NamespaceName)
 
 	if len(failedSuites) > 0 {
-		fmt.Fprintf(&b, "Failed suites: %s\n", strings.Join(failedSuites, ", "))
+		fmt.Fprintf(&b, "  Failed suites: %s\n", strings.Join(failedSuites, ", "))
 	}
 
 	if c.Spec.GitHub != nil && c.Spec.GitHub.Owner != "" {
-		fmt.Fprintf(&b, "GitHub repo: %s/%s — PR #%d\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo, c.Spec.PRNumber)
+		fmt.Fprintf(&b, "  GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
 	}
 
-	b.WriteString("\nInspect the namespace resources, job logs, and events. " +
-		"Then post a structured failure analysis as a GitHub PR comment " +
-		"following the format: Risk level / Failed suite / Evidence / Likely cause / Suggested fix / Confidence.")
+	b.WriteString("\nWhen asked to analyze the failure:\n")
+	b.WriteString("1. Inspect the namespace resources, pod logs, jobs, and events.\n")
+	b.WriteString("2. Identify the root cause of each failed test suite.\n")
+	b.WriteString("3. Post a structured failure analysis as a GitHub PR comment using this format:\n")
+	b.WriteString("   Risk level | Failed suite | Evidence | Likely cause | Suggested fix | Confidence\n")
 
 	return b.String()
 }
 
-func (r *PreviewReconciler) recordKagentTriggered(ctx context.Context, c *platformv1alpha1.Preview, taskName string) {
+func (r *PreviewReconciler) recordKagentTriggered(ctx context.Context, c *platformv1alpha1.Preview, agentName string) {
 	if c.Status.Kagent == nil {
 		c.Status.Kagent = &platformv1alpha1.KagentStatus{}
 	}
-	c.Status.Kagent.TaskName = taskName
+	c.Status.Kagent.TaskName = agentName
 	now := metav1.Now()
 	c.Status.Kagent.TriggeredAt = &now
 	_ = r.Status().Update(ctx, c)

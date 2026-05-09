@@ -31,7 +31,7 @@ const (
 	defaultAISecretNamespace = "preview-operator-system"
 	defaultAISecretKey       = "api-key"
 	defaultAISchemaDumpImage = "postgres:15-alpine"
-	defaultAIInternalAppURL  = "http://app:80"
+	defaultAIInternalAppURL  = "http://app:8080"
 	defaultAITestImage       = "python:3.12-slim"
 	aiPromptConfigMapKey     = "instructions"
 	aiSystemPromptKey        = "ai-system-prompt.txt"
