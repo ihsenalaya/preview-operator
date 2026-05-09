@@ -375,7 +375,7 @@ func githubFailedCommentBody(c *platformv1alpha1.Preview) string {
 		}
 	} else {
 		b.WriteString(fmt.Sprintf("\nReason: `%s`\n", githubDescriptionForPhase(c)))
-		b.WriteString(fmt.Sprintf("\nRun `kubectl describe cellenza %s` for details.\n", c.Name))
+		b.WriteString(fmt.Sprintf("\nRun `kubectl describe preview %s` for details.\n", c.Name))
 	}
 
 	return b.String()
@@ -564,9 +564,15 @@ func (r *PreviewReconciler) postKagentComment(ctx context.Context, c *platformv1
 		return 0, fmt.Errorf("read GitHub token: %w", err)
 	}
 
-	body := analysis
+	// Strip markdown code block wrapping that agents sometimes add around their full response.
+	body := strings.TrimSpace(analysis)
+	if strings.HasPrefix(body, "```") {
+		if end := strings.LastIndex(body, "```"); end > 3 {
+			body = strings.TrimSpace(body[strings.Index(body, "\n")+1 : end])
+		}
+	}
 	if !strings.HasPrefix(body, "## AI Failure Analysis") {
-		body = "## AI Failure Analysis by kagent\n\n" + analysis
+		body = "## AI Failure Analysis by kagent\n\n" + body
 	}
 
 	// If a comment already exists from a previous run, update it (PATCH).
