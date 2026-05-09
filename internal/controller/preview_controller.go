@@ -240,6 +240,12 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 		if result, err := r.reconcileTestSuite(ctx, preview, nsName); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
+		// Retry kagent analysis on every reconcile until it succeeds (CommentID set).
+		r.triggerKagentAnalysis(ctx, preview)
+		if kagentEnabled(preview) && preview.Status.Kagent != nil &&
+			preview.Status.Kagent.Phase == phaseFailed && preview.Status.Kagent.CommentID == 0 {
+			return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
+		}
 	}
 
 	remaining := ttlRemaining(preview)

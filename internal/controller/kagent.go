@@ -47,7 +47,12 @@ type a2aResponse struct {
 }
 
 type a2aResult struct {
-	Status *a2aStatus `json:"status"`
+	Status    *a2aStatus     `json:"status"`
+	Artifacts []a2aArtifact  `json:"artifacts"`
+}
+
+type a2aArtifact struct {
+	Parts []a2aAgentPart `json:"parts"`
 }
 
 type a2aStatus struct {
@@ -187,18 +192,25 @@ func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1al
 	if a2aResp.Result.Status.State == "failed" {
 		return "", fmt.Errorf("agent returned failed state")
 	}
-	if a2aResp.Result.Status.Message == nil {
-		return "", fmt.Errorf("agent returned no message")
-	}
 
+	// Collect text from artifacts first (kagent v0.9+), then fall back to status.message.
 	var texts []string
-	for _, part := range a2aResp.Result.Status.Message.Parts {
-		if part.Kind == "text" && part.Text != "" {
-			texts = append(texts, part.Text)
+	for _, artifact := range a2aResp.Result.Artifacts {
+		for _, part := range artifact.Parts {
+			if part.Kind == "text" && part.Text != "" {
+				texts = append(texts, part.Text)
+			}
+		}
+	}
+	if len(texts) == 0 && a2aResp.Result.Status.Message != nil {
+		for _, part := range a2aResp.Result.Status.Message.Parts {
+			if part.Kind == "text" && part.Text != "" {
+				texts = append(texts, part.Text)
+			}
 		}
 	}
 	if len(texts) == 0 {
-		return "", fmt.Errorf("agent returned empty text parts")
+		return "", fmt.Errorf("agent returned empty response")
 	}
 	return strings.Join(texts, "\n"), nil
 }
