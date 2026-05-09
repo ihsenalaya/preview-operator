@@ -564,7 +564,10 @@ func (r *PreviewReconciler) postKagentComment(ctx context.Context, c *platformv1
 		return 0, fmt.Errorf("read GitHub token: %w", err)
 	}
 
-	body := "## AI Failure Analysis by kagent\n\n" + analysis
+	body := analysis
+	if !strings.HasPrefix(body, "## AI Failure Analysis") {
+		body = "## AI Failure Analysis by kagent\n\n" + analysis
+	}
 
 	// If a comment already exists from a previous run, update it (PATCH).
 	if c.Status.Kagent != nil && c.Status.Kagent.CommentID != 0 {
@@ -627,7 +630,7 @@ func (r *PreviewReconciler) githubRequest(ctx context.Context, method, token, pa
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if readErr != nil {
 			return fmt.Errorf("GitHub API returned %s", resp.Status)
