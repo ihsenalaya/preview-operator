@@ -444,13 +444,17 @@ type TestSuiteStatus struct {
 	Phase string `json:"phase,omitempty"`
 
 	// Step tracks the current stage in the sequential pipeline:
-	// saving → smoke → restore-regression → regression → restore-e2e → e2e
+	// saving → smoke → contract → restore-regression → regression → restore-e2e → e2e
 	// +optional
 	Step string `json:"step,omitempty"`
 
 	// Smoke holds the smoke test results.
 	// +optional
 	Smoke TestResult `json:"smoke,omitempty"`
+
+	// Contract holds the Microcks contract test results.
+	// +optional
+	Contract TestResult `json:"contract,omitempty"`
 
 	// Regression holds the regression test results.
 	// +optional
@@ -477,6 +481,49 @@ type TestRunSpec struct {
 	Image string `json:"image,omitempty"`
 }
 
+// ContractTestingSpec configures Microcks API contract tests run after smoke tests.
+type ContractTestingSpec struct {
+	// Enabled controls whether Microcks contract tests run after smoke tests.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// MicrocksURL is the in-cluster base URL of the Microcks instance
+	// (e.g. "http://microcks.microcks.svc.cluster.local:8080").
+	// +kubebuilder:validation:MinLength=1
+	MicrocksURL string `json:"microcksURL"`
+
+	// APIName is the name of the API as registered in Microcks.
+	// +kubebuilder:default="Preview Catalog API"
+	// +optional
+	APIName string `json:"apiName,omitempty"`
+
+	// APIVersion is the version of the API in Microcks.
+	// +kubebuilder:default="1.0.0"
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
+
+	// TestRunner is the Microcks test runner type.
+	// +kubebuilder:default="OPEN_API_SCHEMA"
+	// +kubebuilder:validation:Enum=OPEN_API_SCHEMA;POSTMAN;HTTP
+	// +optional
+	TestRunner string `json:"testRunner,omitempty"`
+
+	// TimeoutSeconds is the maximum wait time in seconds for the Microcks test to complete.
+	// +kubebuilder:default=60
+	// +optional
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+
+	// CredentialsSecretName is the name of a Secret in the preview namespace containing
+	// keys "client_id" and "client_secret" for Microcks OAuth2.
+	// When empty, Microcks is accessed without authentication.
+	// +optional
+	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
+
+	// KeycloakURL is the Keycloak token endpoint used when CredentialsSecretName is set.
+	// +optional
+	KeycloakURL string `json:"keycloakURL,omitempty"`
+}
+
 // TestSuiteSpec configures the automated test suite run by the operator after deployment.
 type TestSuiteSpec struct {
 	// Enabled controls whether the test suite runs after the environment is ready.
@@ -486,6 +533,10 @@ type TestSuiteSpec struct {
 	// Smoke configures the smoke test job (health check endpoints).
 	// +optional
 	Smoke *TestRunSpec `json:"smoke,omitempty"`
+
+	// ContractTesting configures Microcks API contract tests run after smoke tests.
+	// +optional
+	ContractTesting *ContractTestingSpec `json:"contractTesting,omitempty"`
 
 	// Regression configures the regression test job (existing endpoints).
 	// Default command: sh -c "pip install requests -q && python /app/tests/regression.py"
@@ -549,14 +600,15 @@ type PreviewStatus struct {
 
 // Condition types
 const (
-	ConditionReady             = "Ready"
-	ConditionApproved          = "Approved"
-	ConditionExpired           = "Expired"
-	ConditionDatabaseReady     = "DatabaseReady"
-	ConditionMigrationReady    = "MigrationReady"
-	ConditionSeedReady         = "SeedReady"
-	ConditionAIEnrichmentReady = "AIEnrichmentReady"
-	ConditionTestSuiteReady    = "TestSuiteReady"
+	ConditionReady              = "Ready"
+	ConditionApproved           = "Approved"
+	ConditionExpired            = "Expired"
+	ConditionDatabaseReady      = "DatabaseReady"
+	ConditionMigrationReady     = "MigrationReady"
+	ConditionSeedReady          = "SeedReady"
+	ConditionAIEnrichmentReady  = "AIEnrichmentReady"
+	ConditionContractTestReady  = "ContractTestReady"
+	ConditionTestSuiteReady     = "TestSuiteReady"
 )
 
 // DatabaseStatus describes the observed database state for the preview environment.

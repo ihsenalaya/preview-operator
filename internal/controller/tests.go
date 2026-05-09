@@ -21,16 +21,91 @@ import (
 
 const (
 	smokeJobName       = "smoke-tests"
+	microcksJobName    = "microcks-contract-tests"
 	regressionJobName  = "regression-tests"
 	e2eJobName         = "e2e-tests"
 	testSuiteConfigMap = "preview-test-suite"
 
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
+	suiteStepContract          = "contract"
 	suiteStepRestoreRegression = "restore-regression"
 	suiteStepRegression        = "regression"
 	suiteStepRestoreE2E        = "restore-e2e"
 	suiteStepE2E               = "e2e"
+
+	// microcksContractScript is the Python script that drives Microcks contract tests.
+	// Uses only stdlib so it runs in python:3.11-slim without pip install.
+	microcksContractScript = `import sys,os,json,time
+try:
+    import urllib.request,urllib.error,urllib.parse
+except ImportError:
+    print("FAIL contract: urllib not available")
+    sys.exit(1)
+MICROCKS_URL=os.environ.get('MICROCKS_URL','').rstrip('/')
+BACKEND_URL=os.environ.get('BACKEND_URL','')
+API_NAME=os.environ.get('API_NAME','Preview Catalog API')
+API_VERSION=os.environ.get('API_VERSION','1.0.0')
+TEST_RUNNER=os.environ.get('TEST_RUNNER','OPEN_API_SCHEMA')
+TIMEOUT_MS=int(os.environ.get('TEST_TIMEOUT_MS','60000'))
+CLIENT_ID=os.environ.get('MICROCKS_CLIENT_ID','')
+CLIENT_SECRET=os.environ.get('MICROCKS_CLIENT_SECRET','')
+KEYCLOAK_URL=os.environ.get('MICROCKS_KEYCLOAK_URL','')
+def http_json(url,method='GET',data=None,hdrs={}):
+    body=json.dumps(data).encode() if data else None
+    req=urllib.request.Request(url,data=body,method=method,headers={'Content-Type':'application/json','Accept':'application/json',**hdrs})
+    try:
+        with urllib.request.urlopen(req,timeout=15) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        raise Exception('HTTP '+str(e.code)+': '+e.read().decode()[:200])
+token=''
+if CLIENT_ID and CLIENT_SECRET and KEYCLOAK_URL:
+    try:
+        data=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':CLIENT_ID,'client_secret':CLIENT_SECRET}).encode()
+        req=urllib.request.Request(KEYCLOAK_URL,data=data,method='POST',headers={'Content-Type':'application/x-www-form-urlencoded'})
+        with urllib.request.urlopen(req,timeout=10) as r:
+            token=json.loads(r.read()).get('access_token','')
+        print('  auth: token obtained')
+    except Exception as e:
+        print('  WARN auth: '+str(e))
+auth={'Authorization':'Bearer '+token} if token else {}
+try:
+    payload={'serviceId':API_NAME+':'+API_VERSION,'testEndpoint':BACKEND_URL,'runnerType':TEST_RUNNER,'timeout':TIMEOUT_MS}
+    result=http_json(MICROCKS_URL+'/api/tests','POST',payload,auth)
+    test_id=result.get('id','')
+    if not test_id:
+        print('FAIL contract: no test id from Microcks')
+        sys.exit(1)
+    print('  submitted test '+test_id)
+except Exception as e:
+    print('FAIL contract: submit failed: '+str(e))
+    sys.exit(1)
+max_poll=int(TIMEOUT_MS/1000/5)+6
+for i in range(max_poll):
+    time.sleep(5)
+    try:
+        result=http_json(MICROCKS_URL+'/api/tests/'+test_id,hdrs=auth)
+    except Exception as e:
+        print('  WARN poll: '+str(e))
+        continue
+    if result.get('inProgress',True):
+        continue
+    p,f=0,0
+    for tc in result.get('testCaseResults',[]):
+        for step in tc.get('testStepResults',[]):
+            op=step.get('operationName','?')
+            if step.get('success',False):
+                print('PASS contract '+op)
+                p+=1
+            else:
+                print('FAIL contract '+op+': '+step.get('message','schema violation'))
+                f+=1
+    print('Results: '+str(p)+' passed, '+str(f)+' failed')
+    sys.exit(1 if f>0 else 0)
+print('FAIL contract: timeout')
+sys.exit(1)
+`
 
 	testJobCPURequest    = "50m"
 	testJobMemoryRequest = "128Mi"
@@ -68,6 +143,13 @@ sys.exit(1 if f>0 else 0)
 
 func testSuiteEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.TestSuite != nil && c.Spec.TestSuite.Enabled
+}
+
+func contractTestEnabled(c *platformv1alpha1.Preview) bool {
+	if c.Spec.TestSuite == nil || c.Spec.TestSuite.ContractTesting == nil {
+		return false
+	}
+	return c.Spec.TestSuite.ContractTesting.Enabled
 }
 
 func smokeEnabled(c *platformv1alpha1.Preview) bool {
@@ -168,6 +250,31 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		} else {
 			tests.Smoke.Phase = phaseSkipped
 		}
+		if contractTestEnabled(c) {
+			tests.Step = suiteStepContract
+		} else if dbEnabled && regressionEnabled(c) {
+			tests.Step = suiteStepRestoreRegression
+		} else {
+			tests.Step = suiteStepRegression
+		}
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepContract:
+		state, output := r.checkOrCreateTestJob(ctx, c, nsName, microcksJobName, r.microcksContractTestJob(c, nsName))
+		tests.Contract.Phase = state
+		tests.Contract.Output = output
+		tests.Contract.Passed, tests.Contract.Failed = countTestResults(output)
+		if !testResultFinal(state) {
+			tests.Phase = phaseRunning
+			if err := r.Status().Update(ctx, c); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+		// Contract failure does not block regression — continue pipeline regardless.
 		if dbEnabled && regressionEnabled(c) {
 			tests.Step = suiteStepRestoreRegression
 		} else {
@@ -251,6 +358,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 	}
 
 	anyFailed := tests.Smoke.Phase == phaseFailed ||
+		tests.Contract.Phase == phaseFailed ||
 		tests.Regression.Phase == phaseFailed ||
 		tests.E2E.Phase == phaseFailed
 	if anyFailed {
@@ -328,7 +436,8 @@ func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *pla
 			"app.kubernetes.io/component": "test-suite",
 		}
 		cm.Data = map[string]string{
-			"smoke.py": smokeScript,
+			"smoke.py":    smokeScript,
+			"microcks.py": microcksContractScript,
 		}
 		return nil
 	})
@@ -351,6 +460,112 @@ func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName str
 		corev1.EnvVar{Name: "APP_URL", Value: appServiceURL(c)},
 	)
 	return job
+}
+
+func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
+	ct := c.Spec.TestSuite.ContractTesting
+	backoffLimit := int32(0)
+	ttl := int32(600)
+
+	apiName := ct.APIName
+	if apiName == "" {
+		apiName = "Preview Catalog API"
+	}
+	apiVersion := ct.APIVersion
+	if apiVersion == "" {
+		apiVersion = "1.0.0"
+	}
+	testRunner := ct.TestRunner
+	if testRunner == "" {
+		testRunner = "OPEN_API_SCHEMA"
+	}
+	timeoutSec := ct.TimeoutSeconds
+	if timeoutSec == 0 {
+		timeoutSec = 60
+	}
+
+	env := []corev1.EnvVar{
+		{Name: "MICROCKS_URL", Value: ct.MicrocksURL},
+		{Name: "BACKEND_URL", Value: appServiceURL(c)},
+		{Name: "API_NAME", Value: apiName},
+		{Name: "API_VERSION", Value: apiVersion},
+		{Name: "TEST_RUNNER", Value: testRunner},
+		{Name: "TEST_TIMEOUT_MS", Value: fmt.Sprintf("%d", int(timeoutSec)*1000)},
+	}
+
+	if ct.KeycloakURL != "" {
+		env = append(env, corev1.EnvVar{Name: "MICROCKS_KEYCLOAK_URL", Value: ct.KeycloakURL})
+	}
+
+	if ct.CredentialsSecretName != "" {
+		optional := true
+		env = append(env,
+			corev1.EnvVar{
+				Name: "MICROCKS_CLIENT_ID",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: ct.CredentialsSecretName},
+						Key:                  "client_id",
+						Optional:             &optional,
+					},
+				},
+			},
+			corev1.EnvVar{
+				Name: "MICROCKS_CLIENT_SECRET",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: ct.CredentialsSecretName},
+						Key:                  "client_secret",
+						Optional:             &optional,
+					},
+				},
+			},
+		)
+	}
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      microcksJobName,
+			Namespace: nsName,
+			Labels:    testJobLabels(c, microcksJobName),
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:           c.Name,
+						"platform.company.io/task": microcksJobName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{{
+						Name:            microcksJobName,
+						Image:           "python:3.11-slim",
+						Command:         []string{"python", "/data/microcks.py"},
+						Env:             env,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Resources:       testJobResources(),
+						VolumeMounts: []corev1.VolumeMount{
+							{Name: "test-data", MountPath: "/data"},
+						},
+					}},
+					Volumes: []corev1.Volume{{
+						Name: "test-data",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{Name: testSuiteConfigMap},
+								Items:                []corev1.KeyToPath{{Key: "microcks.py", Path: "microcks.py"}},
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
 }
 
 func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {
@@ -627,6 +842,9 @@ func buildTestSuiteSummary(tests *platformv1alpha1.TestSuiteStatus) string {
 	parts := []string{}
 	if tests.Smoke.Phase != "" && tests.Smoke.Phase != phaseSkipped {
 		parts = append(parts, fmt.Sprintf("smoke=%s(%dp/%df)", tests.Smoke.Phase, tests.Smoke.Passed, tests.Smoke.Failed))
+	}
+	if tests.Contract.Phase != "" && tests.Contract.Phase != phaseSkipped {
+		parts = append(parts, fmt.Sprintf("contract=%s(%dp/%df)", tests.Contract.Phase, tests.Contract.Passed, tests.Contract.Failed))
 	}
 	if tests.Regression.Phase != "" && tests.Regression.Phase != phaseSkipped {
 		parts = append(parts, fmt.Sprintf("regression=%s(%dp/%df)", tests.Regression.Phase, tests.Regression.Passed, tests.Regression.Failed))

@@ -475,19 +475,29 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
 	b.WriteString("|-------|--------|--------|--------|\n")
 	b.WriteString(fmt.Sprintf("| Smoke | %s | %d | %d |\n",
 		testResultBadge(tests.Smoke.Phase), tests.Smoke.Passed, tests.Smoke.Failed))
+	if contractTestEnabled(c) || tests.Contract.Phase != "" {
+		b.WriteString(fmt.Sprintf("| Contract (Microcks) | %s | %d | %d |\n",
+			testResultBadge(tests.Contract.Phase), tests.Contract.Passed, tests.Contract.Failed))
+	}
 	b.WriteString(fmt.Sprintf("| Regression | %s | %d | %d |\n",
 		testResultBadge(tests.Regression.Phase), tests.Regression.Passed, tests.Regression.Failed))
 	b.WriteString(fmt.Sprintf("| E2E | %s | %d | %d |\n",
 		testResultBadge(tests.E2E.Phase), tests.E2E.Passed, tests.E2E.Failed))
 
-	for _, suite := range []struct {
+	suites := []struct {
 		name   string
 		result platformv1alpha1.TestResult
+		show   bool
 	}{
-		{"Smoke", tests.Smoke},
-		{"Regression", tests.Regression},
-		{"E2E", tests.E2E},
-	} {
+		{"Smoke", tests.Smoke, true},
+		{"Contract (Microcks)", tests.Contract, contractTestEnabled(c) || tests.Contract.Phase != ""},
+		{"Regression", tests.Regression, true},
+		{"E2E", tests.E2E, true},
+	}
+	for _, suite := range suites {
+		if !suite.show {
+			continue
+		}
 		if len(suite.result.Output) > 0 {
 			b.WriteString(fmt.Sprintf("\n<details>\n<summary>%s Details</summary>\n\n```\n", suite.name))
 			for _, line := range suite.result.Output {

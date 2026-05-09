@@ -334,6 +334,7 @@ func (r *PreviewReconciler) resetDerivedStateForNewGeneration(ctx context.Contex
 
 	for _, name := range []string{
 		smokeJobName,
+		microcksJobName,
 		regressionJobName,
 		e2eJobName,
 		aiSeedJobName,
@@ -624,6 +625,7 @@ func (r *PreviewReconciler) deleteKnownChildren(ctx context.Context, nsName stri
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: migrationJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: seedJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: microcksJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: regressionJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: e2eJobName, Namespace: nsName}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
@@ -728,6 +730,12 @@ func (r *PreviewReconciler) reconcileResourceQuota(ctx context.Context, c *platf
 		memLimit.Add(resource.MustParse(e2eJobMemoryLimit))
 		cpuReq.Add(resource.MustParse(e2eJobCPURequest))
 		memReq.Add(resource.MustParse(e2eJobMemoryRequest))
+		if contractTestEnabled(c) {
+			cpuLimit.Add(resource.MustParse(testJobCPULimit))
+			memLimit.Add(resource.MustParse(testJobMemoryLimit))
+			cpuReq.Add(resource.MustParse(testJobCPURequest))
+			memReq.Add(resource.MustParse(testJobMemoryRequest))
+		}
 	}
 
 	quota := &corev1.ResourceQuota{
@@ -1760,6 +1768,7 @@ func (r *PreviewReconciler) deleteDatabaseJobs(ctx context.Context, nsName strin
 func (r *PreviewReconciler) deleteTestSuiteJobs(ctx context.Context, nsName string) error {
 	jobs := []client.Object{
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: nsName}},
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: microcksJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: regressionJobName, Namespace: nsName}},
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: e2eJobName, Namespace: nsName}},
 	}

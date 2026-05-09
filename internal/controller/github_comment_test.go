@@ -9,10 +9,10 @@ import (
 
 func TestBuildTestResultsCommentBodyIncludesAIEnrichment(t *testing.T) {
 	c := &platformv1alpha1.Preview{
-		Spec: platformv1alpha1.CellenzaSpec{
+		Spec: platformv1alpha1.PreviewSpec{
 			AIEnrichment: &platformv1alpha1.AIEnrichmentSpec{Enabled: true},
 		},
-		Status: platformv1alpha1.CellenzaStatus{
+		Status: platformv1alpha1.PreviewStatus{
 			URL: "http://pr-34.preview.localtest.me:8080",
 			Tests: &platformv1alpha1.TestSuiteStatus{
 				Phase: phaseFailed,
