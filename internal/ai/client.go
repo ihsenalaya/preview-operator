@@ -72,12 +72,22 @@ func (c *Client) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/chat/completions", bytes.NewReader(body))
+	endpoint := c.BaseURL + "/chat/completions"
+	isAzure := strings.Contains(c.BaseURL, "azure.com")
+	if isAzure {
+		endpoint += "?api-version=2024-10-21"
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
+	if isAzure {
+		httpReq.Header.Set("api-key", c.APIKey)
+	} else {
+		httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
+	}
 
 	client := c.HTTPClient
 	if client == nil {
