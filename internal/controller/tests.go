@@ -372,6 +372,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		return ctrl.Result{}, err
 	}
 	r.postTestResultsComment(ctx, c)
+	r.triggerKagentAnalysis(ctx, c)
 	return ctrl.Result{}, nil
 }
 

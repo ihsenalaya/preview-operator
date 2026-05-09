@@ -70,6 +70,7 @@ type PreviewReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kagent.dev,resources=tasks,verbs=get;create
 
 func (r *PreviewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -356,6 +357,7 @@ func (r *PreviewReconciler) resetDerivedStateForNewGeneration(ctx context.Contex
 	c.Status.ObservedGeneration = c.Generation
 	c.Status.Tests = nil
 	c.Status.AIEnrichment = nil
+	c.Status.Kagent = nil
 	if c.Status.GitHub != nil {
 		c.Status.GitHub.TestsCommentID = 0
 		c.Status.GitHub.CommentID = 0

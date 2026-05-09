@@ -324,6 +324,34 @@ type ServiceSpec struct {
 	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
+// KagentIntegrationSpec configures automatic kagent failure analysis.
+type KagentIntegrationSpec struct {
+	// Enabled controls whether kagent is triggered when the test suite fails.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Namespace is the namespace where kagent runs.
+	// +kubebuilder:default="kagent-system"
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// AgentName is the kagent Agent CR to trigger.
+	// +kubebuilder:default="preview-troubleshooter-agent"
+	// +optional
+	AgentName string `json:"agentName,omitempty"`
+}
+
+// KagentStatus describes the kagent analysis triggered for this preview.
+type KagentStatus struct {
+	// TaskName is the name of the kagent Task CR created in the kagent namespace.
+	// +optional
+	TaskName string `json:"taskName,omitempty"`
+
+	// TriggeredAt is when the kagent Task was created.
+	// +optional
+	TriggeredAt *metav1.Time `json:"triggeredAt,omitempty"`
+}
+
 // PreviewSpec defines the desired state
 type PreviewSpec struct {
 	// Branch is the git branch name for this preview environment
@@ -385,6 +413,10 @@ type PreviewSpec struct {
 	// optional ingress path. All other add-ons (database, telemetry, AI enrichment, test suite) continue to work.
 	// +optional
 	Services []ServiceSpec `json:"services,omitempty"`
+
+	// Kagent configures automatic AI failure analysis via kagent when the test suite fails.
+	// +optional
+	Kagent *KagentIntegrationSpec `json:"kagent,omitempty"`
 }
 
 // GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.
@@ -596,6 +628,10 @@ type PreviewStatus struct {
 	// ReadyAt is the timestamp when the environment first reached the Running phase.
 	// +optional
 	ReadyAt *metav1.Time `json:"readyAt,omitempty"`
+
+	// Kagent describes the kagent analysis triggered when the test suite failed.
+	// +optional
+	Kagent *KagentStatus `json:"kagent,omitempty"`
 }
 
 // Condition types
