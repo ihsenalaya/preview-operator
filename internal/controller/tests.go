@@ -21,6 +21,7 @@ import (
 
 const (
 	smokeJobName       = "smoke-tests"
+	microcksImportJob  = "microcks-import"
 	microcksJobName    = "microcks-contract-tests"
 	regressionJobName  = "regression-tests"
 	e2eJobName         = "e2e-tests"
@@ -28,11 +29,48 @@ const (
 
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
+	suiteStepImportSpec        = "import-spec"
 	suiteStepContract          = "contract"
 	suiteStepRestoreRegression = "restore-regression"
 	suiteStepRegression        = "regression"
 	suiteStepRestoreE2E        = "restore-e2e"
 	suiteStepE2E               = "e2e"
+
+	// microcksImportScript fetches an OpenAPI spec from a URL and imports it into Microcks.
+	// Uses only stdlib — runs in python:3.11-slim without pip install.
+	microcksImportScript = `import os,sys,urllib.request,urllib.parse,json
+KEYCLOAK=os.environ['MICROCKS_KEYCLOAK_URL'].rstrip('/')
+MICROCKS=os.environ['MICROCKS_URL'].rstrip('/')
+CLIENT_ID=os.environ.get('MICROCKS_CLIENT_ID','microcks-serviceaccount')
+SECRET=os.environ.get('MICROCKS_CLIENT_SECRET','ab54d329-e435-41ae-a900-ec6b3fe15c54')
+USER=os.environ.get('MICROCKS_USERNAME','manager')
+PASSWD=os.environ.get('MICROCKS_PASSWORD','microcks123')
+SPEC_URL=os.environ['SPEC_URL']
+print('Fetching spec from',SPEC_URL)
+with urllib.request.urlopen(SPEC_URL,timeout=15) as r:
+    spec_bytes=r.read()
+print('Spec fetched:',len(spec_bytes),'bytes')
+payload=urllib.parse.urlencode({'grant_type':'password','client_id':CLIENT_ID,'client_secret':SECRET,'username':USER,'password':PASSWD}).encode()
+req=urllib.request.Request(KEYCLOAK+'/protocol/openid-connect/token',data=payload,method='POST',headers={'Content-Type':'application/x-www-form-urlencoded'})
+with urllib.request.urlopen(req,timeout=10) as r:
+    token=json.loads(r.read())['access_token']
+print('Token obtained')
+boundary=b'----MicrocksImport'
+body=b'--'+boundary+b'\r\nContent-Disposition: form-data; name="file"; filename="openapi.yaml"\r\nContent-Type: application/yaml\r\n\r\n'+spec_bytes+b'\r\n--'+boundary+b'--\r\n'
+req2=urllib.request.Request(MICROCKS+'/api/artifact/upload?mainArtifact=true',data=body,method='POST',headers={'Authorization':'Bearer '+token,'Content-Type':'multipart/form-data; boundary='+boundary.decode()})
+try:
+    with urllib.request.urlopen(req2,timeout=30) as r:
+        raw=r.read()
+        try:
+            result=json.loads(raw)
+            names=[s.get('name','')+':'+s.get('version','') for s in result] if isinstance(result,list) else [str(result)]
+            print('Microcks import OK:',', '.join(names))
+        except (json.JSONDecodeError,ValueError):
+            print('Microcks import OK (status',r.status,')')
+except urllib.error.HTTPError as e:
+    print('Microcks import error:',e.code,e.read().decode()[:300],file=sys.stderr)
+    sys.exit(1)
+`
 
 	// microcksContractScript is the Python script that drives Microcks contract tests.
 	// Uses only stdlib so it runs in python:3.11-slim without pip install.
@@ -250,13 +288,31 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		} else {
 			tests.Smoke.Phase = phaseSkipped
 		}
-		if contractTestEnabled(c) {
+		if contractTestEnabled(c) && c.Spec.TestSuite.ContractTesting.SpecURL != "" {
+			tests.Step = suiteStepImportSpec
+		} else if contractTestEnabled(c) {
 			tests.Step = suiteStepContract
 		} else if dbEnabled && regressionEnabled(c) {
 			tests.Step = suiteStepRestoreRegression
 		} else {
 			tests.Step = suiteStepRegression
 		}
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepImportSpec:
+		state, _ := r.checkOrCreateTestJob(ctx, c, nsName, microcksImportJob, r.microcksImportJob(c, nsName))
+		if !testResultFinal(state) {
+			tests.Phase = phaseRunning
+			if err := r.Status().Update(ctx, c); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		// Import failure is non-blocking — contract test will just return 0 results.
+		tests.Step = suiteStepContract
 		if err := r.Status().Update(ctx, c); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -437,8 +493,9 @@ func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *pla
 			"app.kubernetes.io/component": "test-suite",
 		}
 		cm.Data = map[string]string{
-			"smoke.py":    smokeScript,
-			"microcks.py": microcksContractScript,
+			"smoke.py":          smokeScript,
+			"microcks.py":       microcksContractScript,
+			"microcks-import.py": microcksImportScript,
 		}
 		return nil
 	})
@@ -463,6 +520,97 @@ func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName str
 	return job
 }
 
+func (r *PreviewReconciler) microcksImportJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
+	ct := c.Spec.TestSuite.ContractTesting
+	backoffLimit := int32(0)
+	ttl := int32(300)
+
+	keycloakURL := ct.KeycloakURL
+	if keycloakURL == "" {
+		// Default: derive from MicrocksURL by replacing host
+		keycloakURL = "http://microcks-keycloak.microcks.svc.cluster.local:8080/realms/microcks"
+	}
+	username := ct.ImportUsername
+	if username == "" {
+		username = "manager"
+	}
+	password := ct.ImportPassword
+	if password == "" {
+		password = "microcks123"
+	}
+
+	env := []corev1.EnvVar{
+		{Name: "MICROCKS_KEYCLOAK_URL", Value: keycloakURL},
+		{Name: "MICROCKS_URL", Value: ct.MicrocksURL},
+		{Name: "MICROCKS_USERNAME", Value: username},
+		{Name: "MICROCKS_PASSWORD", Value: password},
+		{Name: "SPEC_URL", Value: ct.SpecURL},
+	}
+	if ct.CredentialsSecretName != "" {
+		optional := true
+		env = append(env,
+			corev1.EnvVar{Name: "MICROCKS_CLIENT_ID", ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: ct.CredentialsSecretName},
+					Key:                  "client_id", Optional: &optional,
+				},
+			}},
+			corev1.EnvVar{Name: "MICROCKS_CLIENT_SECRET", ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: ct.CredentialsSecretName},
+					Key:                  "client_secret", Optional: &optional,
+				},
+			}},
+		)
+	}
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      microcksImportJob,
+			Namespace: nsName,
+			Labels:    testJobLabels(c, microcksImportJob),
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:           c.Name,
+						"platform.company.io/task": microcksImportJob,
+					},
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{{
+						Name:            microcksImportJob,
+						Image:           "python:3.11-slim",
+						Command:         []string{"python", "/data/microcks-import.py"},
+						Env:             env,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Resources:       testJobResources(),
+						VolumeMounts: []corev1.VolumeMount{
+							{Name: "test-data", MountPath: "/data"},
+						},
+					}},
+					Volumes: []corev1.Volume{{
+						Name: "test-data",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{Name: testSuiteConfigMap},
+								Items: []corev1.KeyToPath{
+									{Key: "microcks-import.py", Path: "microcks-import.py"},
+								},
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+}
+
 func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
 	ct := c.Spec.TestSuite.ContractTesting
 	backoffLimit := int32(0)
@@ -485,9 +633,10 @@ func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview,
 		timeoutSec = 60
 	}
 
+	backendFQDN := appServiceFQDN(c, nsName)
 	env := []corev1.EnvVar{
 		{Name: "MICROCKS_URL", Value: ct.MicrocksURL},
-		{Name: "BACKEND_URL", Value: appServiceURL(c)},
+		{Name: "BACKEND_URL", Value: backendFQDN},
 		{Name: "API_NAME", Value: apiName},
 		{Name: "API_VERSION", Value: apiVersion},
 		{Name: "TEST_RUNNER", Value: testRunner},

@@ -301,6 +301,24 @@ spec:
                 description: Image is the container image to deploy
                 minLength: 1
                 type: string
+              kagent:
+                description: Kagent configures automatic AI failure analysis via kagent
+                  when the test suite fails.
+                properties:
+                  agentName:
+                    default: preview-troubleshooter-agent
+                    description: AgentName is the kagent Agent CR to trigger.
+                    type: string
+                  enabled:
+                    default: false
+                    description: Enabled controls whether kagent is triggered when
+                      the test suite fails.
+                    type: boolean
+                  namespace:
+                    default: kagent-system
+                    description: Namespace is the namespace where kagent runs.
+                    type: string
+                type: object
               prNumber:
                 description: PRNumber is the pull request number
                 type: integer
@@ -580,39 +598,65 @@ spec:
                   E2E tests run after deployment.
                 properties:
                   contractTesting:
-                    description: ContractTesting configures the Microcks-based contract
-                      test job run after smoke tests.
+                    description: ContractTesting configures Microcks API contract
+                      tests run after smoke tests.
                     properties:
                       apiName:
-                        description: APIName is the Microcks service name (default:
-                          Preview App).
+                        default: Preview Catalog API
+                        description: APIName is the name of the API as registered
+                          in Microcks.
                         type: string
                       apiVersion:
-                        description: APIVersion is the Microcks service version (default:
-                          1.0.0).
+                        default: 1.0.0
+                        description: APIVersion is the version of the API in Microcks.
                         type: string
                       credentialsSecretName:
-                        description: CredentialsSecretName is an optional Secret holding
-                          OAuth2 client_id and client_secret for Microcks.
+                        description: |-
+                          CredentialsSecretName is the name of a Secret in the preview namespace containing
+                          keys "client_id" and "client_secret" for Microcks OAuth2.
+                          When empty, Microcks is accessed without authentication.
                         type: string
                       enabled:
-                        description: Enabled controls whether the contract test step
-                          runs.
+                        default: false
+                        description: Enabled controls whether Microcks contract tests
+                          run after smoke tests.
                         type: boolean
+                      importPassword:
+                        description: ImportPassword is the Microcks manager password
+                          for spec import.
+                        type: string
+                      importUsername:
+                        description: ImportUsername is the Microcks manager username
+                          for spec import (password grant).
+                        type: string
                       keycloakURL:
-                        description: KeycloakURL is the OAuth2 token endpoint for Microcks
-                          authentication.
+                        description: KeycloakURL is the Keycloak token endpoint used
+                          when CredentialsSecretName is set.
                         type: string
                       microcksURL:
-                        description: MicrocksURL is the base URL of the Microcks instance.
+                        description: |-
+                          MicrocksURL is the in-cluster base URL of the Microcks instance
+                          (e.g. "http://microcks.microcks.svc.cluster.local:8080").
+                        minLength: 1
+                        type: string
+                      specURL:
+                        description: |-
+                          SpecURL is the URL of the OpenAPI spec to import into Microcks before the contract test.
+                          When set, the operator creates a microcks-import Job that fetches and imports the spec.
+                          Example: "https://raw.githubusercontent.com/org/repo/main/api/openapi.yaml"
                         type: string
                       testRunner:
-                        description: 'TestRunner selects the Microcks test runner (default:
-                          OPEN_API_SCHEMA).'
+                        default: OPEN_API_SCHEMA
+                        description: TestRunner is the Microcks test runner type.
+                        enum:
+                        - OPEN_API_SCHEMA
+                        - POSTMAN
+                        - HTTP
                         type: string
                       timeoutSeconds:
-                        description: TimeoutSeconds is the maximum wait time for the
-                          Microcks test run (default 120).
+                        default: 60
+                        description: TimeoutSeconds is the maximum wait time in seconds
+                          for the Microcks test to complete.
                         format: int32
                         type: integer
                     required:
@@ -682,22 +726,6 @@ spec:
                           to the app image.
                         type: string
                     type: object
-                type: object
-              kagent:
-                description: Kagent configures the kagent AI agent integration for
-                  automated failure analysis.
-                properties:
-                  agentName:
-                    description: AgentName is the kagent Agent CR name (default:
-                      preview-troubleshooter-agent).
-                    type: string
-                  enabled:
-                    description: Enabled controls whether the kagent integration is
-                      active.
-                    type: boolean
-                  namespace:
-                    description: Namespace where kagent is installed (default: kagent-system).
-                    type: string
                 type: object
               ttl:
                 default: 48h
@@ -944,6 +972,25 @@ spec:
                     format: int64
                     type: integer
                 type: object
+              kagent:
+                description: Kagent describes the kagent analysis triggered when the
+                  test suite failed.
+                properties:
+                  commentId:
+                    description: |-
+                      CommentID is the GitHub PR comment ID where the analysis was posted.
+                      Non-zero means the analysis has already been posted — prevents re-posting.
+                    format: int64
+                    type: integer
+                  phase:
+                    description: 'Phase is the current state: Pending, Running, Succeeded,
+                      Failed.'
+                    type: string
+                  triggeredAt:
+                    description: TriggeredAt is when the kagent analysis was started.
+                    format: date-time
+                    type: string
+                type: object
               namespaceName:
                 description: NamespaceName is the dedicated namespace created for
                   this env
@@ -1049,19 +1096,7 @@ spec:
                   step:
                     description: |-
                       Step tracks the current stage in the sequential pipeline:
-                      saving → smoke → restore-regression → regression → restore-e2e → e2e
-                    type: string
-                type: object
-              kagent:
-                description: Kagent describes the kagent Task trigger state.
-                properties:
-                  taskName:
-                    description: TaskName is the name of the kagent Task CR created
-                      for failure analysis.
-                    type: string
-                  triggeredAt:
-                    description: TriggeredAt is when the kagent Task was created.
-                    format: date-time
+                      saving → smoke → contract → restore-regression → regression → restore-e2e → e2e
                     type: string
                 type: object
               url:

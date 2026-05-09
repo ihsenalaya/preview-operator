@@ -526,6 +526,19 @@ func appServiceURL(c *platformv1alpha1.Preview) string {
 	return "http://app:8080"
 }
 
+// appServiceFQDN returns the full FQDN URL for the primary app service, usable from other namespaces.
+func appServiceFQDN(c *platformv1alpha1.Preview, ns string) string {
+	if len(c.Spec.Services) > 0 {
+		svc := c.Spec.Services[0]
+		port := svc.Port
+		if port == 0 {
+			port = 8080
+		}
+		return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceDeploymentName(svc.Name), ns, port)
+	}
+	return fmt.Sprintf("http://app.%s.svc.cluster.local:8080", ns)
+}
+
 // frontendServiceURL returns the in-cluster URL of the service with pathPrefix "/".
 // Falls back to appServiceURL when no root-path service is found.
 func frontendServiceURL(c *platformv1alpha1.Preview) string {

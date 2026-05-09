@@ -559,6 +559,20 @@ type ContractTestingSpec struct {
 	// KeycloakURL is the Keycloak token endpoint used when CredentialsSecretName is set.
 	// +optional
 	KeycloakURL string `json:"keycloakURL,omitempty"`
+
+	// SpecURL is the URL of the OpenAPI spec to import into Microcks before the contract test.
+	// When set, the operator creates a microcks-import Job that fetches and imports the spec.
+	// Example: "https://raw.githubusercontent.com/org/repo/main/api/openapi.yaml"
+	// +optional
+	SpecURL string `json:"specURL,omitempty"`
+
+	// ImportUsername is the Microcks manager username for spec import (password grant).
+	// +optional
+	ImportUsername string `json:"importUsername,omitempty"`
+
+	// ImportPassword is the Microcks manager password for spec import.
+	// +optional
+	ImportPassword string `json:"importPassword,omitempty"`
 }
 
 // TestSuiteSpec configures the automated test suite run by the operator after deployment.

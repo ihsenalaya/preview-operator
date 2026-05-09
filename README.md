@@ -30,12 +30,13 @@ kubectl apply -f pr-42.yaml
 13. [Resource Tiers & Quota Management](#13-resource-tiers--quota-management)
 14. [TTL & Auto-Expiry](#14-ttl--auto-expiry)
 15. [Smart Diagnostics](#15-smart-diagnostics)
-16. [Copilot Extension](#16-copilot-extension)
-17. [Complete CR Reference](#17-complete-cr-reference)
-18. [Status Fields Reference](#18-status-fields-reference)
-19. [Helm Values Reference](#19-helm-values-reference)
-20. [Development & Release](#20-development--release)
-21. [Debugging & Troubleshooting](#21-debugging--troubleshooting)
+16. [kagent — AI Failure Analysis](#16-kagent--ai-failure-analysis)
+17. [Copilot Extension](#17-copilot-extension)
+18. [Complete CR Reference](#18-complete-cr-reference)
+19. [Status Fields Reference](#19-status-fields-reference)
+20. [Helm Values Reference](#20-helm-values-reference)
+21. [Development & Release](#21-development--release)
+22. [Debugging & Troubleshooting](#22-debugging--troubleshooting)
 
 ---
 
@@ -58,10 +59,13 @@ kubectl apply -f pr-42.yaml
 | OpenTelemetry auto-instrumentation | `spec.telemetry.enabled` | `false` |
 | GitHub Deployment + PR comments | `spec.github.enabled` | `false` |
 | Smoke tests | `spec.testSuite.smoke` | built-in |
+| **OpenAPI contract testing (Microcks)** | `spec.testSuite.contractTesting.enabled` | `false` |
+| **Auto spec import into Microcks** | `spec.testSuite.contractTesting.specURL` | — |
 | Regression tests | `spec.testSuite.regression.enabled` | `false` |
 | E2E tests (Playwright) | `spec.testSuite.e2e.enabled` | `false` |
 | AI seed data + tests | `spec.aiEnrichment.enabled` | `false` |
 | AI-only rerun | `spec.aiEnrichment.rerunRequested` | `false` |
+| **AI failure analysis (kagent)** | `spec.kagent.enabled` | `false` |
 | Smart failure diagnostics | always on when `Failed` | — |
 | Copilot Extension commands | sidecar server | optional |
 
@@ -109,10 +113,15 @@ kubectl apply -f pr-42.yaml
 │    │     schema-dump → generate → ai-seed → ai-tests                      │
 │    │     RequeueAfter=10s until Succeeded or Failed                        │
 │    │                                                                        │
-│    └── reconcileTestSuite()      → (if enabled AND AI done or disabled)   │
-│          saving → smoke → restore-regression → regression →                │
-│          restore-e2e → e2e                                                 │
-│          RequeueAfter=10s at each step                                     │
+│    ├── reconcileTestSuite()      → (if enabled AND AI done or disabled)   │
+│    │     saving → smoke → import-spec → contract →                        │
+│    │     restore-regression → regression → restore-e2e → e2e              │
+│    │     RequeueAfter=5s at each step                                      │
+│    │                                                                        │
+│    └── triggerKagentAnalysis()   → (if tests.phase=Failed)                │
+│          POST A2A JSON-RPC → preview-troubleshooter-agent                  │
+│          Cooldown guard: no retry within 5 min                             │
+│          Posts structured diagnosis as GitHub PR comment                   │
 │                                                                            │
 │  RequeueAfter = ttlRemaining (keeps controller alive until expiry)        │
 └───────────────────────────┬────────────────────────────────────────────────┘
@@ -318,7 +327,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.1 \
+  --set image.tag=1.0.12 \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
@@ -331,7 +340,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.1 \
+  --set image.tag=1.0.12 \
   --set webhook.enabled=false
 ```
 
@@ -633,9 +642,11 @@ Reconcile(ctx, Request{Name: "pr-42"})
 │  Job              │ ai-tests                    │ aiEnrichment.tests.enabled   │
 │                   │                             │                              │
 │  ── Test Suite ───┼─────────────────────────────┼──────────────────────────── │
-│  ConfigMap        │ preview-test-suite         │ testSuite.enabled            │
+│  ConfigMap        │ preview-test-suite          │ testSuite.enabled            │
 │  Job              │ suite-checkpoint-save       │ step=saving                  │
 │  Job              │ smoke-tests                 │ step=smoke                   │
+│  Job              │ microcks-import             │ step=import-spec (specURL)   │
+│  Job              │ microcks-contract-tests     │ step=contract                │
 │  Job              │ suite-restore-regression    │ step=restore-regression      │
 │  Job              │ regression-tests            │ step=regression              │
 │  Job              │ suite-restore-e2e           │ step=restore-e2e             │
@@ -1104,7 +1115,7 @@ kubectl get preview pr-42 -o jsonpath='{.status.github.lastError}'
 
 ## 10. Automated Test Suite
 
-The test suite runs **after AI enrichment** — so tests always run against a seeded, realistic database. The controller orchestrates six sequential Jobs, with database checkpoint restore before each suite and before each individual E2E test.
+The test suite runs **after AI enrichment** — so tests always run against a seeded, realistic database. The controller orchestrates eight sequential Jobs in a fixed order, with Microcks contract validation and database checkpoint restore built into the pipeline.
 
 ### Why sequential, checkpoint-based
 
@@ -1128,10 +1139,29 @@ AI seed completes (10 products, 3 categories, reviews, orders)
                                │  step → "smoke"
            ┌───────────────────▼──────────────────────────────────────────┐
            │  Job: smoke-tests                                             │
-           │  Image: python:3.12-slim  (script embedded in operator)      │
+           │  Image: python:3.11-slim  (script embedded in operator)      │
            │  APP_URL=http://svc-backend:8080                              │
            │    GET /healthz       → expect 200                           │
            │    GET /api/products  → expect 200                           │
+           └───────────────────┬──────────────────────────────────────────┘
+                               │  step → "import-spec"  [if contractTesting.specURL set]
+           ┌───────────────────▼──────────────────────────────────────────┐
+           │  Job: microcks-import                           (non-blocking)│
+           │  Image: python:3.11-slim  (script embedded in operator)      │
+           │  1. GET spec from specURL (GitHub raw URL)                   │
+           │  2. POST Keycloak /token  (password grant, manager role)     │
+           │  3. POST Microcks /api/artifact/upload?mainArtifact=true     │
+           │  Failure → log warning, continue to contract step             │
+           └───────────────────┬──────────────────────────────────────────┘
+                               │  step → "contract"  [if contractTesting.enabled]
+           ┌───────────────────▼──────────────────────────────────────────┐
+           │  Job: microcks-contract-tests                                 │
+           │  Image: python:3.11-slim  (script embedded in operator)      │
+           │  MICROCKS_URL=http://microcks.microcks.svc.cluster.local:8080│
+           │  BACKEND_URL=http://svc-backend.<ns>.svc.cluster.local:8080  │
+           │  API_NAME="Preview Catalog API"  API_VERSION="1.0.0"         │
+           │  TEST_RUNNER=OPEN_API_SCHEMA                                  │
+           │  Polls Microcks until test complete → parse PASS/FAIL lines  │
            └───────────────────┬──────────────────────────────────────────┘
                                │  step → "restore-regression"
            ┌───────────────────▼──────────────────────────────────────────┐
@@ -1168,8 +1198,12 @@ AI seed completes (10 products, 3 categories, reviews, orders)
            │  reset_db() → test_close_detail                              │
            └───────────────────────────────────────────────────────────────┘
                                │
-                     tests.phase = Succeeded
-                     PR comment updated: results table
+                     tests.phase = Succeeded / Failed
+                     PR comment updated: full results table
+                               │
+                     if Failed → triggerKagentAnalysis()
+                     kagent reads logs, events, CR status
+                     → posts structured diagnosis as PR comment
 ```
 
 ### Controller step state machine
@@ -1180,14 +1214,21 @@ The controller stores `status.tests.step` in etcd. Each reconcile reads the step
 Reconcile() reads status.tests.step
   ""                   → create suite-checkpoint-save, step="saving"
   "saving"             → job complete? → step="smoke"
-                          still running → RequeueAfter=10s
-  "smoke"              → job complete? → step="restore-regression"
+                          still running → RequeueAfter=5s
+  "smoke"              → job complete? → step="import-spec" (if specURL set)
+                                         OR step="contract" (if contractTesting.enabled)
+                                         OR step="restore-regression"
+  "import-spec"        → job complete or failed? → step="contract"
+                          (import failure is NON-BLOCKING — pipeline continues)
+  "contract"           → job complete? → step="restore-regression"
+                          job failed   → tests.contract.phase="Failed", continue
   "restore-regression" → job complete? → step="regression"
   "regression"         → job complete? → step="restore-e2e"
   "restore-e2e"        → job complete? → step="e2e"
   "e2e"                → job complete? → tests.phase="Succeeded"
                           job failed   → tests.phase="Failed"
-                          still running → RequeueAfter=10s
+                                         → triggerKagentAnalysis() if enabled
+                          still running → RequeueAfter=5s
 ```
 
 If the operator pod restarts mid-pipeline, it reads `status.tests.step` from etcd and resumes at the exact step where it left off — no state lost, no job duplicated.
@@ -1204,7 +1245,9 @@ If the operator pod restarts mid-pipeline, it reads `status.tests.step` from etc
 | Job | CPU request/limit | Memory request/limit | Image |
 |-----|------------------|---------------------|-------|
 | suite-checkpoint-save | 50m / 500m | 128Mi / 512Mi | postgres:15-alpine |
-| smoke-tests | 50m / 500m | 128Mi / 512Mi | python:3.12-slim |
+| smoke-tests | 50m / 500m | 128Mi / 512Mi | python:3.11-slim |
+| microcks-import | 50m / 500m | 128Mi / 512Mi | python:3.11-slim |
+| microcks-contract-tests | 50m / 500m | 128Mi / 512Mi | python:3.11-slim |
 | suite-restore-* | 50m / 500m | 128Mi / 512Mi | postgres:15-alpine |
 | regression-tests | 50m / 500m | 128Mi / 512Mi | app image |
 | e2e-tests | 200m / 1000m | 512Mi / 1Gi | playwright/python:v1.44.0 |
@@ -1223,6 +1266,31 @@ sys.exit(1 if failed else 0)
 ```
 
 The prefix word (`regression`, `smoke`, `e2e`) is the suite name shown in the PR comment.
+
+### Enabling contract testing
+
+```yaml
+spec:
+  testSuite:
+    enabled: true
+    smoke: {}
+    contractTesting:
+      enabled: true
+      microcksURL: http://microcks.microcks.svc.cluster.local:8080
+      apiName: "My API"          # must match info.title in openapi.yaml
+      apiVersion: "1.0.0"        # must match info.version in openapi.yaml
+      specURL: https://raw.githubusercontent.com/OWNER/REPO/BRANCH/api/openapi.yaml
+      # importUsername: manager   # Keycloak user — default "manager"
+      # importPassword: microcks123  # default "microcks123"
+    regression:
+      enabled: true
+    e2e:
+      enabled: true
+```
+
+**What `specURL` does:** the controller creates a `microcks-import` Job that fetches the OpenAPI spec from the URL at runtime (always the current branch HEAD), authenticates against Microcks' Keycloak instance, and uploads the spec via `/api/artifact/upload`. This means Microcks always tests against the spec that matches the PR — no manual import step, no stale definitions.
+
+**OpenAPI spec requirements:** response bodies must use named `examples` (plural) so Microcks can dispatch test requests. The controller only tests 2xx responses.
 
 ### Enabling the test suite
 
@@ -1270,12 +1338,15 @@ kubectl logs -n preview-pr-42 job/e2e-tests -f
 
 **Overall: ✅ Succeeded**
 
-| Suite      | Status       | Passed | Failed |
-|------------|--------------|--------|--------|
-| Smoke      | ✅ Succeeded | 2      | 0      |
-| Regression | ✅ Succeeded | 9      | 0      |
-| E2E        | ✅ Succeeded | 6      | 0      |
+| Suite    | Status       | Passed | Failed |
+|----------|--------------|--------|--------|
+| Smoke    | ✅ Succeeded | 2      | 0      |
+| Contract | ✅ Succeeded | 8      | 0      |
+| Regression | ✅ Succeeded | 9    | 0      |
+| E2E      | ✅ Succeeded | 6      | 0      |
 ```
+
+When any suite fails, the `status.tests.contract.output` (or `.smoke`, `.regression`, `.e2e`) is populated with the `PASS/FAIL` lines and the overall `Results: N passed, N failed` summary. The PR comment is updated in-place.
 
 ---
 
@@ -1612,7 +1683,141 @@ kubectl get events -n preview-pr-42 --sort-by=.lastTimestamp
 
 ---
 
-## 16. Copilot Extension
+## 16. kagent — AI Failure Analysis
+
+When the test suite transitions to `Failed`, the controller automatically calls the **kagent** AI agent using the A2A (Agent-to-Agent) JSON-RPC 2.0 protocol. The agent inspects cluster state and posts a structured diagnosis directly to the GitHub PR.
+
+### How it works
+
+```
+tests.phase = "Failed"
+       │
+       ▼
+triggerKagentAnalysis()
+       │
+       ├─ cooldown guard: skip if phase already "Running"
+       ├─ cooldown guard: skip if phase "Failed" and last attempt < 5 min ago
+       │
+       ▼
+POST http://preview-troubleshooter-agent.kagent-system:8080/
+Body: JSON-RPC 2.0
+  {
+    "method": "message/send",
+    "params": {
+      "message": {
+        "parts": [{ "text": "Analyse le preview pr-<N> ..." }]
+      }
+    }
+  }
+       │
+       ▼
+kagent A2A response: result.artifacts[0].parts[0].text
+       │
+       ▼
+Controller posts to GitHub PR (same comment thread as test results)
+```
+
+### What the agent reads (read-only RBAC)
+
+| Resource | What it looks for |
+|----------|-------------------|
+| `Preview` CR | `status.tests`, `status.aiEnrichment`, `status.github` |
+| Pod logs | stdout/stderr from failed test jobs |
+| Kubernetes events | Warning events in the preview namespace |
+| Job status | Exit codes, restart counts |
+
+The agent has **no write access** — it cannot modify resources, exec into pods, or access secrets.
+
+### PR comment produced
+
+```markdown
+## Preview Environment Failure Analysis — pr-42
+
+**Risk:** HIGH
+
+**Evidence collected:**
+- e2e-tests Job: exit code 1
+- Pod logs: `TimeoutError: Locator.wait_for: Timeout 10000ms exceeded`
+- Events: `svc-frontend` pod 0/1 Ready for last 2m
+
+**Root cause:**
+The frontend service is returning 200 OK but the React bundle is not rendering
+the product grid. The `data-testid="product-grid"` element never appears within
+10 seconds. This is consistent with the `svc-frontend` readiness probe failing
+silently — the Ingress routes traffic before the frontend is warmed up.
+
+**Suggested fix:**
+Add a `startupProbe` with a 30s initialDelaySeconds to `svc-frontend`, or
+increase the E2E test timeout with `page.setDefaultTimeout(30000)`.
+
+**Reproduce:**
+kubectl logs -n preview-pr-42 job/e2e-tests
+kubectl describe pod -n preview-pr-42 -l app=svc-frontend
+```
+
+### Configuration
+
+```yaml
+spec:
+  kagent:
+    enabled: true
+    namespace: kagent-system          # namespace where the agent runs
+    agentName: preview-troubleshooter-agent
+```
+
+### Install kagent and the troubleshooter agent
+
+```bash
+# 1. Install kagent CRDs + chart
+helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
+  --namespace kagent-system --create-namespace
+
+helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
+  --namespace kagent-system
+
+# 2. Configure Azure OpenAI ModelConfig
+kubectl patch modelconfig default-model-config -n kagent-system --type=merge -p '{
+  "spec": {
+    "provider": "AzureOpenAI",
+    "model": "gpt-4o-mini",
+    "apiKeySecret": "kagent-openai",
+    "apiKeySecretKey": "OPENAI_API_KEY",
+    "azureOpenAI": {
+      "azureEndpoint": "https://<resource>.openai.azure.com",
+      "azureDeployment": "gpt-4o-mini",
+      "apiVersion": "2024-10-21"
+    }
+  }
+}'
+
+# 3. Deploy the troubleshooter agent (from the reference app repo)
+kubectl apply -f k8s/kagent/rbac-readonly.yaml
+kubectl apply -f k8s/kagent/preview-troubleshooter-agent.yaml
+```
+
+### Status fields
+
+```bash
+kubectl get preview pr-42 -o jsonpath='{.status.kagent}' | jq .
+```
+
+```json
+{
+  "phase": "Succeeded",
+  "triggeredAt": "2026-05-09T17:02:14Z",
+  "commentId": 4413057817
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `status.kagent.phase` | `Running` / `Succeeded` / `Failed` |
+| `status.kagent.triggeredAt` | Timestamp of last trigger |
+| `status.kagent.commentId` | GitHub comment ID (updated in-place) |
+
+---
+
+## 17. Copilot Extension
 
 A companion server (`preview-extension`) that surfaces preview environment management directly inside GitHub Copilot Chat — no `kubectl` access needed for developers.
 
@@ -1684,7 +1889,7 @@ kubectl create secret generic preview-extension-secret \
 
 ---
 
-## 17. Complete CR Reference
+## 18. Complete CR Reference
 
 ### All fields
 
@@ -1753,10 +1958,28 @@ spec:
   testSuite:
     enabled: true
     smoke: {}                         # built-in, always enabled when testSuite.enabled
+    contractTesting:
+      enabled: true
+      microcksURL: http://microcks.microcks.svc.cluster.local:8080
+      apiName: "Preview Catalog API"  # must match info.title in openapi.yaml
+      apiVersion: "1.0.0"             # must match info.version
+      specURL: https://raw.githubusercontent.com/OWNER/REPO/BRANCH/api/openapi.yaml
+      importUsername: manager         # default "manager"
+      importPassword: microcks123     # default "microcks123"
+      # credentialsSecretName: microcks-creds  # alternative: read from Secret
+      # keycloakURL: http://microcks-keycloak.microcks.svc.cluster.local:8080/realms/microcks
+      testRunner: OPEN_API_SCHEMA     # OPEN_API_SCHEMA | HTTP | POSTMAN
+      timeoutSeconds: 60
     regression:
       enabled: true
     e2e:
       enabled: true
+
+  # ── kagent AI failure analysis ─────────────────────────────────────────────
+  kagent:
+    enabled: true
+    namespace: kagent-system
+    agentName: preview-troubleshooter-agent
 
   # ── AI Enrichment ──────────────────────────────────────────────────────────
   aiEnrichment:
@@ -1791,7 +2014,7 @@ spec:
 
 ---
 
-## 18. Status Fields Reference
+## 19. Status Fields Reference
 
 ```bash
 kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
@@ -1818,12 +2041,19 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 | `status.aiEnrichment.testResults` | `["PASS: test_health", "FAIL: test_order_stock — …"]` |
 | `status.aiEnrichment.completedAt` | Timestamp |
 | `status.tests.phase` | `Running` / `Succeeded` / `Failed` |
-| `status.tests.step` | Current pipeline step (`saving` / `smoke` / `regression` / `e2e` / …) |
+| `status.tests.step` | Current step: `saving` / `smoke` / `import-spec` / `contract` / `restore-regression` / `regression` / `restore-e2e` / `e2e` |
 | `status.tests.smoke.phase` | Job phase |
 | `status.tests.smoke.passed` | int |
 | `status.tests.smoke.failed` | int |
+| `status.tests.contract.phase` | `Succeeded` / `Failed` |
+| `status.tests.contract.passed` | int — Microcks test steps passed |
+| `status.tests.contract.failed` | int — Microcks test steps failed |
+| `status.tests.contract.output` | `["PASS contract GET /api/products", "FAIL contract …"]` |
 | `status.tests.regression.*` | Same structure as smoke |
 | `status.tests.e2e.*` | Same structure as smoke |
+| `status.kagent.phase` | `Running` / `Succeeded` / `Failed` |
+| `status.kagent.triggeredAt` | Timestamp of last trigger |
+| `status.kagent.commentId` | GitHub comment ID where analysis was posted |
 | `status.github.deploymentState` | Last state sent to GitHub (`in_progress` / `success` / `failure`) |
 | `status.github.lastNotifiedPhase` | Phase that triggered the last GitHub notification |
 | `status.github.commentId` | PR comment ID — updated in-place on each notification |
@@ -1842,7 +2072,7 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 
 ---
 
-## 19. Helm Values Reference
+## 20. Helm Values Reference
 
 ```yaml
 replicaCount: 1
@@ -1894,7 +2124,7 @@ affinity: {}
 
 ---
 
-## 20. Development & Release
+## 21. Development & Release
 
 ### Source layout
 
@@ -1990,7 +2220,7 @@ GitHub Actions automatically:
 
 ---
 
-## 21. Debugging & Troubleshooting
+## 22. Debugging & Troubleshooting
 
 ### Infinite reconcile loop (every 2 seconds in controller logs)
 

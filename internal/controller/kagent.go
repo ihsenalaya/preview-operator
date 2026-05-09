@@ -108,6 +108,17 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 	if c.Status.Kagent != nil && c.Status.Kagent.CommentID != 0 {
 		return
 	}
+	// Don't retry while already running or within 5 minutes of last attempt.
+	if c.Status.Kagent != nil {
+		if c.Status.Kagent.Phase == "Running" {
+			return
+		}
+		if c.Status.Kagent.Phase == phaseFailed && c.Status.Kagent.TriggeredAt != nil {
+			if time.Since(c.Status.Kagent.TriggeredAt.Time) < 5*time.Minute {
+				return
+			}
+		}
+	}
 
 	r.setKagentPhase(ctx, c, "Running")
 
