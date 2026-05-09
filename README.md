@@ -352,10 +352,10 @@ Build the image locally and load it into Kind (no registry push needed for local
 ```bash
 # 1. Build
 cd preview-operator
-docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.1 .
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.21 .
 
 # 2. Load into Kind
-kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.1
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.21
 
 # 3. Apply CRD manually (Helm does not update CRDs on upgrade)
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
@@ -364,7 +364,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.19 \
+  --set image.tag=1.0.21 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -378,7 +378,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.19 \
+  --set image.tag=1.0.21 \
   --set webhook.enabled=false
 ```
 
