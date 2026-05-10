@@ -198,14 +198,23 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 	}
 
 	if err := r.reconcileDeployment(ctx, preview, nsName); err != nil {
+		if errors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		}
 		return r.setFailedStatus(ctx, preview, "DeploymentFailed", err)
 	}
 
 	if err := r.reconcileService(ctx, preview, nsName); err != nil {
+		if errors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		}
 		return r.setFailedStatus(ctx, preview, "ServiceFailed", err)
 	}
 
 	if err := r.reconcileExposure(ctx, preview, nsName); err != nil {
+		if errors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		}
 		return r.setFailedStatus(ctx, preview, "ExposureFailed", err)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -511,8 +512,7 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 
 	agentURL := kagentTestStrategistURL(preview)
 
-	// Build a targeted prompt so the agent processes only this one TestPlan.
-	prompt := fmt.Sprintf(
+	promptText := fmt.Sprintf(
 		"A TestPlan named %q in namespace %q has status.phase=Pending and needs to be filled. "+
 			"Read the Preview %q from the same namespace (spec.changeContext.changedFiles, "+
 			"spec.changeContext.diffPatch, spec.changeContext.detectedImpacts, "+
@@ -523,16 +523,39 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 		planName, nsName, preview.Name, nsName,
 	)
 
-	// Escape for shell embedding — replace single quotes with '"'"'.
-	shellPrompt := "'" + replaceAll(prompt, "'", "'\"'\"'") + "'"
-
-	curlCmd := fmt.Sprintf(
-		`curl -sf -X POST %s `+
-			`-H 'Content-Type: application/json' `+
-			`-d '{"jsonrpc":"2.0","method":"message/send","id":"trigger","params":{"message":{"role":"user","messageId":"trigger","parts":[{"type":"text","text":%s}]}}}' `+
-			`|| echo "kagent call failed (non-blocking)"`,
-		agentURL, shellPrompt,
-	)
+	// Build JSON payload in Go to avoid any shell escaping issues.
+	type a2aPart struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}
+	type a2aMessage struct {
+		Role      string    `json:"role"`
+		MessageID string    `json:"messageId"`
+		Parts     []a2aPart `json:"parts"`
+	}
+	type a2aParams struct {
+		Message a2aMessage `json:"message"`
+	}
+	type a2aRequest struct {
+		Jsonrpc string    `json:"jsonrpc"`
+		Method  string    `json:"method"`
+		ID      string    `json:"id"`
+		Params  a2aParams `json:"params"`
+	}
+	payload, err := json.Marshal(a2aRequest{
+		Jsonrpc: "2.0",
+		Method:  "message/send",
+		ID:      "trigger",
+		Params: a2aParams{Message: a2aMessage{
+			Role:      "user",
+			MessageID: "trigger",
+			Parts:     []a2aPart{{Type: "text", Text: promptText}},
+		}},
+	})
+	if err != nil {
+		logger.Error(err, "failed to marshal A2A payload")
+		return
+	}
 
 	ttl := int32(300) // auto-delete 5 min after completion
 	backoff := int32(0)
@@ -557,13 +580,17 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 			BackoffLimit:            &backoff,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
-					RestartPolicy:      corev1.RestartPolicyNever,
-					ServiceAccountName: "kagent-test-strategist",
+					RestartPolicy:                corev1.RestartPolicyNever,
+					AutomountServiceAccountToken: ptr.To(false),
 					Containers: []corev1.Container{
 						{
-							Name:    "trigger",
-							Image:   "curlimages/curl:8.7.1",
-							Command: []string{"sh", "-c", curlCmd},
+							Name:  "trigger",
+							Image: "curlimages/curl:8.7.1",
+							Command: []string{
+								"curl", "-sf", "-X", "POST", agentURL,
+								"-H", "Content-Type: application/json",
+								"-d", string(payload),
+							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("10m"),
@@ -576,6 +603,7 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 							},
 							SecurityContext: &corev1.SecurityContext{
 								RunAsNonRoot:             ptr.To(true),
+								RunAsUser:                ptr.To(int64(100)),
 								AllowPrivilegeEscalation: ptr.To(false),
 							},
 						},
@@ -594,23 +622,3 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 	logger.Info("created test-strategist trigger Job", "job", job.Name)
 }
 
-func replaceAll(s, old, new string) string {
-	result := ""
-	for {
-		idx := indexOf(s, old)
-		if idx < 0 {
-			return result + s
-		}
-		result += s[:idx] + new
-		s = s[idx+len(old):]
-	}
-}
-
-func indexOf(s, sub string) int {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
-}

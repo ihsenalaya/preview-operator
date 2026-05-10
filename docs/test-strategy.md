@@ -21,6 +21,9 @@ Preview (existing, extended)
   spec.testStrategy.confidenceThreshold: 70
   spec.testStrategy.agentTimeoutSeconds: 60
   spec.testStrategy.fallbackOnAgentTimeout: Full | Skip | Error
+  spec.changeContext.changedFiles[].path / .type
+  spec.changeContext.detectedImpacts
+  spec.changeContext.diffPatch          ← raw unified diff (max 64 KiB)
   status.testPlanRef: ObjectReference
   status.testPlanResolution: {source, resolvedAt, rationale}
 
@@ -60,20 +63,22 @@ sequenceDiagram
     participant Ctrl as Preview Controller
     participant Agent as test-strategist-agent (kagent)
 
-    CI->>K8s: kubectl apply Preview pr-42 (mode=Auto)
-    CI->>K8s: kubectl patch Preview pr-42 (changeContext)
+    CI->>K8s: kubectl apply Preview pr-42 (mode=Auto, changeContext+diffPatch)
     K8s->>Ctrl: Preview reconcile triggered
 
     Ctrl->>K8s: create TestPlan pr-42-xxx (status.phase=Pending)
+    Ctrl->>K8s: create Job trigger-pr-42-xxx (curlimages/curl, TTL=300s)
     Ctrl->>K8s: update Preview status.phase=AwaitingTestPlan
     Note over Ctrl: requeue after timeout/6
 
-    K8s->>Agent: watch: TestPlan Pending detected
-    Agent->>K8s: get Preview pr-42 (reads changeContext)
+    Note over K8s: Job pod executes curl POST A2A → kagent
+    K8s->>Agent: A2A JSON-RPC message/send (targeted prompt)
+    Agent->>K8s: get TestPlan pr-42-xxx (reads previewRef)
+    Agent->>K8s: get Preview pr-42 (reads changeContext + diffPatch)
     Agent->>K8s: list ReconcileEvents (last 50, matching filePatterns)
     Agent->>Agent: analyse diff + history → build plan
-    Agent->>K8s: update TestPlan spec (mustRun, confidence, rationale)
-    Agent->>K8s: update TestPlan status.phase=Ready
+    Agent->>K8s: patch TestPlan spec (mustRun, confidence, rationale)
+    Agent->>K8s: patch TestPlan status.phase=Ready
 
     K8s->>Ctrl: TestPlan change → Preview re-queued
     Ctrl->>Ctrl: confidence >= threshold? → accept
@@ -109,6 +114,9 @@ On every reconcile of a Preview with `spec.testSuite.enabled=true`:
 3. **Auto mode, no TestPlan yet**:
    - Controller creates a stub `TestPlan` (phase=Pending) with labels
      `platform.company.io/preview-name: pr-42`.
+   - Controller creates an ephemeral Kubernetes Job (`trigger-<planName>`) with
+     `curlimages/curl` that sends one A2A JSON-RPC call to the test-strategist
+     agent. The Job is auto-deleted 5 minutes after completion. No CronJob, no polling.
    - Sets `status.phase = AwaitingTestPlan`.
    - Requeues after `agentTimeoutSeconds / 6`.
 
@@ -304,14 +312,21 @@ kubectl auth can-i create testplans.platform.company.io \
 
 | Scenario | Outcome |
 |---|---|
-| kagent Deployment not running | No TestPlan filled → controller falls back to FullSuite after timeout |
+| Trigger Job pod fails to start | No TestPlan filled → controller falls back to FullSuite after timeout |
+| kagent Deployment not running | Trigger Job exits with error → TestPlan stays Pending → fallback after timeout |
 | Agent confidence < threshold | Plan rejected → controller falls back to FullSuite |
 | Agent writes invalid plan (mustRun ∩ canSkip) | Plan rejected → controller falls back to FullSuite |
-| Commit SHA changes mid-flight | TestPlan marked Stale → controller creates new stub → agent fills new plan |
+| Commit SHA changes mid-flight | TestPlan marked Stale → controller creates new stub + new trigger Job → agent fills new plan |
 | `fallbackOnAgentTimeout: Skip` | Tests skipped entirely; ReconcileEvent written with outcome=Skipped |
 | `fallbackOnAgentTimeout: Error` | Preview phase=Failed; surfaced in PR comment |
 
 The controller never blocks on kagent. kagent is enhancement, not dependency.
+
+Debug trigger Job failures:
+```bash
+kubectl get jobs -n preview-pr-42 | grep trigger
+kubectl logs -n preview-pr-42 job/trigger-pr-42-xxxxx
+```
 
 ---
 

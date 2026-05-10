@@ -121,7 +121,8 @@ kubectl apply -f pr-42.yaml
 │    │     RequeueAfter=5s at each step                                      │
 │    │                                                                        │
 │    └── triggerKagentAnalysis()   → (if tests.phase=Failed)                │
-│          POST A2A JSON-RPC → preview-troubleshooter-agent                  │
+│          Creates ephemeral Job (curlimages/curl) → POST A2A JSON-RPC      │
+│          → preview-troubleshooter-agent                                    │
 │          Cooldown guard: no retry within 5 min                             │
 │          Posts structured diagnosis as GitHub PR comment                   │
 │                                                                            │
@@ -1742,7 +1743,7 @@ kubectl get events -n preview-pr-42 --sort-by=.lastTimestamp
 
 ## 16. kagent — AI Failure Analysis
 
-When the test suite transitions to `Failed`, the controller automatically calls the **kagent** AI agent using the A2A (Agent-to-Agent) JSON-RPC 2.0 protocol. The agent inspects cluster state and posts a structured diagnosis directly to the GitHub PR.
+When the test suite transitions to `Failed`, the controller automatically triggers the **kagent** AI agent using the A2A (Agent-to-Agent) JSON-RPC 2.0 protocol. The agent inspects cluster state and posts a structured diagnosis directly to the GitHub PR.
 
 ### How it works
 
@@ -1752,20 +1753,20 @@ tests.phase = "Failed"
        ▼
 triggerKagentAnalysis()
        │
-       ├─ cooldown guard: skip if phase already "Running"
-       ├─ cooldown guard: skip if phase "Failed" and last attempt < 5 min ago
+       ├─ cooldown guard: skip if last attempt < 5 min ago
        │
        ▼
-POST http://preview-troubleshooter-agent.kagent-system:8080/
-Body: JSON-RPC 2.0
-  {
-    "method": "message/send",
-    "params": {
-      "message": {
-        "parts": [{ "text": "Analyse le preview pr-<N> ..." }]
+Controller creates ephemeral Job (curlimages/curl, TTL=300s)
+  POST http://preview-troubleshooter-agent.kagent-system:8080/
+  Body: JSON-RPC 2.0
+    {
+      "method": "message/send",
+      "params": {
+        "message": {
+          "parts": [{ "text": "Analyse le preview pr-<N> ..." }]
+        }
       }
     }
-  }
        │
        ▼
 kagent A2A response: result.artifacts[0].parts[0].text
@@ -1773,6 +1774,8 @@ kagent A2A response: result.artifacts[0].parts[0].text
        ▼
 Controller posts to GitHub PR (same comment thread as test results)
 ```
+
+> The controller never makes direct HTTP calls. All communication with kagent goes through ephemeral Kubernetes Jobs (curlimages/curl). This keeps the controller's permissions limited to the Kubernetes API only.
 
 ### What the agent reads (read-only RBAC)
 
@@ -1887,9 +1890,14 @@ Preview CR created (testStrategy.mode: Auto)
 Controller creates a stub TestPlan (status.phase = Pending)
        │
        ▼
-triggerTestStrategistAgent()  →  POST A2A to test-strategist-agent
+Controller creates an ephemeral Kubernetes Job
+  image: curlimages/curl
+  TTL: 300s (auto-deleted after completion)
+  command: curl -X POST http://test-strategist-agent.kagent-system:8080 \
+           -d '<A2A JSON-RPC payload with targeted prompt>'
        │
        ├─ Agent reads spec.changeContext.changedFiles
+       ├─ Agent reads spec.changeContext.diffPatch  (raw unified diff, max 64 KiB)
        ├─ Agent reads spec.changeContext.detectedImpacts
        ├─ Agent reads recent ReconcileEvents (historical signal)
        │
@@ -1897,21 +1905,36 @@ triggerTestStrategistAgent()  →  POST A2A to test-strategist-agent
 Agent patches TestPlan spec:
   generatedBy: Agent
   confidence: 75
-  mustRun:  [smoke, e2e, regression]
+  mustRun:  [smoke, regression]
   canSkip:  [migration → "No migration files changed",
-             contract  → "No API contract changes"]
-  rationale: "Frontend.py updated, e2e needed. Smoke and regression always run."
+             contract  → "No API contract changes",
+             e2e       → "No frontend or user-journey files changed"]
+  rationale: "Backend changed. Smoke and regression are mandatory."
        │
        ▼
-Controller: spec filled? → promote to Ready → acceptOrFallback()
+Controller watches TestPlan → phase=Ready → acceptOrFallback()
        │
-       ├─ confidence >= threshold (default 65)?  → accept
+       ├─ confidence >= threshold (default 70)?  → accept
        └─ confidence < threshold                 → fallback to FullSuite
        │
        ▼
 reconcileTestSuite() runs only mustRun + shouldRun suites
 canSkip suites → status.phase = Skipped (never scheduled)
 ```
+
+> **Architecture note**: the controller itself makes no HTTP calls. It only creates a Kubernetes Job. The Job pod (curlimages/curl) performs the single A2A call and exits. This keeps the controller's dependency surface limited to the Kubernetes API.
+
+### changeContext — what the agent sees
+
+The pipeline (`generate_preview_manifest.py`) injects three fields into `spec.changeContext` before creating the Preview CR:
+
+| Field | Content |
+|-------|---------|
+| `changedFiles[]` | Each changed file with its classified `type` (`backend`, `frontend`, `database-migration`, `api-contract`, `docs`, `other`) |
+| `detectedImpacts[]` | High-level impact flags: `database`, `apiContract`, `backend`, `frontend`, `requiresSeedData` |
+| `diffPatch` | Raw `git diff base...head` output (truncated to 64 KiB) — allows the agent to reason about *what* changed semantically, not just which files |
+
+The `diffPatch` field is the key signal for edge cases: a backend file that adds a new HTTP route should trigger `contract` tests even if `openapi.yaml` was not updated.
 
 ### TestPlan CRD
 
@@ -1974,7 +1997,7 @@ status:
 spec:
   testStrategy:
     mode: Auto
-    confidenceThreshold: 65      # reject plans below this score
+    confidenceThreshold: 70      # reject plans below this score (default: 70)
     fallbackOnAgentTimeout: Full # Full | Skip | Error
     agentTimeoutSeconds: 60
 ```
@@ -2021,24 +2044,34 @@ spec:
 ### Install the test-strategist agent
 
 ```bash
-# Deploy the agent from the operator repo
+# Option A — Kustomize overlay (recommended)
+kubectl apply -k config/overlays/with-test-strategist
+
+# Option B — manual
 kubectl apply -f k8s/kagent/agents/test-strategist-agent.yaml
+kubectl apply -f config/rbac/agent_role.yaml
+kubectl apply -f config/rbac/agent_rolebinding.yaml
 
 # Verify it is running
 kubectl get pods -n kagent-system -l app.kubernetes.io/component=test-strategist
 ```
 
+> There is no CronJob. The controller creates a one-shot ephemeral Job whenever a new Pending TestPlan is detected. The Job is garbage-collected automatically 5 minutes after completion.
+
 ### Monitor TestPlan lifecycle
 
 ```bash
-# Watch TestPlan for a PR
+# Watch TestPlans for a PR
 kubectl get testplan -n preview-pr-27 -w
+
+# Check trigger Job status
+kubectl get jobs -n preview-pr-27 | grep trigger
 
 # Inspect the agent's decision
 kubectl get testplan -n preview-pr-27 -o yaml
 
-# Check which tests were selected in the TestRun
-kubectl get testrun -n preview-pr-27 -o jsonpath='{.items[0].spec.selectedTests}' | jq .
+# See why the controller accepted or rejected the plan
+kubectl describe preview pr-27 | grep -A5 "Test Plan Resolution"
 ```
 
 ### Status fields
