@@ -307,7 +307,14 @@ spec:
                 properties:
                   agentName:
                     default: preview-troubleshooter-agent
-                    description: AgentName is the kagent Agent CR to trigger.
+                    description: AgentName is the kagent Agent CR to trigger on test
+                      failure.
+                    type: string
+                  diffAnalyzerAgentName:
+                    default: preview-diff-analyzer
+                    description: |-
+                      DiffAnalyzerAgentName is the kagent Agent CR called when the preview first becomes Running.
+                      It analyses the PR diff and posts a structured comment on the PR.
                     type: string
                   enabled:
                     default: false
@@ -933,6 +940,25 @@ spec:
                           type: string
                       type: object
                     type: array
+                type: object
+              diffAnalysis:
+                description: DiffAnalysis describes the kagent diff analysis triggered
+                  when the preview first becomes Running.
+                properties:
+                  commentId:
+                    description: |-
+                      CommentID is the GitHub PR comment ID where the analysis was posted.
+                      Non-zero means the analysis has already been posted — prevents re-posting.
+                    format: int64
+                    type: integer
+                  phase:
+                    description: 'Phase is the current state: Pending, Running, Succeeded,
+                      Failed.'
+                    type: string
+                  triggeredAt:
+                    description: TriggeredAt is when the kagent analysis was started.
+                    format: date-time
+                    type: string
                 type: object
               expiresAt:
                 description: ExpiresAt is when this environment will be auto-deleted

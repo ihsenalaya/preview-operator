@@ -107,35 +107,38 @@ func kagentDiffAnalyzerURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
-// triggerKagentDiffAnalysis calls the preview-diff-analyzer agent when the preview
-// first becomes Running. It is idempotent: fires once per preview lifecycle.
-// Must be called in a goroutine with context.Background() — the reconcile context
-// is cancelled as soon as the reconcile function returns.
-func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, previewName string, prNumber int, owner, repo, agentURL string) {
-	logger := log.FromContext(ctx).WithValues("preview", previewName)
-	logger.Info("diff-analyzer: starting", "pr", prNumber, "repo", repo)
+// triggerKagentDiffAnalysis calls the preview-diff-analyzer agent once the preview
+// reaches Running phase. Fetches a fresh copy of the preview to avoid ResourceVersion
+// conflicts from earlier status updates in the reconcile loop. Idempotent.
+func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, spec *platformv1alpha1.Preview) {
+	logger := log.FromContext(ctx)
 
-	// Fetch a fresh copy to avoid stale ResourceVersion.
+	if !kagentEnabled(spec) || spec.Spec.GitHub == nil {
+		return
+	}
+
+	// Fetch a fresh copy — the reconcile loop may have updated status earlier,
+	// making spec.ResourceVersion stale and causing Update conflicts.
 	var c platformv1alpha1.Preview
-	if err := r.Get(ctx, types.NamespacedName{Name: previewName}, &c); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: spec.Name}, &c); err != nil {
 		logger.Error(err, "diff-analyzer: failed to fetch preview")
 		return
 	}
 
-	// Idempotency: only run once (Succeeded) or skip if already running.
+	// Idempotency guard on fresh copy.
 	if c.Status.DiffAnalysis != nil {
 		switch c.Status.DiffAnalysis.Phase {
 		case phaseSucceeded, "Running":
-			logger.Info("diff-analyzer: already done or running, skipping")
 			return
 		case phaseFailed:
 			if c.Status.DiffAnalysis.TriggeredAt != nil &&
 				time.Since(c.Status.DiffAnalysis.TriggeredAt.Time) < 5*time.Minute {
-				logger.Info("diff-analyzer: failed recently, backing off")
 				return
 			}
 		}
 	}
+
+	logger.Info("diff-analyzer: starting", "pr", c.Spec.PRNumber, "repo", c.Spec.GitHub.Repo)
 
 	now := metav1.Now()
 	c.Status.DiffAnalysis = &platformv1alpha1.KagentStatus{Phase: "Running", TriggeredAt: &now}
@@ -144,9 +147,10 @@ func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, previ
 		return
 	}
 
+	agentURL := kagentDiffAnalyzerURL(&c)
 	prompt := fmt.Sprintf(
 		"Analyze the diff for PR #%d in repo %s/%s and post a structured analysis comment on the PR.",
-		prNumber, owner, repo,
+		c.Spec.PRNumber, c.Spec.GitHub.Owner, c.Spec.GitHub.Repo,
 	)
 	payload := a2aMessage{
 		JSONRPC: "2.0",
@@ -163,7 +167,7 @@ func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, previ
 	body, err := json.Marshal(payload)
 	if err != nil {
 		logger.Error(err, "diff-analyzer: marshal payload")
-		r.setDiffAnalysisPhase(ctx, previewName, phaseFailed)
+		r.setDiffAnalysisPhase(ctx, c.Name, phaseFailed)
 		return
 	}
 
@@ -173,7 +177,7 @@ func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, previ
 	req, err := http.NewRequestWithContext(httpCtx, http.MethodPost, agentURL, bytes.NewReader(body))
 	if err != nil {
 		logger.Error(err, "diff-analyzer: create request")
-		r.setDiffAnalysisPhase(ctx, previewName, phaseFailed)
+		r.setDiffAnalysisPhase(ctx, c.Name, phaseFailed)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -181,25 +185,29 @@ func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, previ
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		logger.Error(err, "diff-analyzer: A2A call failed", "url", agentURL)
-		r.setDiffAnalysisPhase(ctx, previewName, phaseFailed)
+		r.setDiffAnalysisPhase(ctx, c.Name, phaseFailed)
 		return
 	}
 	defer resp.Body.Close()
 
-	r.setDiffAnalysisPhase(ctx, previewName, phaseSucceeded)
-	logger.Info("diff-analyzer: succeeded", "pr", prNumber, "repo", repo)
+	r.setDiffAnalysisPhase(ctx, c.Name, phaseSucceeded)
+	logger.Info("diff-analyzer: succeeded", "pr", c.Spec.PRNumber, "repo", c.Spec.GitHub.Repo)
 }
 
-func (r *PreviewReconciler) setDiffAnalysisPhase(ctx context.Context, previewName, phase string) {
+func (r *PreviewReconciler) setDiffAnalysisPhase(ctx context.Context, name, phase string) {
+	logger := log.FromContext(ctx)
 	var c platformv1alpha1.Preview
-	if err := r.Get(ctx, types.NamespacedName{Name: previewName}, &c); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: name}, &c); err != nil {
+		logger.Error(err, "diff-analyzer: setDiffAnalysisPhase fetch failed")
 		return
 	}
 	if c.Status.DiffAnalysis == nil {
 		c.Status.DiffAnalysis = &platformv1alpha1.KagentStatus{}
 	}
 	c.Status.DiffAnalysis.Phase = phase
-	_ = r.Status().Update(ctx, &c)
+	if err := r.Status().Update(ctx, &c); err != nil {
+		logger.Error(err, "diff-analyzer: setDiffAnalysisPhase update failed", "phase", phase)
+	}
 }
 
 // triggerKagentAnalysis calls the preview-troubleshooter-agent via the A2A

@@ -216,19 +216,7 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 		}
 		syncGitHubAfterStatus(ctx, r, preview, previewURL)
 	}
-	// Trigger diff analysis in a detached goroutine with a background context
-	// (the reconcile context is cancelled as soon as this function returns).
-	if kagentEnabled(preview) && preview.Spec.GitHub != nil {
-		agentURL := kagentDiffAnalyzerURL(preview)
-		go r.triggerKagentDiffAnalysis(
-			context.Background(),
-			preview.Name,
-			preview.Spec.PRNumber,
-			preview.Spec.GitHub.Owner,
-			preview.Spec.GitHub.Repo,
-			agentURL,
-		)
-	}
+	r.triggerKagentDiffAnalysis(ctx, preview)
 
 	if aiEnrichmentEnabled(preview) {
 		if err := r.refreshPreview(ctx, key, preview); err != nil {
