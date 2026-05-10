@@ -701,6 +701,94 @@ spec:
                       When empty, the controller uses "preview-<resource-name>".
                     type: string
                 type: object
+              testStrategy:
+                description: |-
+                  TestStrategy configures how the controller selects the test plan for this Preview.
+                  When absent the controller defaults to FullSuite, preserving backward compatibility.
+                properties:
+                  agentTimeoutSeconds:
+                    default: 60
+                    description: |-
+                      AgentTimeoutSeconds is the maximum number of seconds the controller waits
+                      for the agent to fill the TestPlan before applying the fallback policy.
+                    minimum: 10
+                    type: integer
+                  confidenceThreshold:
+                    default: 70
+                    description: |-
+                      ConfidenceThreshold is the minimum agent confidence (0-100) needed before
+                      the controller accepts an agent-produced TestPlan. Below this value the
+                      controller falls back to FullSuite.
+                    maximum: 100
+                    minimum: 0
+                    type: integer
+                  fallbackOnAgentTimeout:
+                    default: Full
+                    description: |-
+                      FallbackOnAgentTimeout controls what happens when the agent does not fill
+                      the TestPlan within AgentTimeoutSeconds.
+                    enum:
+                    - Full
+                    - Skip
+                    - Error
+                    type: string
+                  manualPlanRef:
+                    description: ManualPlanRef points to an existing TestPlan when
+                      Mode=Manual.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: |-
+                          If referring to a piece of an object instead of an entire object, this string
+                          should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within a pod, this would take on a value like:
+                          "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]" (container with
+                          index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                          referencing a part of an object.
+                        type: string
+                      kind:
+                        description: |-
+                          Kind of the referent.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                        type: string
+                      name:
+                        description: |-
+                          Name of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      namespace:
+                        description: |-
+                          Namespace of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                        type: string
+                      resourceVersion:
+                        description: |-
+                          Specific resourceVersion to which this reference is made, if any.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                        type: string
+                      uid:
+                        description: |-
+                          UID of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  mode:
+                    default: FullSuite
+                    description: |-
+                      Mode selects how the test plan is resolved:
+                        Auto      – request a TestPlan from the kagent test-strategist agent
+                        Manual    – use the plan pointed to by manualPlanRef
+                        FullSuite – run all tests (default when field is absent)
+                    enum:
+                    - Auto
+                    - Manual
+                    - FullSuite
+                    type: string
+                type: object
               testSuite:
                 description: TestSuite configures automated smoke, regression, and
                   E2E tests run after deployment.
@@ -1134,6 +1222,71 @@ spec:
                   the Running phase.
                 format: date-time
                 type: string
+              testPlanRef:
+                description: TestPlanRef points to the TestPlan accepted for the current
+                  commit.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              testPlanResolution:
+                description: TestPlanResolution records how the active TestPlan was
+                  chosen.
+                properties:
+                  rationale:
+                    description: Rationale is a human-readable summary suitable for
+                      inclusion in PR comments.
+                    type: string
+                  resolvedAt:
+                    description: ResolvedAt is when the plan was accepted.
+                    format: date-time
+                    type: string
+                  source:
+                    description: Source identifies who produced the accepted plan.
+                    enum:
+                    - Agent
+                    - Fallback
+                    - Manual
+                    - Full
+                    type: string
+                type: object
               tests:
                 description: Tests describes the observed test suite state.
                 properties:

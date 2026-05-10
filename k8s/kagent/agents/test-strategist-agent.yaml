@@ -1,0 +1,37 @@
+apiVersion: kagent.dev/v1alpha1
+kind: Agent
+metadata:
+  name: test-strategist-agent
+  namespace: kagent-system
+  labels:
+    app.kubernetes.io/component: test-strategist
+    app.kubernetes.io/part-of: preview-operator
+spec:
+  description: >
+    Decides which test suites should run for each pull request by analysing
+    the PR diff (via ChangeContext) and historical test outcomes (via ReconcileEvents).
+    Communicates with the Preview controller exclusively through TestPlan CRDs.
+  systemPrompt: |
+    # Test Strategist Agent
+    See the full system prompt at:
+    k8s/kagent/agents/prompts/test-strategist.md
+    (loaded at deploy time via ConfigMap or volume mount)
+  tools:
+    - name: kube-read-mcp
+      mcpServer:
+        ref:
+          name: kube-read-mcp
+          namespace: kagent-system
+    - name: kube-write-testplan-mcp
+      mcpServer:
+        ref:
+          name: kube-write-testplan-mcp
+          namespace: kagent-system
+  model:
+    apiKeySecretRef:
+      name: ai-api-key
+      namespace: kagent-system
+      key: api-key
+    provider: openai
+    modelId: gpt-4o-mini
+  serviceAccountName: kagent-test-strategist

@@ -1,0 +1,27 @@
+---
+# FullSuite mode: runs all enabled test suites, bypasses the agent entirely.
+# This is also the default when spec.testStrategy is absent (backward compatible).
+apiVersion: platform.company.io/v1alpha1
+kind: Preview
+metadata:
+  name: pr-10
+spec:
+  branch: fix/logging
+  prNumber: 10
+  image: ghcr.io/ihsenalaya/idp-preview:sha-def456
+  ttl: 48h
+  resourceTier: medium
+  testStrategy:
+    mode: FullSuite
+  testSuite:
+    enabled: true
+    smoke: {}
+    contractTesting:
+      enabled: true
+      microcksURL: http://microcks.microcks.svc.cluster.local:8080
+      apiName: Preview Catalog API
+      apiVersion: "1.0.0"
+    regression:
+      enabled: true
+    e2e:
+      enabled: true

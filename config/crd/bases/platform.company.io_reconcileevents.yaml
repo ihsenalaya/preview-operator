@@ -1,0 +1,146 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: reconcileevents.platform.company.io
+spec:
+  group: platform.company.io
+  names:
+    kind: ReconcileEvent
+    listKind: ReconcileEventList
+    plural: reconcileevents
+    shortNames:
+    - re
+    singular: reconcileevent
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.testSuite
+      name: Suite
+      type: string
+    - jsonPath: .spec.outcome
+      name: Outcome
+      type: string
+    - jsonPath: .spec.occurredAt
+      name: OccurredAt
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ReconcileEvent is an append-only record written by the controller each time
+          something material happens to a Preview. The test-strategist agent reads
+          recent ReconcileEvents as historical signal when deciding which tests to run.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ReconcileEventSpec defines the content of one event.
+            properties:
+              correlationID:
+                description: CorrelationID ties this event to the reconcile cycle
+                  that produced it.
+                type: string
+              filePatterns:
+                description: |-
+                  FilePatterns is a denormalized subset of changed file paths from the
+                  associated ChangeContext, included here so agents can query ReconcileEvents
+                  by file pattern without joining back to the Preview.
+                items:
+                  type: string
+                type: array
+              message:
+                description: Message is a human-readable description of the event.
+                type: string
+              occurredAt:
+                description: OccurredAt is when the event happened.
+                format: date-time
+                type: string
+              outcome:
+                description: Outcome is a brief result string (e.g. "Succeeded", "Failed:exit-1").
+                type: string
+              previewRef:
+                description: PreviewRef references the Preview this event belongs
+                  to.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              testSuite:
+                description: TestSuite identifies the test suite (when Type is TestStarted
+                  or TestFinished).
+                type: string
+              type:
+                description: Type classifies the event.
+                enum:
+                - Provisioned
+                - TestStarted
+                - TestFinished
+                - Error
+                - Ready
+                type: string
+            required:
+            - previewRef
+            - type
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources: {}

@@ -1,0 +1,32 @@
+---
+# Manual mode: uses a specific, pre-authored TestPlan CR (named in manualPlanRef).
+# Useful for release branches where the test plan is fixed and reviewed by humans.
+apiVersion: platform.company.io/v1alpha1
+kind: Preview
+metadata:
+  name: pr-99
+spec:
+  branch: release/v2.0
+  prNumber: 99
+  image: ghcr.io/ihsenalaya/idp-preview:sha-release
+  ttl: 72h
+  resourceTier: large
+  testStrategy:
+    mode: Manual
+    manualPlanRef:
+      apiVersion: platform.company.io/v1alpha1
+      kind: TestPlan
+      name: release-v2-testplan
+      namespace: preview-pr-99
+  testSuite:
+    enabled: true
+    smoke: {}
+    contractTesting:
+      enabled: true
+      microcksURL: http://microcks.microcks.svc.cluster.local:8080
+      apiName: Preview Catalog API
+      apiVersion: "1.0.0"
+    regression:
+      enabled: true
+    e2e:
+      enabled: true

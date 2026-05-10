@@ -82,6 +82,8 @@ rules:
   - platform.company.io
   resources:
   - previews
+  - testplans
+  - testruns
   verbs:
   - create
   - delete
@@ -100,7 +102,18 @@ rules:
   - platform.company.io
   resources:
   - previews/status
+  - testplans/status
+  - testruns/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - platform.company.io
+  resources:
+  - reconcileevents
+  verbs:
+  - create
+  - get
+  - list
+  - watch

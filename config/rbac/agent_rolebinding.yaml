@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kagent-test-strategist
+  namespace: kagent-system
+  labels:
+    app.kubernetes.io/component: test-strategist
+    app.kubernetes.io/part-of: preview-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kagent-test-strategist
+  labels:
+    app.kubernetes.io/component: test-strategist
+    app.kubernetes.io/part-of: preview-operator
+subjects:
+  - kind: ServiceAccount
+    name: kagent-test-strategist
+    namespace: kagent-system
+roleRef:
+  kind: ClusterRole
+  name: kagent-test-strategist
+  apiGroup: rbac.authorization.k8s.io

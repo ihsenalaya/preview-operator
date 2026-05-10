@@ -1,0 +1,236 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: testruns.platform.company.io
+spec:
+  group: platform.company.io
+  names:
+    kind: TestRun
+    listKind: TestRunList
+    plural: testruns
+    shortNames:
+    - tr
+    singular: testrun
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          TestRun is created by the controller once a TestPlan is accepted. It tracks
+          the execution of test jobs and persists results for historical analysis.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TestRunSpec defines the desired state of a TestRun.
+            properties:
+              correlationID:
+                description: CorrelationID is propagated from the accepted TestPlan.
+                type: string
+              previewRef:
+                description: PreviewRef references the Preview this run belongs to.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              selectedTests:
+                description: SelectedTests is the final set of tests chosen after
+                  applying policy.
+                items:
+                  description: TestSelector identifies a specific test or group of
+                    tests within a suite.
+                  properties:
+                    name:
+                      default: '*'
+                      description: Name is the test or scenario identifier. Use "*"
+                        to select all tests in a suite.
+                      type: string
+                    reason:
+                      description: Reason is a human-readable explanation for why
+                        this test was selected or skipped.
+                      type: string
+                    suite:
+                      description: Suite is the test category.
+                      enum:
+                      - smoke
+                      - contract
+                      - regression
+                      - migration
+                      - e2e
+                      - load
+                      type: string
+                  required:
+                  - suite
+                  type: object
+                type: array
+              startedAt:
+                description: StartedAt is when the controller began launching test
+                  jobs.
+                format: date-time
+                type: string
+              testPlanRef:
+                description: TestPlanRef references the TestPlan that was accepted
+                  for this run.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - previewRef
+            type: object
+          status:
+            description: TestRunStatus describes the observed state of a TestRun.
+            properties:
+              finishedAt:
+                description: FinishedAt is when all test jobs completed.
+                format: date-time
+                type: string
+              phase:
+                description: Phase is the current lifecycle phase.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - PartiallyFailed
+                type: string
+              results:
+                description: Results contains per-test outcomes appended as jobs complete.
+                items:
+                  description: TestRunResult holds the outcome of one test execution
+                    within a TestRun.
+                  properties:
+                    durationSeconds:
+                      description: DurationSeconds is how long the test took.
+                      type: integer
+                    junitURL:
+                      description: JUnitURL is a link to the JUnit XML report.
+                      type: string
+                    logsURL:
+                      description: LogsURL is a link to the raw test logs.
+                      type: string
+                    name:
+                      description: Name is the test identifier.
+                      type: string
+                    status:
+                      description: 'Status is the outcome: Pending | Running | Succeeded
+                        | Failed | Skipped.'
+                      type: string
+                    suite:
+                      description: Suite is the test category.
+                      enum:
+                      - smoke
+                      - contract
+                      - regression
+                      - migration
+                      - e2e
+                      - load
+                      type: string
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
