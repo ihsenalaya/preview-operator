@@ -1,0 +1,16 @@
+openapi: "3.0.3"
+info:
+  title: Preview API
+  version: "1.1.0"
+paths:
+  /api/orders:
+    get:
+      summary: List orders
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create order
+      responses:
+        "201":
+          description: Created
