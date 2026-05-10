@@ -28,6 +28,14 @@ spec.changeContext.changedFiles[]
   .path    → file path relative to repo root
   .type    → database-migration | api-contract | backend | frontend | docs | other
 
+spec.changeContext.diffPatch
+  Raw unified diff (git diff base...head), max 64 KiB.
+  Read this to understand WHAT changed, not just which files.
+  Examples of things only visible in the patch:
+  - A new route added to app.py (even if openapi.yaml not updated)
+  - A column removed from a migration file
+  - A function renamed that breaks callers in other files
+
 spec.changeContext.detectedImpacts
   .database           → bool
   .apiContract        → bool
