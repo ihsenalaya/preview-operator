@@ -30,12 +30,15 @@ const (
 
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
+	suiteStepMigration         = "migration"
 	suiteStepImportSpec        = "import-spec"
 	suiteStepContract          = "contract"
 	suiteStepRestoreRegression = "restore-regression"
 	suiteStepRegression        = "regression"
 	suiteStepRestoreE2E        = "restore-e2e"
 	suiteStepE2E               = "e2e"
+
+	migrationTestJobName = "migration-tests"
 
 	// microcksImportScript fetches an OpenAPI spec from a URL and imports it into Microcks.
 	// Uses only stdlib — runs in python:3.11-slim without pip install.
@@ -223,6 +226,13 @@ func e2eEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.TestSuite.E2E.Enabled
 }
 
+func migrationEnabled(c *platformv1alpha1.Preview) bool {
+	if c.Spec.TestSuite == nil || c.Spec.TestSuite.Migration == nil {
+		return false
+	}
+	return c.Spec.TestSuite.Migration.Enabled
+}
+
 func ensureTestSuiteStatus(c *platformv1alpha1.Preview) *platformv1alpha1.TestSuiteStatus {
 	if c.Status.Tests == nil {
 		c.Status.Tests = &platformv1alpha1.TestSuiteStatus{}
@@ -300,6 +310,40 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 			}
 		} else {
 			tests.Smoke.Phase = phaseSkipped
+		}
+		if migrationEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteMigration) {
+			tests.Step = suiteStepMigration
+		} else {
+			contractSelected := contractTestEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteContract)
+			if contractSelected && c.Spec.TestSuite.ContractTesting.SpecURL != "" {
+				tests.Step = suiteStepImportSpec
+			} else if contractSelected {
+				tests.Step = suiteStepContract
+			} else if dbEnabled && regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
+				tests.Step = suiteStepRestoreRegression
+			} else {
+				tests.Step = suiteStepRegression
+			}
+		}
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepMigration:
+		if migrationEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteMigration) {
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, migrationTestJobName, r.migrationTestJob(c, nsName))
+			tests.Migration.Phase = state
+			tests.Migration.Output = output
+			if !testResultFinal(state) {
+				tests.Phase = phaseRunning
+				if err := r.Status().Update(ctx, c); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		} else {
+			tests.Migration.Phase = phaseSkipped
 		}
 		contractSelected := contractTestEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteContract)
 		if contractSelected && c.Spec.TestSuite.ContractTesting.SpecURL != "" {
@@ -432,6 +476,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 	}
 
 	anyFailed := tests.Smoke.Phase == phaseFailed ||
+		tests.Migration.Phase == phaseFailed ||
 		tests.Contract.Phase == phaseFailed ||
 		tests.Regression.Phase == phaseFailed ||
 		tests.E2E.Phase == phaseFailed
@@ -734,6 +779,21 @@ func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview,
 			},
 		},
 	}
+}
+
+func (r *PreviewReconciler) migrationTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
+	image := mainAppImage(c)
+	if c.Spec.TestSuite.Migration != nil && c.Spec.TestSuite.Migration.Image != "" {
+		image = c.Spec.TestSuite.Migration.Image
+	}
+	cmd := []string{"sh", "-c",
+		"pip install alembic psycopg2-binary -q 2>/dev/null && " +
+			"alembic upgrade head && " +
+			"echo 'PASS migration alembic upgrade head: OK'"}
+	if c.Spec.TestSuite.Migration != nil && len(c.Spec.TestSuite.Migration.Command) > 0 {
+		cmd = c.Spec.TestSuite.Migration.Command
+	}
+	return r.testJobNoMount(c, nsName, migrationTestJobName, image, cmd, migrationTestJobName, true)
 }
 
 func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {
