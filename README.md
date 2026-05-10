@@ -648,7 +648,18 @@ Reconcile(ctx, Request{Name: "pr-42"})
            │     see §11 — full diagram
            │     → RequeueAfter=10s while Running
            │
-           └─ reconcileTestSuite()      [if testSuite.enabled AND AI done]
+           ├─ reconcileTestStrategy()   [if testSuite.enabled AND AI done]
+           │     mode=Auto:
+           │       create TestPlan stub → A2A call to test-strategist-agent
+           │       agent fills mustRun/canSkip → promoted to Ready
+           │       accept if confidence ≥ threshold; fallback=Full on timeout
+           │     mode=FullSuite: skip agent, run all enabled suites
+           │     see §17 — full detail
+           │     → RequeueAfter=10s while AwaitingTestPlan
+           │
+           └─ reconcileTestSuite()      [if testSuite.enabled AND plan accepted]
+                 only suites in mustRun/shouldRun are scheduled
+                 canSkip suites → phase=Skipped immediately
                  see §10 — full diagram
                  → RequeueAfter=10s at each step
 ```
