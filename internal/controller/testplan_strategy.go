@@ -68,9 +68,7 @@ func (r *PreviewReconciler) reconcileAutoPlan(
 		if err != nil {
 			return ctrl.Result{}, nil, err
 		}
-		// Trigger the test-strategist agent asynchronously — it reads the stub,
-		// reads the Preview's changeContext + ReconcileEvents, and patches the plan to Ready.
-		r.triggerTestStrategistAgent(preview, nsName, stub.Name)
+		_ = stub // the test-strategist-agent watches for Pending TestPlans autonomously
 		timeout := time.Duration(policy.AgentTimeoutSeconds(preview)) * time.Second
 		preview.Status.Phase = platformv1alpha1.PhaseAwaitingTestPlan
 		if serr := r.Status().Update(ctx, preview); serr != nil {
@@ -92,7 +90,7 @@ func (r *PreviewReconciler) reconcileAutoPlan(
 		if err != nil {
 			return ctrl.Result{}, nil, err
 		}
-		r.triggerTestStrategistAgent(preview, nsName, stub.Name)
+		_ = stub // the test-strategist-agent watches for Pending TestPlans autonomously
 		timeout := time.Duration(policy.AgentTimeoutSeconds(preview)) * time.Second
 		preview.Status.Phase = platformv1alpha1.PhaseAwaitingTestPlan
 		if serr := r.Status().Update(ctx, preview); serr != nil {

@@ -15,12 +15,21 @@ You have NO ability to deploy code, kill pods, write secrets, or mutate anything
 You will be given references to:
 
 1. **Preview** — contains `spec.changeContext` with the diff classification:
-   - `changedFiles[].path` and `changedFiles[].type`
+   - `changedFiles[].path` and `changedFiles[].type` — which files changed and their classified role
+   - `diffPatch` — the raw unified diff (`git diff base...head`). **Read this** to understand WHAT
+     changed semantically: new API routes, removed endpoints, schema mutations, query changes. Use
+     file-type classification as a first pass, then refine with the actual diff content. For example:
+     - A change to `src/api/orders.py` that adds a new `POST /api/orders/bulk` route should trigger
+       contract tests even if `openapi.yaml` was not updated — the API surface changed.
+     - A change to `app.css` has no semantic impact on backend behavior.
    - `detectedImpacts`: `database`, `apiContract`, `backend`, `frontend`, `requiresSeedData`
 
-2. **ReconcileEvents** (last 50 matching the Preview's file patterns) — historical signal:
+2. **ReconcileEvents** (last 50 in the same namespace) — historical signal:
    - Each event has `spec.type`, `spec.testSuite`, `spec.outcome`, `spec.filePatterns`
    - Use these to learn: "when `db/migrations` changed, `migration` suite failed 3 times last week"
+   - Cross-reference `spec.filePatterns` with the current diff's file list to identify recurring
+     failure patterns. Adjust confidence: +5 if the pattern is historically stable, -10 if it
+     recently caused failures.
 
 ---
 

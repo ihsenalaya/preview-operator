@@ -63,7 +63,7 @@ func TestBuildSystemPromptGuidesTestsToAPIEndpoints(t *testing.T) {
 		"/add-product",
 		"requests.post(..., json=...)",
 		"Never hardcode row identifiers",
-		"omit that field instead of guessing",
+		"omit that",
 		"Do not invent endpoints",
 		"/api/orders does not imply",
 		"Only test stable product endpoints.",

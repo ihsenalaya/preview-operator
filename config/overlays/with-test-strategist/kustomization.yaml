@@ -1,0 +1,21 @@
+---
+# Optional overlay that adds the test-strategist-agent and its RBAC to a
+# base preview-operator installation.
+#
+# Install with:
+#   kubectl apply -k config/overlays/with-test-strategist
+#
+# Without this overlay the operator runs in mode=FullSuite for every PR.
+# The overlay does NOT change controller behaviour — it only deploys the
+# agent infrastructure that the operator uses when testStrategy.mode=Auto.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../default
+  # Agent ServiceAccount + ClusterRole + ClusterRoleBinding
+  - ../../rbac/agent_role.yaml
+  - ../../rbac/agent_rolebinding.yaml
+  # kagent Agent CR and CronJob trigger
+  - ../../../k8s/kagent/agents/test-strategist-agent.yaml
+  - ../../../k8s/kagent/agents/test-strategist-trigger.yaml

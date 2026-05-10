@@ -520,6 +520,14 @@ type ChangeContextSpec struct {
 	// DetectedImpacts captures which system layers are affected.
 	// +optional
 	DetectedImpacts DetectedImpacts `json:"detectedImpacts,omitempty"`
+
+	// DiffPatch is the raw unified diff produced by `git diff base...head`.
+	// Populated by the GitHub Actions classifier when the diff is under 64 KiB.
+	// The test-strategist-agent reads this to reason about WHAT changed, not
+	// just WHICH files changed (e.g. detect a new API endpoint vs a doc fix).
+	// +optional
+	// +kubebuilder:validation:MaxLength=65536
+	DiffPatch string `json:"diffPatch,omitempty"`
 }
 
 // KagentIntegrationSpec configures automatic kagent failure analysis.

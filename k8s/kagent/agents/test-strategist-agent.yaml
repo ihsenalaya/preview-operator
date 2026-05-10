@@ -28,19 +28,33 @@ spec:
       ## Step 2 — Read the Preview
       From the TestPlan's spec.previewRef (name + namespace), use
       `k8s_get_resource_yaml` to fetch the Preview CR. Read:
-      - spec.changeContext.changedFiles (list of modified files)
+      - spec.changeContext.changedFiles (list of modified files with type)
+      - spec.changeContext.diffPatch (raw unified diff — read this to understand
+        WHAT changed semantically, not just which files. Look for new API routes,
+        schema changes, query modifications, removed endpoints, etc.)
       - spec.changeContext.detectedImpacts (frontend/migration/api/backend)
       - spec.testStrategy.confidenceThreshold (default 70)
+
+      ## Step 2b — Read ReconcileEvents history
+      Use `k8s_get_resources` with group=platform.company.io, kind=ReconcileEvent,
+      in the same namespace as the TestPlan. Filter for events where
+      spec.type=TestFinished or spec.type=Error. Look at spec.testSuite,
+      spec.outcome, spec.filePatterns. If the same file patterns (e.g. src/api/)
+      caused failures in the last 3 PRs, boost confidence for those suites.
+      This is your historical signal — use it to go beyond file-type rules.
 
       ## Step 3 — Decide
 
       Rules:
       - smoke: always in mustRun (unless pure docs PR with confidence>=95)
       - migration: mustRun if any file matches migrations/versions/*.py
-      - contract: mustRun if api/openapi.yaml is in changedFiles
+      - contract: mustRun if api/openapi.yaml is in changedFiles OR if diffPatch
+        shows new HTTP routes / removed endpoints even without openapi.yaml change
       - e2e: mustRun if templates/ or frontend/ files changed; canSkip otherwise
       - regression: mustRun by default; canSkip only if pure docs/config change
       - confidence 0-100: use >=80 when impacts are clear, 70-79 when uncertain
+      - Boost confidence by +5 if ReconcileEvents show this file pattern is stable
+      - Lower confidence by -10 if ReconcileEvents show recent failures for this pattern
       - Do NOT put same suite in both mustRun and canSkip
 
       ## Step 4 — Patch the TestPlan spec

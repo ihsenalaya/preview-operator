@@ -35,14 +35,14 @@ func TestBuildTestResultsCommentBodyIncludesAIEnrichment(t *testing.T) {
 		},
 	}
 
-	body := buildTestResultsCommentBody(c)
+	body := buildTestResultsCommentBody(c, nil)
 	for _, want := range []string{
-		"## Cellenza Test Suite Results",
+		"Test Suite Results",
 		"### AI Enrichment",
 		"- Seed: SUCCESS `Succeeded`",
 		"- Tests: FAIL `Failed`",
 		"`FAIL POST /api/categories - Unexpected status code 500`",
-		"Relancer avec `@cellenza enrich pr-N`",
+		"Relancer avec `@preview enrich pr-N`",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("buildTestResultsCommentBody missing %q:\n%s", want, body)

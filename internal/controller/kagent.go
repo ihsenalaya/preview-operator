@@ -107,20 +107,6 @@ func kagentDiffAnalyzerURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
-func kagentTestStrategistURL(c *platformv1alpha1.Preview) string {
-	ns := "kagent-system"
-	name := "test-strategist-agent"
-	if c.Spec.Kagent != nil {
-		if c.Spec.Kagent.Namespace != "" {
-			ns = c.Spec.Kagent.Namespace
-		}
-		if c.Spec.Kagent.TestStrategistAgentName != "" {
-			name = c.Spec.Kagent.TestStrategistAgentName
-		}
-	}
-	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
-}
-
 // triggerKagentDiffAnalysis calls the preview-diff-analyzer agent once the preview
 // reaches Running phase. Fetches a fresh copy of the preview to avoid ResourceVersion
 // conflicts from earlier status updates in the reconcile loop. Idempotent.
@@ -486,84 +472,3 @@ func (r *PreviewReconciler) setKagentPhase(ctx context.Context, c *platformv1alp
 	_ = r.Status().Update(ctx, c)
 }
 
-// triggerTestStrategistAgent fires an async A2A call to the test-strategist agent.
-// The agent reads the stub TestPlan, reads the Preview's changeContext and recent
-// ReconcileEvents, then patches the TestPlan (spec + status.phase=Ready).
-// The TestPlan watch then wakes the controller to accept or reject the plan.
-// The call is non-blocking: it runs in a goroutine so the reconcile returns immediately.
-func (r *PreviewReconciler) triggerTestStrategistAgent(preview *platformv1alpha1.Preview, nsName, planName string) {
-	if !kagentEnabled(preview) {
-		return
-	}
-
-	agentURL := kagentTestStrategistURL(preview)
-	prompt := buildTestStrategyPrompt(preview, nsName, planName)
-
-	go func() {
-		logger := log.Log.WithValues("preview", preview.Name, "testPlan", planName)
-
-		payload := a2aMessage{
-			JSONRPC: "2.0",
-			Method:  "message/send",
-			ID:      uuid.New().String(),
-			Params: a2aParams{
-				Message: a2aUserMessage{
-					Role:      "user",
-					MessageID: uuid.New().String(),
-					Parts:     []a2aPart{{Type: "text", Text: prompt}},
-				},
-			},
-		}
-		body, err := json.Marshal(payload)
-		if err != nil {
-			logger.Error(err, "test-strategist: marshal payload")
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, agentURL, bytes.NewReader(body))
-		if err != nil {
-			logger.Error(err, "test-strategist: create request")
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			logger.Error(err, "test-strategist: A2A call failed", "url", agentURL)
-			return
-		}
-		defer resp.Body.Close()
-		logger.Info("test-strategist: agent invoked successfully", "status", resp.StatusCode)
-	}()
-}
-
-func buildTestStrategyPrompt(preview *platformv1alpha1.Preview, nsName, planName string) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "A TestPlan stub named %q in namespace %q has phase=Pending and needs to be filled.\n\n", planName, nsName)
-	fmt.Fprintf(&b, "Preview: %s (PR #%d, branch: %s)\n", preview.Name, preview.Spec.PRNumber, preview.Spec.Branch)
-
-	if cc := preview.Spec.ChangeContext; cc != nil {
-		fmt.Fprintf(&b, "\nChanged files (%d total):\n", len(cc.ChangedFiles))
-		for _, f := range cc.ChangedFiles {
-			fmt.Fprintf(&b, "  - %s (%s)\n", f.Path, f.Type)
-		}
-		imp := cc.DetectedImpacts
-		fmt.Fprintf(&b, "\nDetected impacts: database=%v apiContract=%v backend=%v frontend=%v\n",
-			imp.Database, imp.APIContract, imp.Backend, imp.Frontend)
-	} else {
-		b.WriteString("\nNo changeContext available — inspect the Preview and ReconcileEvents to infer impact.\n")
-	}
-
-	fmt.Fprintf(&b, "\nSteps to complete:\n")
-	fmt.Fprintf(&b, "1. Read the TestPlan: k8s_get_resource_yaml kind=TestPlan name=%s namespace=%s\n", planName, nsName)
-	fmt.Fprintf(&b, "2. Read recent ReconcileEvents in namespace %s for historical signal\n", nsName)
-	fmt.Fprintf(&b, "3. Decide: mustRun, shouldRun, canSkip, confidence (0-100), rationale\n")
-	fmt.Fprintf(&b, "4. Patch the TestPlan spec with your decision (generatedBy=Agent)\n")
-	fmt.Fprintf(&b, "5. Patch status.phase=Ready on the TestPlan so the controller picks it up\n")
-	fmt.Fprintf(&b, "\nConfidence threshold: %d. Below this the controller falls back to FullSuite.\n",
-		preview.Spec.TestStrategy.ConfidenceThreshold)
-	return b.String()
-}
