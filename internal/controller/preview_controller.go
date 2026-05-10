@@ -564,14 +564,7 @@ func (r *PreviewReconciler) reconcileDatabase(ctx context.Context, preview *plat
 }
 
 func databaseEnabled(preview *platformv1alpha1.Preview) bool {
-	if preview.Spec.Database == nil || !preview.Spec.Database.Enabled {
-		return false
-	}
-	// If changeContext is present and database is not impacted, skip DB provisioning.
-	if cc := preview.Spec.ChangeContext; cc != nil && !cc.DetectedImpacts.Database {
-		return false
-	}
-	return true
+	return preview.Spec.Database != nil && preview.Spec.Database.Enabled
 }
 
 func multiServiceEnabled(c *platformv1alpha1.Preview) bool {

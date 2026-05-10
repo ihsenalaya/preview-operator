@@ -191,14 +191,7 @@ func contractTestEnabled(c *platformv1alpha1.Preview) bool {
 	if c.Spec.TestSuite == nil || c.Spec.TestSuite.ContractTesting == nil {
 		return false
 	}
-	if !c.Spec.TestSuite.ContractTesting.Enabled {
-		return false
-	}
-	// If changeContext is present, apiContract must also be true.
-	if cc := c.Spec.ChangeContext; cc != nil && !cc.DetectedImpacts.APIContract {
-		return false
-	}
-	return true
+	return c.Spec.TestSuite.ContractTesting.Enabled
 }
 
 func smokeEnabled(c *platformv1alpha1.Preview) bool {
@@ -209,14 +202,7 @@ func smokeEnabled(c *platformv1alpha1.Preview) bool {
 }
 
 func regressionEnabled(c *platformv1alpha1.Preview) bool {
-	if c.Spec.TestSuite.Regression != nil && !c.Spec.TestSuite.Regression.Enabled {
-		return false
-	}
-	// If changeContext is present and only frontend changed, skip backend regression.
-	if cc := c.Spec.ChangeContext; cc != nil && cc.DetectedImpacts.Frontend && !cc.DetectedImpacts.Backend {
-		return false
-	}
-	return true
+	return c.Spec.TestSuite.Regression == nil || c.Spec.TestSuite.Regression.Enabled
 }
 
 func e2eEnabled(c *platformv1alpha1.Preview) bool {

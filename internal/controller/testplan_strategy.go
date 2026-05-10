@@ -120,6 +120,22 @@ func (r *PreviewReconciler) handlePendingPlan(
 ) (ctrl.Result, *platformv1alpha1.TestPlan, error) {
 	logger := log.FromContext(ctx).WithValues("previewName", preview.Name)
 
+	// If the agent filled the spec (generatedBy + confidence + mustRun), accept it
+	// without requiring the agent to separately patch status.phase=Ready.
+	if plan.Spec.GeneratedBy != "" && plan.Spec.Confidence > 0 && len(plan.Spec.MustRun) > 0 {
+		logger.Info("agent filled TestPlan spec; promoting to Ready",
+			"testPlan", plan.Name,
+			"confidence", plan.Spec.Confidence,
+		)
+		now := metav1.Now()
+		plan.Status.Phase = platformv1alpha1.TestPlanPhaseReady
+		if err := r.Status().Update(ctx, plan); err != nil {
+			return ctrl.Result{}, nil, err
+		}
+		plan.Status.AcceptedAt = &now
+		return r.acceptOrFallback(ctx, preview, nsName, plan, correlationID)
+	}
+
 	timeoutSec := policy.AgentTimeoutSeconds(preview)
 	deadline := plan.CreationTimestamp.Add(time.Duration(timeoutSec) * time.Second)
 
