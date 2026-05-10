@@ -96,10 +96,14 @@ func aiSeedEnabled(c *platformv1alpha1.Preview) bool {
 	if !aiEnrichmentEnabled(c) {
 		return false
 	}
-	if c.Spec.AIEnrichment.Seed == nil {
-		return true
+	if c.Spec.AIEnrichment.Seed != nil && !c.Spec.AIEnrichment.Seed.Enabled {
+		return false
 	}
-	return c.Spec.AIEnrichment.Seed.Enabled
+	// If changeContext is present and seed data is not required, skip AI seed generation.
+	if cc := c.Spec.ChangeContext; cc != nil && !cc.DetectedImpacts.RequiresSeedData {
+		return false
+	}
+	return true
 }
 
 func aiTestsEnabled(c *platformv1alpha1.Preview) bool {

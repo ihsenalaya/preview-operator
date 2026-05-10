@@ -164,6 +164,107 @@ spec:
                 description: Branch is the git branch name for this preview environment
                 minLength: 1
                 type: string
+              changeContext:
+                description: |-
+                  ChangeContext carries structured metadata derived from the pull request diff.
+                  When set, the controller uses it to adapt database provisioning, test selection,
+                  and seed data generation to the actual content of the PR.
+                properties:
+                  changedFiles:
+                    description: ChangedFiles is the classified list of files in the
+                      diff.
+                    items:
+                      description: ChangedFile describes one file in the pull request
+                        diff.
+                      properties:
+                        path:
+                          description: Path is the file path relative to the repository
+                            root.
+                          minLength: 1
+                          type: string
+                        type:
+                          description: Type is the classified role of this file.
+                          enum:
+                          - database-migration
+                          - api-contract
+                          - backend
+                          - frontend
+                          - docs
+                          - other
+                          type: string
+                      required:
+                      - path
+                      - type
+                      type: object
+                    type: array
+                  detectedImpacts:
+                    description: DetectedImpacts captures which system layers are
+                      affected.
+                    properties:
+                      apiContract:
+                        description: APIContract is true when the diff touches OpenAPI/proto
+                          contract files.
+                        type: boolean
+                      backend:
+                        description: Backend is true when the diff touches backend
+                          source files.
+                        type: boolean
+                      database:
+                        description: Database is true when the diff touches database
+                          migration files.
+                        type: boolean
+                      frontend:
+                        description: Frontend is true when the diff touches frontend
+                          source files.
+                        type: boolean
+                      requiresContractTests:
+                        description: RequiresContractTests is true when the diff implies
+                          contract tests should run.
+                        type: boolean
+                      requiresRegressionTests:
+                        description: RequiresRegressionTests is true when the diff
+                          implies regression tests should run.
+                        type: boolean
+                      requiresSeedData:
+                        description: RequiresSeedData is true when the diff implies
+                          seed data should be regenerated.
+                        type: boolean
+                    type: object
+                  diffRef:
+                    description: DiffRef identifies the Git diff.
+                    properties:
+                      baseSHA:
+                        description: BaseSHA is the base commit SHA.
+                        type: string
+                      headSHA:
+                        description: HeadSHA is the head commit SHA.
+                        type: string
+                      provider:
+                        default: github
+                        description: Provider is the VCS provider (e.g. "github").
+                        type: string
+                      pullRequestNumber:
+                        description: PullRequestNumber is the pull request number.
+                        type: integer
+                      repository:
+                        description: Repository is the "owner/repo" slug.
+                        type: string
+                    type: object
+                  summary:
+                    description: Summary holds aggregate statistics about the diff.
+                    properties:
+                      additions:
+                        description: Additions is the total number of added lines.
+                        type: integer
+                      changedFilesCount:
+                        description: ChangedFilesCount is the total number of changed
+                          files.
+                        type: integer
+                      deletions:
+                        description: Deletions is the total number of deleted lines.
+                        type: integer
+                    type: object
+                type: object
               database:
                 description: Database configures an ephemeral PostgreSQL instance
                   for this environment

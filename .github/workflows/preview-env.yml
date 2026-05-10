@@ -1,0 +1,63 @@
+name: Preview Environment
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  deploy-preview:
+    name: Deploy preview environment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build diff-classifier
+        run: go build -o /tmp/diff-classifier ./cmd/diff-classifier
+
+      - name: Classify PR diff
+        id: classify
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PATCH=$(/tmp/diff-classifier \
+            --repo "${{ github.repository }}" \
+            --pr "${{ github.event.pull_request.number }}" \
+            --token "$GITHUB_TOKEN")
+          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          echo "Diff classification:"
+          echo "$PATCH" | jq '.spec.changeContext.detectedImpacts'
+
+      - name: Apply Preview CR
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          IMAGE="ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}"
+
+          # Create or update the Preview CR
+          kubectl apply -f - <<EOF
+          apiVersion: platform.company.io/v1alpha1
+          kind: Preview
+          metadata:
+            name: pr-${PR_NUMBER}
+          spec:
+            branch: "${{ github.head_ref }}"
+            prNumber: ${PR_NUMBER}
+            image: "${IMAGE}"
+            ttl: "48h"
+          EOF
+
+          # Patch changeContext from diff-classifier output
+          kubectl patch preview "pr-${PR_NUMBER}" --type=merge \
+            -p '${{ steps.classify.outputs.patch }}'

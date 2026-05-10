@@ -324,6 +324,120 @@ type ServiceSpec struct {
 	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
+// ChangeFileType describes the role of a changed file in the system.
+// +kubebuilder:validation:Enum=database-migration;api-contract;backend;frontend;docs;other
+type ChangeFileType string
+
+const (
+	ChangeFileTypeDatabaseMigration ChangeFileType = "database-migration"
+	ChangeFileTypeAPIContract       ChangeFileType = "api-contract"
+	ChangeFileTypeBackend           ChangeFileType = "backend"
+	ChangeFileTypeFrontend          ChangeFileType = "frontend"
+	ChangeFileTypeDocs              ChangeFileType = "docs"
+	ChangeFileTypeOther             ChangeFileType = "other"
+)
+
+// DiffRef identifies the Git diff that produced this change context.
+type DiffRef struct {
+	// Provider is the VCS provider (e.g. "github").
+	// +kubebuilder:default="github"
+	// +optional
+	Provider string `json:"provider,omitempty"`
+
+	// Repository is the "owner/repo" slug.
+	// +optional
+	Repository string `json:"repository,omitempty"`
+
+	// PullRequestNumber is the pull request number.
+	// +optional
+	PullRequestNumber int `json:"pullRequestNumber,omitempty"`
+
+	// BaseSHA is the base commit SHA.
+	// +optional
+	BaseSHA string `json:"baseSHA,omitempty"`
+
+	// HeadSHA is the head commit SHA.
+	// +optional
+	HeadSHA string `json:"headSHA,omitempty"`
+}
+
+// ChangeSummary holds aggregate diff statistics.
+type ChangeSummary struct {
+	// ChangedFilesCount is the total number of changed files.
+	// +optional
+	ChangedFilesCount int `json:"changedFilesCount,omitempty"`
+
+	// Additions is the total number of added lines.
+	// +optional
+	Additions int `json:"additions,omitempty"`
+
+	// Deletions is the total number of deleted lines.
+	// +optional
+	Deletions int `json:"deletions,omitempty"`
+}
+
+// ChangedFile describes one file in the pull request diff.
+type ChangedFile struct {
+	// Path is the file path relative to the repository root.
+	// +kubebuilder:validation:MinLength=1
+	Path string `json:"path"`
+
+	// Type is the classified role of this file.
+	Type ChangeFileType `json:"type"`
+}
+
+// DetectedImpacts captures which system layers are touched by this diff.
+type DetectedImpacts struct {
+	// Database is true when the diff touches database migration files.
+	// +optional
+	Database bool `json:"database,omitempty"`
+
+	// APIContract is true when the diff touches OpenAPI/proto contract files.
+	// +optional
+	APIContract bool `json:"apiContract,omitempty"`
+
+	// Backend is true when the diff touches backend source files.
+	// +optional
+	Backend bool `json:"backend,omitempty"`
+
+	// Frontend is true when the diff touches frontend source files.
+	// +optional
+	Frontend bool `json:"frontend,omitempty"`
+
+	// RequiresSeedData is true when the diff implies seed data should be regenerated.
+	// +optional
+	RequiresSeedData bool `json:"requiresSeedData,omitempty"`
+
+	// RequiresContractTests is true when the diff implies contract tests should run.
+	// +optional
+	RequiresContractTests bool `json:"requiresContractTests,omitempty"`
+
+	// RequiresRegressionTests is true when the diff implies regression tests should run.
+	// +optional
+	RequiresRegressionTests bool `json:"requiresRegressionTests,omitempty"`
+}
+
+// ChangeContextSpec carries structured metadata about the pull request diff.
+// Set by the diff-classifier tool in GitHub Actions; consumed by the controller
+// to adapt DB provisioning, test selection, and seed data generation.
+type ChangeContextSpec struct {
+	// DiffRef identifies the Git diff.
+	// +optional
+	DiffRef DiffRef `json:"diffRef,omitempty"`
+
+	// Summary holds aggregate statistics about the diff.
+	// +optional
+	Summary ChangeSummary `json:"summary,omitempty"`
+
+	// ChangedFiles is the classified list of files in the diff.
+	// +optional
+	ChangedFiles []ChangedFile `json:"changedFiles,omitempty"`
+
+	// DetectedImpacts captures which system layers are affected.
+	// +optional
+	DetectedImpacts DetectedImpacts `json:"detectedImpacts,omitempty"`
+}
+
 // KagentIntegrationSpec configures automatic kagent failure analysis.
 type KagentIntegrationSpec struct {
 	// Enabled controls whether kagent is triggered when the test suite fails.
@@ -428,6 +542,12 @@ type PreviewSpec struct {
 	// Kagent configures automatic AI failure analysis via kagent when the test suite fails.
 	// +optional
 	Kagent *KagentIntegrationSpec `json:"kagent,omitempty"`
+
+	// ChangeContext carries structured metadata derived from the pull request diff.
+	// When set, the controller uses it to adapt database provisioning, test selection,
+	// and seed data generation to the actual content of the PR.
+	// +optional
+	ChangeContext *ChangeContextSpec `json:"changeContext,omitempty"`
 }
 
 // GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.
