@@ -286,12 +286,96 @@ type AIEnrichmentStatus struct {
 type EnvironmentPhase string
 
 const (
-	PhasePending      EnvironmentPhase = "Pending"
-	PhaseProvisioning EnvironmentPhase = "Provisioning"
-	PhaseRunning      EnvironmentPhase = "Running"
-	PhaseTerminating  EnvironmentPhase = "Terminating"
-	PhaseFailed       EnvironmentPhase = "Failed"
+	PhasePending          EnvironmentPhase = "Pending"
+	PhaseProvisioning     EnvironmentPhase = "Provisioning"
+	PhaseRunning          EnvironmentPhase = "Running"
+	PhaseTerminating      EnvironmentPhase = "Terminating"
+	PhaseFailed           EnvironmentPhase = "Failed"
+	PhaseAwaitingTestPlan EnvironmentPhase = "AwaitingTestPlan"
 )
+
+// TestStrategyMode controls how the controller selects tests for a Preview.
+// +kubebuilder:validation:Enum=Auto;Manual;FullSuite
+type TestStrategyMode string
+
+const (
+	TestStrategyAuto      TestStrategyMode = "Auto"
+	TestStrategyManual    TestStrategyMode = "Manual"
+	TestStrategyFullSuite TestStrategyMode = "FullSuite"
+)
+
+// TestStrategyFallback controls controller behavior when the agent times out.
+// +kubebuilder:validation:Enum=Full;Skip;Error
+type TestStrategyFallback string
+
+const (
+	TestStrategyFallbackFull  TestStrategyFallback = "Full"
+	TestStrategyFallbackSkip  TestStrategyFallback = "Skip"
+	TestStrategyFallbackError TestStrategyFallback = "Error"
+)
+
+// TestStrategySpec configures how the controller selects the test plan for a Preview.
+type TestStrategySpec struct {
+	// Mode selects how the test plan is resolved:
+	//   Auto      – request a TestPlan from the kagent test-strategist agent
+	//   Manual    – use the plan pointed to by manualPlanRef
+	//   FullSuite – run all tests (default when field is absent)
+	// +kubebuilder:default=FullSuite
+	// +optional
+	Mode TestStrategyMode `json:"mode,omitempty"`
+
+	// ConfidenceThreshold is the minimum agent confidence (0-100) needed before
+	// the controller accepts an agent-produced TestPlan. Below this value the
+	// controller falls back to FullSuite.
+	// +kubebuilder:default=70
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	// +optional
+	ConfidenceThreshold int `json:"confidenceThreshold,omitempty"`
+
+	// ManualPlanRef points to an existing TestPlan when Mode=Manual.
+	// +optional
+	ManualPlanRef *corev1.ObjectReference `json:"manualPlanRef,omitempty"`
+
+	// FallbackOnAgentTimeout controls what happens when the agent does not fill
+	// the TestPlan within AgentTimeoutSeconds.
+	// +kubebuilder:default=Full
+	// +optional
+	FallbackOnAgentTimeout TestStrategyFallback `json:"fallbackOnAgentTimeout,omitempty"`
+
+	// AgentTimeoutSeconds is the maximum number of seconds the controller waits
+	// for the agent to fill the TestPlan before applying the fallback policy.
+	// +kubebuilder:default=60
+	// +kubebuilder:validation:Minimum=10
+	// +optional
+	AgentTimeoutSeconds int `json:"agentTimeoutSeconds,omitempty"`
+}
+
+// TestPlanResolutionSource describes who produced the accepted TestPlan.
+// +kubebuilder:validation:Enum=Agent;Fallback;Manual;Full
+type TestPlanResolutionSource string
+
+const (
+	TestPlanSourceAgent    TestPlanResolutionSource = "Agent"
+	TestPlanSourceFallback TestPlanResolutionSource = "Fallback"
+	TestPlanSourceManual   TestPlanResolutionSource = "Manual"
+	TestPlanSourceFull     TestPlanResolutionSource = "Full"
+)
+
+// TestPlanResolutionStatus records how the active TestPlan was chosen.
+type TestPlanResolutionStatus struct {
+	// Source identifies who produced the accepted plan.
+	// +optional
+	Source TestPlanResolutionSource `json:"source,omitempty"`
+
+	// ResolvedAt is when the plan was accepted.
+	// +optional
+	ResolvedAt *metav1.Time `json:"resolvedAt,omitempty"`
+
+	// Rationale is a human-readable summary suitable for inclusion in PR comments.
+	// +optional
+	Rationale string `json:"rationale,omitempty"`
+}
 
 // ServiceSpec configures one service (e.g. frontend, backend) in a multi-service environment.
 type ServiceSpec struct {
@@ -459,6 +543,12 @@ type KagentIntegrationSpec struct {
 	// +kubebuilder:default="preview-diff-analyzer"
 	// +optional
 	DiffAnalyzerAgentName string `json:"diffAnalyzerAgentName,omitempty"`
+
+	// TestStrategistAgentName is the kagent Agent CR triggered when a Pending TestPlan is created.
+	// The agent reads the diff, historical ReconcileEvents, and fills the TestPlan.
+	// +kubebuilder:default="test-strategist-agent"
+	// +optional
+	TestStrategistAgentName string `json:"testStrategistAgentName,omitempty"`
 }
 
 // KagentStatus describes the kagent analysis triggered for this preview.
@@ -475,6 +565,11 @@ type KagentStatus struct {
 	// Non-zero means the analysis has already been posted — prevents re-posting.
 	// +optional
 	CommentID int64 `json:"commentId,omitempty"`
+
+	// Analysis is the raw text produced by the troubleshooter agent.
+	// Embedded into the test results GitHub PR comment instead of a separate comment.
+	// +optional
+	Analysis string `json:"analysis,omitempty"`
 }
 
 // PreviewSpec defines the desired state
@@ -548,6 +643,11 @@ type PreviewSpec struct {
 	// and seed data generation to the actual content of the PR.
 	// +optional
 	ChangeContext *ChangeContextSpec `json:"changeContext,omitempty"`
+
+	// TestStrategy configures how the controller selects the test plan for this Preview.
+	// When absent the controller defaults to FullSuite, preserving backward compatibility.
+	// +optional
+	TestStrategy *TestStrategySpec `json:"testStrategy,omitempty"`
 }
 
 // GitHubIntegrationStatus describes the latest GitHub notification emitted by the controller.
@@ -626,10 +726,14 @@ type TestSuiteStatus struct {
 	// E2E holds the end-to-end test results.
 	// +optional
 	E2E TestResult `json:"e2e,omitempty"`
+
+	// Migration holds the migration test results.
+	// +optional
+	Migration TestResult `json:"migration,omitempty"`
 }
 
-// TestRunSpec configures a test job run by the operator.
-type TestRunSpec struct {
+// TestJobSpec configures a test job type run by the operator (smoke, regression, e2e).
+type TestJobSpec struct {
 	// Enabled controls whether this test type runs.
 	// +kubebuilder:default=true
 	// +optional
@@ -709,7 +813,7 @@ type TestSuiteSpec struct {
 
 	// Smoke configures the smoke test job (health check endpoints).
 	// +optional
-	Smoke *TestRunSpec `json:"smoke,omitempty"`
+	Smoke *TestJobSpec `json:"smoke,omitempty"`
 
 	// ContractTesting configures Microcks API contract tests run after smoke tests.
 	// +optional
@@ -718,12 +822,17 @@ type TestSuiteSpec struct {
 	// Regression configures the regression test job (existing endpoints).
 	// Default command: sh -c "pip install requests -q && python /app/tests/regression.py"
 	// +optional
-	Regression *TestRunSpec `json:"regression,omitempty"`
+	Regression *TestJobSpec `json:"regression,omitempty"`
 
 	// E2E configures the end-to-end test job (full user flows).
 	// Default command: sh -c "pip install requests -q && python /app/tests/e2e.py"
 	// +optional
-	E2E *TestRunSpec `json:"e2e,omitempty"`
+	E2E *TestJobSpec `json:"e2e,omitempty"`
+
+	// Migration configures a test job that validates Alembic migration scripts.
+	// Runs before regression and e2e when migration files are detected in the diff.
+	// +optional
+	Migration *TestJobSpec `json:"migration,omitempty"`
 }
 
 // PreviewStatus defines the observed state
@@ -781,6 +890,14 @@ type PreviewStatus struct {
 	// DiffAnalysis describes the kagent diff analysis triggered when the preview first becomes Running.
 	// +optional
 	DiffAnalysis *KagentStatus `json:"diffAnalysis,omitempty"`
+
+	// TestPlanRef points to the TestPlan accepted for the current commit.
+	// +optional
+	TestPlanRef *corev1.ObjectReference `json:"testPlanRef,omitempty"`
+
+	// TestPlanResolution records how the active TestPlan was chosen.
+	// +optional
+	TestPlanResolution *TestPlanResolutionStatus `json:"testPlanResolution,omitempty"`
 }
 
 // Condition types

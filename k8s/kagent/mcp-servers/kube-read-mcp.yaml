@@ -1,0 +1,26 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: kube-read-mcp
+  namespace: kagent-system
+spec:
+  description: >
+    Read-only Kubernetes API access for the test-strategist agent.
+    Allows the agent to read Preview, TestPlan, and ReconcileEvent resources
+    to understand what the current PR looks like and what happened in past PRs.
+  transport:
+    stdio:
+      command: kubectl
+      args:
+        - get
+        - "--all-namespaces"
+  resources:
+    - group: platform.company.io
+      resources:
+        - previews
+        - testplans
+        - reconcileevents
+      verbs:
+        - get
+        - list
+        - watch

@@ -1,0 +1,24 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: kube-write-testplan-mcp
+  namespace: kagent-system
+spec:
+  description: >
+    Scoped write access for the test-strategist agent.
+    Grants create and update on TestPlan resources ONLY.
+    All other resources are read-only (enforced by RBAC, not by agent trust).
+  transport:
+    stdio:
+      command: kubectl
+      args:
+        - apply
+  resources:
+    - group: platform.company.io
+      resources:
+        - testplans
+        - testplans/status
+      verbs:
+        - create
+        - update
+        - patch

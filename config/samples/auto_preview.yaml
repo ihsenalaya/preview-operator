@@ -1,0 +1,37 @@
+---
+# Auto mode: the controller requests a TestPlan from the test-strategist agent.
+# The agent analyses the PR diff and historical ReconcileEvents, then writes a plan.
+# If the plan's confidence >= 70 (default), the controller runs only the selected tests.
+# If the agent times out (default 60s), the controller falls back to FullSuite.
+apiVersion: platform.company.io/v1alpha1
+kind: Preview
+metadata:
+  name: pr-42
+spec:
+  branch: feature/payments
+  prNumber: 42
+  image: ghcr.io/ihsenalaya/idp-preview:sha-abc123
+  ttl: 48h
+  resourceTier: medium
+  testStrategy:
+    mode: Auto
+    confidenceThreshold: 70
+    agentTimeoutSeconds: 60
+    fallbackOnAgentTimeout: Full
+  testSuite:
+    enabled: true
+    smoke: {}
+    contractTesting:
+      enabled: true
+      microcksURL: http://microcks.microcks.svc.cluster.local:8080
+      apiName: Preview Catalog API
+      apiVersion: "1.0.0"
+    regression:
+      enabled: true
+    e2e:
+      enabled: true
+  github:
+    enabled: true
+    owner: ihsenalaya
+    repo: idp-preview
+    commentOnReady: true

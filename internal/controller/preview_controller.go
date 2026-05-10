@@ -62,6 +62,11 @@ type PreviewReconciler struct {
 // +kubebuilder:rbac:groups=platform.company.io,resources=previews,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=platform.company.io,resources=previews/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=platform.company.io,resources=previews/finalizers,verbs=update
+// +kubebuilder:rbac:groups=platform.company.io,resources=testplans,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=platform.company.io,resources=testplans/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=platform.company.io,resources=testruns,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=platform.company.io,resources=testruns/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=platform.company.io,resources=reconcileevents,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -241,9 +246,54 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 		if err := r.refreshPreview(ctx, key, preview); err != nil {
 			return ctrl.Result{}, err
 		}
-		if result, err := r.reconcileTestSuite(ctx, preview, nsName); err != nil || result.RequeueAfter > 0 {
-			return result, err
+
+		// Resolve the effective TestPlan (agent-driven, manual, or full-suite fallback).
+		stratResult, plan, stratErr := r.reconcileTestStrategy(ctx, preview, nsName)
+		if stratErr != nil {
+			return r.setFailedStatus(ctx, preview, "TestStrategyFailed", stratErr)
 		}
+		if stratResult.Requeue || stratResult.RequeueAfter > 0 {
+			// Awaiting agent — status already updated inside reconcileTestStrategy.
+			if err := r.Status().Update(ctx, preview); err != nil {
+				return ctrl.Result{}, err
+			}
+			return stratResult, nil
+		}
+		// Persist plan resolution to status before running tests.
+		if err := r.Status().Update(ctx, preview); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Only start the run once — when tests haven't begun yet.
+		testsNotStarted := preview.Status.Tests == nil || preview.Status.Tests.Phase == ""
+		if plan != nil && testsNotStarted {
+			if err := r.createTestRun(ctx, preview, nsName, plan); err != nil {
+				logger.Error(err, "failed to create TestRun")
+			}
+			r.emitReconcileEvent(ctx, preview, nsName, platformv1alpha1.ReconcileEventTestStarted,
+				"", "", "test suite starting", plan.Spec.CorrelationID)
+		}
+
+		// plan may be nil when fallbackOnAgentTimeout=Skip — that means no tests run.
+		if plan != nil {
+			prevPhase := ""
+			if preview.Status.Tests != nil {
+				prevPhase = preview.Status.Tests.Phase
+			}
+			if result, err := r.reconcileTestSuite(ctx, preview, nsName, plan); err != nil || result.RequeueAfter > 0 {
+				return result, err
+			}
+			// Emit TestFinished only on the transition to a terminal phase.
+			newPhase := ""
+			if preview.Status.Tests != nil {
+				newPhase = preview.Status.Tests.Phase
+			}
+			if (newPhase == phaseSucceeded || newPhase == phaseFailed) && prevPhase != newPhase {
+				r.emitReconcileEvent(ctx, preview, nsName, platformv1alpha1.ReconcileEventTestFinished,
+					"", newPhase, "test suite finished", plan.Spec.CorrelationID)
+			}
+		}
+
 		// Retry kagent analysis until it succeeds (phase=Succeeded).
 		r.triggerKagentAnalysis(ctx, preview)
 		if kagentEnabled(preview) && preview.Status.Kagent != nil &&
@@ -514,14 +564,7 @@ func (r *PreviewReconciler) reconcileDatabase(ctx context.Context, preview *plat
 }
 
 func databaseEnabled(preview *platformv1alpha1.Preview) bool {
-	if preview.Spec.Database == nil || !preview.Spec.Database.Enabled {
-		return false
-	}
-	// If changeContext is present and database is not impacted, skip DB provisioning.
-	if cc := preview.Spec.ChangeContext; cc != nil && !cc.DetectedImpacts.Database {
-		return false
-	}
-	return true
+	return preview.Spec.Database != nil && preview.Spec.Database.Enabled
 }
 
 func multiServiceEnabled(c *platformv1alpha1.Preview) bool {
@@ -1736,7 +1779,8 @@ func (r *PreviewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&batchv1.Job{}).
-		Owns(&corev1.Service{})
+		Owns(&corev1.Service{}).
+		Watches(&platformv1alpha1.TestPlan{}, testPlanEventHandler())
 
 	if r.IstioEnabled {
 		vs := &unstructured.Unstructured{}

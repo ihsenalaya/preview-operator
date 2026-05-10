@@ -395,6 +395,21 @@ func defaultStatus(value string) string {
 	return value
 }
 
+func (r *PreviewReconciler) fetchActiveTestPlan(ctx context.Context, c *platformv1alpha1.Preview) *platformv1alpha1.TestPlan {
+	if c.Status.TestPlanRef == nil {
+		return nil
+	}
+	plan := &platformv1alpha1.TestPlan{}
+	key := types.NamespacedName{
+		Name:      c.Status.TestPlanRef.Name,
+		Namespace: c.Status.TestPlanRef.Namespace,
+	}
+	if err := r.Get(ctx, key, plan); err != nil {
+		return nil
+	}
+	return plan
+}
+
 func (r *PreviewReconciler) postTestResultsComment(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 	if !githubEnabled(c) || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
@@ -410,7 +425,8 @@ func (r *PreviewReconciler) postTestResultsComment(ctx context.Context, c *platf
 		return
 	}
 
-	body := buildTestResultsCommentBody(c)
+	plan := r.fetchActiveTestPlan(ctx, c)
+	body := buildTestResultsCommentBody(c, plan)
 	var response githubIssueCommentResponse
 	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
 		url.PathEscape(c.Spec.GitHub.Owner),
@@ -456,56 +472,102 @@ func (r *PreviewReconciler) syncGitHubAIComment(ctx context.Context, c *platform
 	}
 }
 
-func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
+func buildTestResultsCommentBody(c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) string {
 	tests := c.Status.Tests
 	if tests == nil {
 		return "## Test Suite\n\nNo test results available."
 	}
 
 	var b strings.Builder
-	b.WriteString("## Test Suite Results\n\n")
+	b.WriteString("## 🧪 Test Suite Results\n\n")
 
 	overallIcon := "✅"
 	if tests.Phase == phaseFailed {
 		overallIcon = "❌"
+	} else if tests.Phase == phaseRunning {
+		overallIcon = "🔄"
 	}
 	b.WriteString(fmt.Sprintf("**Overall: %s %s**\n\n", overallIcon, tests.Phase))
 
-	b.WriteString("| Suite | Status | Passed | Failed |\n")
-	b.WriteString("|-------|--------|--------|--------|\n")
-	b.WriteString(fmt.Sprintf("| Smoke | %s | %d | %d |\n",
+	// kagent test-strategist decision — rationale + skipped suites.
+	if plan != nil && plan.Spec.GeneratedBy != "" {
+		b.WriteString("### 🧠 Stratégie kagent\n\n")
+		if plan.Spec.Rationale != "" {
+			b.WriteString(fmt.Sprintf("> %s\n\n", plan.Spec.Rationale))
+		}
+		b.WriteString(fmt.Sprintf("Confiance : **%d%%**\n\n", plan.Spec.Confidence))
+		if len(plan.Spec.CanSkip) > 0 {
+			b.WriteString("**Suites ignorées :**\n\n")
+			b.WriteString("| Suite | Raison du skip |\n")
+			b.WriteString("|-------|----------------|\n")
+			for _, sel := range plan.Spec.CanSkip {
+				b.WriteString(fmt.Sprintf("| ⏭️ %s | %s |\n", sel.Suite, sel.Reason))
+			}
+			b.WriteString("\n")
+		}
+	}
+
+	// Table — show all suites that have a phase or are enabled in spec.
+	showMigration := (c.Spec.TestSuite != nil && c.Spec.TestSuite.Migration != nil) || tests.Migration.Phase != ""
+	showContract := contractTestEnabled(c) || tests.Contract.Phase != ""
+
+	b.WriteString("| Suite | Résultat | Passed | Failed |\n")
+	b.WriteString("|-------|----------|--------|--------|\n")
+	b.WriteString(fmt.Sprintf("| 🔥 Smoke | %s | %d | %d |\n",
 		testResultBadge(tests.Smoke.Phase), tests.Smoke.Passed, tests.Smoke.Failed))
-	if contractTestEnabled(c) || tests.Contract.Phase != "" {
-		b.WriteString(fmt.Sprintf("| Contract (Microcks) | %s | %d | %d |\n",
+	if showMigration {
+		b.WriteString(fmt.Sprintf("| 🗄️ Migration | %s | — | — |\n",
+			testResultBadge(tests.Migration.Phase)))
+	}
+	if showContract {
+		b.WriteString(fmt.Sprintf("| 📋 Contract (Microcks) | %s | %d | %d |\n",
 			testResultBadge(tests.Contract.Phase), tests.Contract.Passed, tests.Contract.Failed))
 	}
-	b.WriteString(fmt.Sprintf("| Regression | %s | %d | %d |\n",
+	b.WriteString(fmt.Sprintf("| 🔁 Regression | %s | %d | %d |\n",
 		testResultBadge(tests.Regression.Phase), tests.Regression.Passed, tests.Regression.Failed))
-	b.WriteString(fmt.Sprintf("| E2E | %s | %d | %d |\n",
+	b.WriteString(fmt.Sprintf("| 🌐 E2E | %s | %d | %d |\n",
 		testResultBadge(tests.E2E.Phase), tests.E2E.Passed, tests.E2E.Failed))
 
+	// Collapsible output per suite.
 	suites := []struct {
 		name   string
 		result platformv1alpha1.TestResult
 		show   bool
 	}{
-		{"Smoke", tests.Smoke, true},
-		{"Contract (Microcks)", tests.Contract, contractTestEnabled(c) || tests.Contract.Phase != ""},
-		{"Regression", tests.Regression, true},
-		{"E2E", tests.E2E, true},
+		{"🔥 Smoke", tests.Smoke, true},
+		{"🗄️ Migration", tests.Migration, showMigration},
+		{"📋 Contract (Microcks)", tests.Contract, showContract},
+		{"🔁 Regression", tests.Regression, true},
+		{"🌐 E2E", tests.E2E, true},
 	}
 	for _, suite := range suites {
-		if !suite.show {
+		if !suite.show || len(suite.result.Output) == 0 {
 			continue
 		}
-		if len(suite.result.Output) > 0 {
-			b.WriteString(fmt.Sprintf("\n<details>\n<summary>%s Details</summary>\n\n```\n", suite.name))
-			for _, line := range suite.result.Output {
-				b.WriteString(line)
-				b.WriteByte('\n')
-			}
-			b.WriteString("```\n</details>\n")
+		b.WriteString(fmt.Sprintf("\n<details>\n<summary>%s — Logs</summary>\n\n```\n", suite.name))
+		for _, line := range suite.result.Output {
+			b.WriteString(line)
+			b.WriteByte('\n')
 		}
+		b.WriteString("```\n</details>\n")
+	}
+
+	// kagent analysis — embedded when available, placeholder when running.
+	if c.Status.Kagent != nil {
+		switch c.Status.Kagent.Phase {
+		case "Running":
+			b.WriteString("\n---\n\n### 🤖 Analyse kagent\n\n> ⏳ Analyse en cours — l'agent inspecte les logs et les traces...\n")
+		case phaseSucceeded:
+			if c.Status.Kagent.Analysis != "" {
+				b.WriteString("\n---\n\n### 🤖 Analyse kagent — Causes des échecs\n\n")
+				b.WriteString(c.Status.Kagent.Analysis)
+				b.WriteString("\n")
+			}
+		case phaseFailed:
+			b.WriteString("\n---\n\n### 🤖 Analyse kagent\n\n> ⚠️ L'agent n'a pas pu compléter l'analyse.\n")
+		}
+	} else if tests.Phase == phaseFailed {
+		b.WriteString("\n---\n\n### 🤖 Analyse kagent\n\n> ⏳ Analyse en cours — l'agent inspecte les logs et les traces...\n")
 	}
 
 	if section := buildAIEnrichmentSection(c); section != "" {
@@ -527,7 +589,8 @@ func (r *PreviewReconciler) updateGitHubTestsComment(ctx context.Context, c *pla
 		return fmt.Errorf("spec.github.owner and spec.github.repo are required")
 	}
 
-	body := buildTestResultsCommentBody(c)
+	plan := r.fetchActiveTestPlan(ctx, c)
+	body := buildTestResultsCommentBody(c, plan)
 	payload := githubIssueCommentRequest{Body: body}
 	path := fmt.Sprintf("/repos/%s/%s/issues/comments/%d",
 		url.PathEscape(spec.Owner),

@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/policy"
 )
 
 const (
@@ -29,12 +30,15 @@ const (
 
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
+	suiteStepMigration         = "migration"
 	suiteStepImportSpec        = "import-spec"
 	suiteStepContract          = "contract"
 	suiteStepRestoreRegression = "restore-regression"
 	suiteStepRegression        = "regression"
 	suiteStepRestoreE2E        = "restore-e2e"
 	suiteStepE2E               = "e2e"
+
+	migrationTestJobName = "migration-tests"
 
 	// microcksImportScript fetches an OpenAPI spec from a URL and imports it into Microcks.
 	// Uses only stdlib — runs in python:3.11-slim without pip install.
@@ -187,14 +191,7 @@ func contractTestEnabled(c *platformv1alpha1.Preview) bool {
 	if c.Spec.TestSuite == nil || c.Spec.TestSuite.ContractTesting == nil {
 		return false
 	}
-	if !c.Spec.TestSuite.ContractTesting.Enabled {
-		return false
-	}
-	// If changeContext is present, apiContract must also be true.
-	if cc := c.Spec.ChangeContext; cc != nil && !cc.DetectedImpacts.APIContract {
-		return false
-	}
-	return true
+	return c.Spec.TestSuite.ContractTesting.Enabled
 }
 
 func smokeEnabled(c *platformv1alpha1.Preview) bool {
@@ -205,14 +202,7 @@ func smokeEnabled(c *platformv1alpha1.Preview) bool {
 }
 
 func regressionEnabled(c *platformv1alpha1.Preview) bool {
-	if c.Spec.TestSuite.Regression != nil && !c.Spec.TestSuite.Regression.Enabled {
-		return false
-	}
-	// If changeContext is present and only frontend changed, skip backend regression.
-	if cc := c.Spec.ChangeContext; cc != nil && cc.DetectedImpacts.Frontend && !cc.DetectedImpacts.Backend {
-		return false
-	}
-	return true
+	return c.Spec.TestSuite.Regression == nil || c.Spec.TestSuite.Regression.Enabled
 }
 
 func e2eEnabled(c *platformv1alpha1.Preview) bool {
@@ -220,6 +210,13 @@ func e2eEnabled(c *platformv1alpha1.Preview) bool {
 		return true
 	}
 	return c.Spec.TestSuite.E2E.Enabled
+}
+
+func migrationEnabled(c *platformv1alpha1.Preview) bool {
+	if c.Spec.TestSuite == nil || c.Spec.TestSuite.Migration == nil {
+		return false
+	}
+	return c.Spec.TestSuite.Migration.Enabled
 }
 
 func ensureTestSuiteStatus(c *platformv1alpha1.Preview) *platformv1alpha1.TestSuiteStatus {
@@ -231,7 +228,8 @@ func ensureTestSuiteStatus(c *platformv1alpha1.Preview) *platformv1alpha1.TestSu
 
 // reconcileTestSuite orchestrates the test pipeline sequentially:
 // checkpoint-save → smoke → restore → regression → restore → e2e
-func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
+// plan is the accepted TestPlan (nil means FullSuite — run everything enabled by spec).
+func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv1alpha1.Preview, nsName string, plan *platformv1alpha1.TestPlan) (ctrl.Result, error) {
 	if !testSuiteEnabled(c) {
 		return ctrl.Result{}, nil
 	}
@@ -284,7 +282,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 
 	case suiteStepSmoke:
-		if smokeEnabled(c) {
+		if smokeEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteSmoke) {
 			state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName))
 			tests.Smoke.Phase = state
 			tests.Smoke.Output = output
@@ -299,11 +297,46 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		} else {
 			tests.Smoke.Phase = phaseSkipped
 		}
-		if contractTestEnabled(c) && c.Spec.TestSuite.ContractTesting.SpecURL != "" {
+		if migrationEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteMigration) {
+			tests.Step = suiteStepMigration
+		} else {
+			contractSelected := contractTestEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteContract)
+			if contractSelected && c.Spec.TestSuite.ContractTesting.SpecURL != "" {
+				tests.Step = suiteStepImportSpec
+			} else if contractSelected {
+				tests.Step = suiteStepContract
+			} else if dbEnabled && regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
+				tests.Step = suiteStepRestoreRegression
+			} else {
+				tests.Step = suiteStepRegression
+			}
+		}
+		if err := r.Status().Update(ctx, c); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+
+	case suiteStepMigration:
+		if migrationEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteMigration) {
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, migrationTestJobName, r.migrationTestJob(c, nsName))
+			tests.Migration.Phase = state
+			tests.Migration.Output = output
+			if !testResultFinal(state) {
+				tests.Phase = phaseRunning
+				if err := r.Status().Update(ctx, c); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		} else {
+			tests.Migration.Phase = phaseSkipped
+		}
+		contractSelected := contractTestEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteContract)
+		if contractSelected && c.Spec.TestSuite.ContractTesting.SpecURL != "" {
 			tests.Step = suiteStepImportSpec
-		} else if contractTestEnabled(c) {
+		} else if contractSelected {
 			tests.Step = suiteStepContract
-		} else if dbEnabled && regressionEnabled(c) {
+		} else if dbEnabled && regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
 			tests.Step = suiteStepRestoreRegression
 		} else {
 			tests.Step = suiteStepRegression
@@ -330,16 +363,20 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 
 	case suiteStepContract:
-		state, output := r.checkOrCreateTestJob(ctx, c, nsName, microcksJobName, r.microcksContractTestJob(c, nsName))
-		tests.Contract.Phase = state
-		tests.Contract.Output = output
-		tests.Contract.Passed, tests.Contract.Failed = countTestResults(output)
-		if !testResultFinal(state) {
-			tests.Phase = phaseRunning
-			if err := r.Status().Update(ctx, c); err != nil {
-				return ctrl.Result{}, err
+		if contractTestEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteContract) {
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, microcksJobName, r.microcksContractTestJob(c, nsName))
+			tests.Contract.Phase = state
+			tests.Contract.Output = output
+			tests.Contract.Passed, tests.Contract.Failed = countTestResults(output)
+			if !testResultFinal(state) {
+				tests.Phase = phaseRunning
+				if err := r.Status().Update(ctx, c); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 			}
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		} else {
+			tests.Contract.Phase = phaseSkipped
 		}
 		// Contract failure does not block regression — continue pipeline regardless.
 		if dbEnabled && regressionEnabled(c) {
@@ -367,7 +404,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 
 	case suiteStepRegression:
-		if regressionEnabled(c) {
+		if regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
 			state, output := r.checkOrCreateTestJob(ctx, c, nsName, regressionJobName, r.regressionTestJob(c, nsName, previewURL))
 			tests.Regression.Phase = state
 			tests.Regression.Output = output
@@ -382,7 +419,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		} else {
 			tests.Regression.Phase = phaseSkipped
 		}
-		if dbEnabled && e2eEnabled(c) {
+		if dbEnabled && e2eEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteE2E) {
 			tests.Step = suiteStepRestoreE2E
 		} else {
 			tests.Step = suiteStepE2E
@@ -407,7 +444,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 
 	case suiteStepE2E:
-		if e2eEnabled(c) {
+		if e2eEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteE2E) {
 			state, output := r.checkOrCreateTestJob(ctx, c, nsName, e2eJobName, r.e2eTestJob(c, nsName, previewURL))
 			tests.E2E.Phase = state
 			tests.E2E.Output = output
@@ -425,6 +462,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 	}
 
 	anyFailed := tests.Smoke.Phase == phaseFailed ||
+		tests.Migration.Phase == phaseFailed ||
 		tests.Contract.Phase == phaseFailed ||
 		tests.Regression.Phase == phaseFailed ||
 		tests.E2E.Phase == phaseFailed
@@ -727,6 +765,21 @@ func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview,
 			},
 		},
 	}
+}
+
+func (r *PreviewReconciler) migrationTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
+	image := mainAppImage(c)
+	if c.Spec.TestSuite.Migration != nil && c.Spec.TestSuite.Migration.Image != "" {
+		image = c.Spec.TestSuite.Migration.Image
+	}
+	cmd := []string{"sh", "-c",
+		"pip install alembic psycopg2-binary -q 2>/dev/null && " +
+			"alembic upgrade head && " +
+			"echo 'PASS migration alembic upgrade head: OK'"}
+	if c.Spec.TestSuite.Migration != nil && len(c.Spec.TestSuite.Migration.Command) > 0 {
+		cmd = c.Spec.TestSuite.Migration.Command
+	}
+	return r.testJobNoMount(c, nsName, migrationTestJobName, image, cmd, migrationTestJobName, true)
 }
 
 func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {

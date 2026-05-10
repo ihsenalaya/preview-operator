@@ -107,6 +107,20 @@ func kagentDiffAnalyzerURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
+func kagentTestStrategistURL(c *platformv1alpha1.Preview) string {
+	ns := "kagent-system"
+	name := "test-strategist-agent"
+	if c.Spec.Kagent != nil {
+		if c.Spec.Kagent.Namespace != "" {
+			ns = c.Spec.Kagent.Namespace
+		}
+		if c.Spec.Kagent.TestStrategistAgentName != "" {
+			name = c.Spec.Kagent.TestStrategistAgentName
+		}
+	}
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
+}
+
 // triggerKagentDiffAnalysis calls the preview-diff-analyzer agent once the preview
 // reaches Running phase. Fetches a fresh copy of the preview to avoid ResourceVersion
 // conflicts from earlier status updates in the reconcile loop. Idempotent.
@@ -253,32 +267,38 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 
 	r.setKagentPhase(ctx, c, "Running")
 
-	analysis, err := r.callKagentAgent(ctx, c)
+	plan := r.fetchActiveTestPlan(ctx, c)
+	analysis, err := r.callKagentAgent(ctx, c, plan)
 	if err != nil {
 		logger.Error(err, "kagent analysis failed", "preview", c.Name)
 		r.setKagentPhase(ctx, c, phaseFailed)
 		return
 	}
 
-	commentID, err := r.postKagentComment(ctx, c, analysis)
-	if err != nil {
-		logger.Error(err, "Failed to post kagent comment to GitHub", "preview", c.Name)
-		r.setKagentPhase(ctx, c, phaseFailed)
-		return
-	}
-
+	// Store the analysis in status so buildTestResultsCommentBody can embed it.
 	if c.Status.Kagent == nil {
 		c.Status.Kagent = &platformv1alpha1.KagentStatus{}
 	}
 	c.Status.Kagent.Phase = phaseSucceeded
-	c.Status.Kagent.CommentID = commentID
+	c.Status.Kagent.Analysis = analysis
 	_ = r.Status().Update(ctx, c)
-	logger.Info("kagent analysis posted to GitHub", "commentId", commentID)
+
+	// Update the existing test results comment to include the kagent section.
+	token, err := r.githubToken(ctx, c)
+	if err != nil {
+		logger.Error(err, "Failed to read GitHub token to update test comment with kagent analysis")
+		return
+	}
+	if err := r.updateGitHubTestsComment(ctx, c, token); err != nil {
+		logger.Error(err, "Failed to update test results comment with kagent analysis")
+		return
+	}
+	logger.Info("kagent analysis embedded into test results comment", "preview", c.Name)
 }
 
 // callKagentAgent sends a message to the agent via A2A JSON-RPC and returns
 // the text of the agent's response.
-func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview) (string, error) {
+func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) (string, error) {
 	agentURL := kagentAgentURL(c)
 
 	payload := a2aMessage{
@@ -289,7 +309,7 @@ func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1al
 			Message: a2aUserMessage{
 				Role:      "user",
 				MessageID: uuid.New().String(),
-				Parts:     []a2aPart{{Type: "text", Text: buildAnalysisPrompt(c)}},
+				Parts:     []a2aPart{{Type: "text", Text: buildAnalysisPrompt(c, plan)}},
 			},
 		},
 	}
@@ -357,30 +377,80 @@ func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1al
 	return strings.Join(texts, "\n"), nil
 }
 
-func buildAnalysisPrompt(c *platformv1alpha1.Preview) string {
+func buildAnalysisPrompt(c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) string {
 	tests := c.Status.Tests
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Analyze the test failure for preview environment %q.\n\n", c.Name)
-	fmt.Fprintf(&b, "Context:\n")
-	fmt.Fprintf(&b, "  PR #%d — branch: %s\n", c.Spec.PRNumber, c.Spec.Branch)
-	fmt.Fprintf(&b, "  Namespace: %s\n", c.Status.NamespaceName)
+	fmt.Fprintf(&b, "Analyze the test results for preview environment %q (PR #%d, branch: %s).\n\n",
+		c.Name, c.Spec.PRNumber, c.Spec.Branch)
+	fmt.Fprintf(&b, "Namespace: %s\n", c.Status.NamespaceName)
 	if c.Spec.GitHub != nil {
-		fmt.Fprintf(&b, "  GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
+		fmt.Fprintf(&b, "GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
 	}
 
-	// Include test output directly to reduce the number of k8s tool calls needed.
+	// Include test-strategist decision context so the troubleshooter can explain skips.
+	if plan != nil {
+		b.WriteString("\n## Test Strategy (decided by test-strategist-agent)\n\n")
+		if plan.Spec.Rationale != "" {
+			fmt.Fprintf(&b, "Rationale: %s\n", plan.Spec.Rationale)
+		}
+		fmt.Fprintf(&b, "Confidence: %d%%\n", plan.Spec.Confidence)
+		if len(plan.Spec.CanSkip) > 0 {
+			b.WriteString("\nSkipped suites:\n")
+			for _, sel := range plan.Spec.CanSkip {
+				fmt.Fprintf(&b, "  - %s: %s\n", sel.Suite, sel.Reason)
+			}
+		}
+		if len(plan.Spec.MustRun) > 0 {
+			b.WriteString("\nRequired suites:\n")
+			for _, sel := range plan.Spec.MustRun {
+				fmt.Fprintf(&b, "  - %s: %s\n", sel.Suite, sel.Reason)
+			}
+		}
+	}
+
 	if tests != nil {
-		b.WriteString("\nTest results:\n")
+		b.WriteString("\n## Test Results\n\n")
 		appendSuiteOutput(&b, "smoke", tests.Smoke)
-		appendSuiteOutput(&b, "microcks-contract", tests.Contract)
+		appendSuiteOutput(&b, "migration", tests.Migration)
+		appendSuiteOutput(&b, "contract (Microcks)", tests.Contract)
 		appendSuiteOutput(&b, "regression", tests.Regression)
 		appendSuiteOutput(&b, "e2e", tests.E2E)
 	}
 
-	b.WriteString("\nUsing this information and any pod/job events you can gather from the namespace, ")
-	b.WriteString("produce a structured failure analysis in the format described in your system prompt. ")
-	b.WriteString("Focus on the failed suites only — skip tool calls for passing suites.")
+	b.WriteString(`
+## Required output format
+
+Your response will be embedded directly into a GitHub PR comment.
+Produce TWO sections:
+
+### Section 1 — Failed suites
+For EACH failed suite, use this format:
+
+#### ❌ <Suite name>
+**Cause:** <one sentence root cause>
+**Details:** <what exactly failed, with the failing test name/assertion if visible in the logs>
+**Fix:** <concrete code or config change to resolve it>
+
+---
+
+### Section 2 — Skipped suites
+If any suites were skipped by the test-strategist-agent, add this section:
+
+#### ⏭️ Suites ignorées par kagent
+| Suite | Raison |
+|-------|--------|
+| <suite> | <reason from the test strategy above> |
+
+> *Ces suites ont été ignorées car le diff du PR ne touche pas les couches correspondantes.*
+
+Rules:
+- Section 1 is mandatory if any suite failed; omit if all suites passed.
+- Section 2 is mandatory if any suite was skipped; omit if nothing was skipped.
+- Use the test output as your primary source. Only call Kubernetes tools if output is missing.
+- Keep each section concise — 3-5 lines max per suite.
+- Do not add any preamble or conclusion outside these sections.
+`)
 	return b.String()
 }
 
@@ -414,4 +484,86 @@ func (r *PreviewReconciler) setKagentPhase(ctx context.Context, c *platformv1alp
 		c.Status.Kagent.TriggeredAt = &now
 	}
 	_ = r.Status().Update(ctx, c)
+}
+
+// triggerTestStrategistAgent fires an async A2A call to the test-strategist agent.
+// The agent reads the stub TestPlan, reads the Preview's changeContext and recent
+// ReconcileEvents, then patches the TestPlan (spec + status.phase=Ready).
+// The TestPlan watch then wakes the controller to accept or reject the plan.
+// The call is non-blocking: it runs in a goroutine so the reconcile returns immediately.
+func (r *PreviewReconciler) triggerTestStrategistAgent(preview *platformv1alpha1.Preview, nsName, planName string) {
+	if !kagentEnabled(preview) {
+		return
+	}
+
+	agentURL := kagentTestStrategistURL(preview)
+	prompt := buildTestStrategyPrompt(preview, nsName, planName)
+
+	go func() {
+		logger := log.Log.WithValues("preview", preview.Name, "testPlan", planName)
+
+		payload := a2aMessage{
+			JSONRPC: "2.0",
+			Method:  "message/send",
+			ID:      uuid.New().String(),
+			Params: a2aParams{
+				Message: a2aUserMessage{
+					Role:      "user",
+					MessageID: uuid.New().String(),
+					Parts:     []a2aPart{{Type: "text", Text: prompt}},
+				},
+			},
+		}
+		body, err := json.Marshal(payload)
+		if err != nil {
+			logger.Error(err, "test-strategist: marshal payload")
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, agentURL, bytes.NewReader(body))
+		if err != nil {
+			logger.Error(err, "test-strategist: create request")
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			logger.Error(err, "test-strategist: A2A call failed", "url", agentURL)
+			return
+		}
+		defer resp.Body.Close()
+		logger.Info("test-strategist: agent invoked successfully", "status", resp.StatusCode)
+	}()
+}
+
+func buildTestStrategyPrompt(preview *platformv1alpha1.Preview, nsName, planName string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "A TestPlan stub named %q in namespace %q has phase=Pending and needs to be filled.\n\n", planName, nsName)
+	fmt.Fprintf(&b, "Preview: %s (PR #%d, branch: %s)\n", preview.Name, preview.Spec.PRNumber, preview.Spec.Branch)
+
+	if cc := preview.Spec.ChangeContext; cc != nil {
+		fmt.Fprintf(&b, "\nChanged files (%d total):\n", len(cc.ChangedFiles))
+		for _, f := range cc.ChangedFiles {
+			fmt.Fprintf(&b, "  - %s (%s)\n", f.Path, f.Type)
+		}
+		imp := cc.DetectedImpacts
+		fmt.Fprintf(&b, "\nDetected impacts: database=%v apiContract=%v backend=%v frontend=%v\n",
+			imp.Database, imp.APIContract, imp.Backend, imp.Frontend)
+	} else {
+		b.WriteString("\nNo changeContext available — inspect the Preview and ReconcileEvents to infer impact.\n")
+	}
+
+	fmt.Fprintf(&b, "\nSteps to complete:\n")
+	fmt.Fprintf(&b, "1. Read the TestPlan: k8s_get_resource_yaml kind=TestPlan name=%s namespace=%s\n", planName, nsName)
+	fmt.Fprintf(&b, "2. Read recent ReconcileEvents in namespace %s for historical signal\n", nsName)
+	fmt.Fprintf(&b, "3. Decide: mustRun, shouldRun, canSkip, confidence (0-100), rationale\n")
+	fmt.Fprintf(&b, "4. Patch the TestPlan spec with your decision (generatedBy=Agent)\n")
+	fmt.Fprintf(&b, "5. Patch status.phase=Ready on the TestPlan so the controller picks it up\n")
+	fmt.Fprintf(&b, "\nConfidence threshold: %d. Below this the controller falls back to FullSuite.\n",
+		preview.Spec.TestStrategy.ConfidenceThreshold)
+	return b.String()
 }

@@ -31,12 +31,13 @@ kubectl apply -f pr-42.yaml
 14. [TTL & Auto-Expiry](#14-ttl--auto-expiry)
 15. [Smart Diagnostics](#15-smart-diagnostics)
 16. [kagent — AI Failure Analysis](#16-kagent--ai-failure-analysis)
-17. [Copilot Extension](#17-copilot-extension)
-18. [Complete CR Reference](#18-complete-cr-reference)
-19. [Status Fields Reference](#19-status-fields-reference)
-20. [Helm Values Reference](#20-helm-values-reference)
-21. [Development & Release](#21-development--release)
-22. [Debugging & Troubleshooting](#22-debugging--troubleshooting)
+17. [AI Test Strategist — Diff-Driven Test Selection](#17-ai-test-strategist--diff-driven-test-selection)
+18. [Copilot Extension](#18-copilot-extension)
+19. [Complete CR Reference](#19-complete-cr-reference)
+20. [Status Fields Reference](#20-status-fields-reference)
+21. [Helm Values Reference](#21-helm-values-reference)
+22. [Development & Release](#22-development--release)
+23. [Debugging & Troubleshooting](#23-debugging--troubleshooting)
 
 ---
 
@@ -66,6 +67,7 @@ kubectl apply -f pr-42.yaml
 | AI seed data + tests | `spec.aiEnrichment.enabled` | `false` |
 | AI-only rerun | `spec.aiEnrichment.rerunRequested` | `false` |
 | **AI failure analysis (kagent)** | `spec.kagent.enabled` | `false` |
+| **AI test selection (test-strategist)** | `spec.testStrategy.mode: Auto` | `FullSuite` |
 | Smart failure diagnostics | always on when `Failed` | — |
 | Copilot Extension commands | sidecar server | optional |
 
@@ -534,12 +536,18 @@ kubectl create secret generic preview-github-token \
 
 ```
 internal/controller/
-├── preview_controller.go   Main reconcile loop, namespace, quota, deployments, ingress
-├── ai_enrichment.go         AI schema dump, generation, seed job, test job, prompt handling
-├── checkpoint.go            DB checkpoint save/restore via pg_dump / psql Jobs
-├── diagnostics.go           Failure root-cause analysis, log collection, debug commands
-├── github.go                GitHub Deployment status and PR comment publishing
-└── tests.go                 Smoke, regression, E2E job orchestration and step state machine
+├── preview_controller.go    Main reconcile loop, namespace, quota, deployments, ingress
+├── ai_enrichment.go          AI schema dump, generation, seed job, test job, prompt handling
+├── checkpoint.go             DB checkpoint save/restore via pg_dump / psql Jobs
+├── diagnostics.go            Failure root-cause analysis, log collection, debug commands
+├── github.go                 GitHub Deployment status and PR comment publishing
+├── kagent.go                 kagent failure analysis + test-strategist agent trigger (A2A)
+├── testplan_strategy.go      TestPlan state machine (Auto/Manual/FullSuite modes)
+└── tests.go                  Smoke, regression, E2E job orchestration and step state machine
+
+internal/policy/
+├── testplan_policy.go        IsSuiteSelected, ValidatePlan, ConfidenceThreshold, FullSuitePlan
+└── …
 ```
 
 ### Full reconcile sequence
@@ -1855,7 +1863,196 @@ kubectl get preview pr-42 -o jsonpath='{.status.kagent}' | jq .
 
 ---
 
-## 17. Copilot Extension
+## 17. AI Test Strategist — Diff-Driven Test Selection
+
+The **test-strategist** kagent agent reads the PR diff and decides _which test suites_ to run before a single test job is launched. This replaces the "always run everything" default and makes preview feedback faster.
+
+### How it works
+
+```
+Preview CR created (testStrategy.mode: Auto)
+       │
+       ▼
+Controller creates a stub TestPlan (status.phase = Pending)
+       │
+       ▼
+triggerTestStrategistAgent()  →  POST A2A to test-strategist-agent
+       │
+       ├─ Agent reads spec.changeContext.changedFiles
+       ├─ Agent reads spec.changeContext.detectedImpacts
+       ├─ Agent reads recent ReconcileEvents (historical signal)
+       │
+       ▼
+Agent patches TestPlan spec:
+  generatedBy: Agent
+  confidence: 75
+  mustRun:  [smoke, e2e, regression]
+  canSkip:  [migration → "No migration files changed",
+             contract  → "No API contract changes"]
+  rationale: "Frontend.py updated, e2e needed. Smoke and regression always run."
+       │
+       ▼
+Controller: spec filled? → promote to Ready → acceptOrFallback()
+       │
+       ├─ confidence >= threshold (default 65)?  → accept
+       └─ confidence < threshold                 → fallback to FullSuite
+       │
+       ▼
+reconcileTestSuite() runs only mustRun + shouldRun suites
+canSkip suites → status.phase = Skipped (never scheduled)
+```
+
+### TestPlan CRD
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: TestPlan
+metadata:
+  name: pr-27-kvw8n
+  namespace: preview-pr-27
+spec:
+  generatedBy: Agent
+  confidence: 75
+  rationale: >
+    Frontend.py updated, necessitating e2e tests.
+    Smoke and regression must run by default.
+  mustRun:
+    - suite: smoke
+      name: "*"
+      reason: "smoke always runs — baseline liveness"
+    - suite: e2e
+      name: "*"
+      reason: "Frontend changes require e2e coverage."
+    - suite: regression
+      name: "*"
+      reason: "Regression tests must run after any changes."
+  canSkip:
+    - suite: migration
+      name: "*"
+      reason: "No migration files changed."
+    - suite: contract
+      name: "*"
+      reason: "No API contract changes."
+status:
+  phase: Ready
+  acceptedByController: true
+  acceptedAt: "2026-05-10T19:19:54Z"
+```
+
+### Selection rules (hard rules)
+
+| Condition | Suite forced into `mustRun` |
+|-----------|----------------------------|
+| Any `type: database-migration` in `changedFiles` | `migration` |
+| `api/openapi.yaml` in `changedFiles` | `contract` |
+| `type: frontend` in `changedFiles` | `e2e` |
+| All `changedFiles` are `type: docs` | only `smoke` (confidence ≥ 95) |
+| Any change (default) | `smoke` + `regression` |
+
+### Test strategy modes
+
+| Mode | Behaviour |
+|------|-----------|
+| `FullSuite` (default) | Run all enabled suites; no agent involved |
+| `Auto` | Agent selects suites; fallback to FullSuite on timeout |
+| `Manual` | Point to a hand-crafted TestPlan via `spec.testStrategy.manualPlanRef` |
+
+### Confidence threshold and fallback
+
+```yaml
+spec:
+  testStrategy:
+    mode: Auto
+    confidenceThreshold: 65      # reject plans below this score
+    fallbackOnAgentTimeout: Full # Full | Skip | Error
+    agentTimeoutSeconds: 60
+```
+
+| `fallbackOnAgentTimeout` | Behaviour when agent doesn't respond |
+|--------------------------|--------------------------------------|
+| `Full` (default) | Run all enabled suites |
+| `Skip` | Skip all tests for this PR |
+| `Error` | Mark preview Failed |
+
+### PR comment — kagent strategy section
+
+When `testStrategy.mode: Auto`, the test results comment includes a strategy section:
+
+```markdown
+### 🧠 Stratégie kagent
+
+> Frontend.py updated, necessitating e2e tests. Smoke and regression must run by default.
+
+Confiance : **75%**
+
+**Suites ignorées :**
+
+| Suite | Raison du skip |
+|-------|----------------|
+| ⏭️ migration | No migration files changed. |
+| ⏭️ contract  | No API contract changes.    |
+```
+
+### Configuration
+
+```yaml
+spec:
+  testStrategy:
+    mode: Auto
+    confidenceThreshold: 65
+  kagent:
+    enabled: true
+    namespace: kagent-system
+    agentName: preview-troubleshooter-agent
+    testStrategistAgentName: test-strategist-agent
+```
+
+### Install the test-strategist agent
+
+```bash
+# Deploy the agent from the operator repo
+kubectl apply -f k8s/kagent/agents/test-strategist-agent.yaml
+
+# Verify it is running
+kubectl get pods -n kagent-system -l app.kubernetes.io/component=test-strategist
+```
+
+### Monitor TestPlan lifecycle
+
+```bash
+# Watch TestPlan for a PR
+kubectl get testplan -n preview-pr-27 -w
+
+# Inspect the agent's decision
+kubectl get testplan -n preview-pr-27 -o yaml
+
+# Check which tests were selected in the TestRun
+kubectl get testrun -n preview-pr-27 -o jsonpath='{.items[0].spec.selectedTests}' | jq .
+```
+
+### Status fields
+
+```bash
+kubectl get preview pr-27 -o jsonpath='{.status.testPlanResolution}' | jq .
+```
+
+```json
+{
+  "source": "Agent",
+  "resolvedAt": "2026-05-10T19:19:54Z",
+  "rationale": "Frontend.py updated, necessitating e2e tests."
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `status.testPlanResolution.source` | `Agent` / `FallbackPolicy` / `FullSuite` / `Manual` |
+| `status.testPlanRef` | Object reference to the accepted TestPlan |
+| `status.phase` | `AwaitingTestPlan` while agent is running |
+
+---
+
+## 18. Copilot Extension
 
 A companion server (`preview-extension`) that surfaces preview environment management directly inside GitHub Copilot Chat — no `kubectl` access needed for developers.
 
@@ -1927,7 +2124,7 @@ kubectl create secret generic preview-extension-secret \
 
 ---
 
-## 18. Complete CR Reference
+## 19. Complete CR Reference
 
 ### All fields
 
@@ -2052,7 +2249,7 @@ spec:
 
 ---
 
-## 19. Status Fields Reference
+## 20. Status Fields Reference
 
 ```bash
 kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
@@ -2110,7 +2307,7 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 
 ---
 
-## 20. Helm Values Reference
+## 21. Helm Values Reference
 
 ```yaml
 replicaCount: 1
@@ -2168,7 +2365,7 @@ affinity: {}
 
 ---
 
-## 21. Development & Release
+## 22. Development & Release
 
 ### Source layout
 
@@ -2264,7 +2461,7 @@ GitHub Actions automatically:
 
 ---
 
-## 22. Debugging & Troubleshooting
+## 23. Debugging & Troubleshooting
 
 ### Infinite reconcile loop (every 2 seconds in controller logs)
 

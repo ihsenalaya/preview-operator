@@ -1,0 +1,36 @@
+---
+# ClusterRole for the kagent test-strategist agent.
+#
+# Bounded-blast-radius design: an attacker compromising the agent can at worst
+# write a malicious TestPlan. The controller discards low-confidence plans and
+# falls back to FullSuite if the plan is structurally invalid. The agent cannot
+# touch Deployments, Pods, Secrets, or any workload resource.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kagent-test-strategist
+  labels:
+    app.kubernetes.io/component: test-strategist
+    app.kubernetes.io/part-of: preview-operator
+rules:
+  # Read-only: understand what the PR looks like and what history shows.
+  - apiGroups: ["platform.company.io"]
+    resources:
+      - previews
+      - testplans
+      - reconcileevents
+    verbs: ["get", "list", "watch"]
+
+  # Write: produce the TestPlan the controller will consume.
+  - apiGroups: ["platform.company.io"]
+    resources:
+      - testplans
+      - testplans/status
+    verbs: ["create", "update", "patch"]
+
+  # The agent intentionally has NO access to:
+  #   - apps/deployments
+  #   - batch/jobs
+  #   - core/pods, core/secrets, core/configmaps
+  #   - testruns (controller-only)
+  #   - reconcileevents (write — controller-only)
