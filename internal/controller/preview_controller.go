@@ -209,17 +209,17 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 	}
 
 	previewURL := r.previewURL(preview)
-	firstRunning := preview.Status.Phase != platformv1alpha1.PhaseRunning
-	if firstRunning || preview.Status.URL != previewURL {
+	if preview.Status.Phase != platformv1alpha1.PhaseRunning || preview.Status.URL != previewURL {
 		r.markRunningStatus(preview, nsName, previewURL)
 		if err := r.Status().Update(ctx, preview); err != nil {
 			return ctrl.Result{}, err
 		}
 		syncGitHubAfterStatus(ctx, r, preview, previewURL)
 	}
-	if firstRunning {
-		go r.triggerKagentDiffAnalysis(ctx, preview)
-	}
+	// Trigger diff analysis in a detached goroutine (background context — the
+	// reconcile context is cancelled as soon as this function returns).
+	previewCopy := preview.DeepCopy()
+	go r.triggerKagentDiffAnalysis(context.Background(), previewCopy)
 
 	if aiEnrichmentEnabled(preview) {
 		if err := r.refreshPreview(ctx, key, preview); err != nil {
