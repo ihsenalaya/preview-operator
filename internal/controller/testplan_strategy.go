@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"time"
 
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -68,7 +71,7 @@ func (r *PreviewReconciler) reconcileAutoPlan(
 		if err != nil {
 			return ctrl.Result{}, nil, err
 		}
-		_ = stub // the test-strategist-agent watches for Pending TestPlans autonomously
+		r.createTestStrategistTriggerJob(ctx, preview, nsName, stub.Name)
 		timeout := time.Duration(policy.AgentTimeoutSeconds(preview)) * time.Second
 		preview.Status.Phase = platformv1alpha1.PhaseAwaitingTestPlan
 		if serr := r.Status().Update(ctx, preview); serr != nil {
@@ -90,7 +93,7 @@ func (r *PreviewReconciler) reconcileAutoPlan(
 		if err != nil {
 			return ctrl.Result{}, nil, err
 		}
-		_ = stub // the test-strategist-agent watches for Pending TestPlans autonomously
+		r.createTestStrategistTriggerJob(ctx, preview, nsName, stub.Name)
 		timeout := time.Duration(policy.AgentTimeoutSeconds(preview)) * time.Second
 		preview.Status.Phase = platformv1alpha1.PhaseAwaitingTestPlan
 		if serr := r.Status().Update(ctx, preview); serr != nil {
@@ -489,4 +492,125 @@ func makeCorrelationID(preview *platformv1alpha1.Preview) string {
 		return fmt.Sprintf("%s-%s", preview.Name, hex.EncodeToString(b))
 	}
 	return preview.Name
+}
+
+// createTestStrategistTriggerJob creates an ephemeral Job that sends one A2A
+// message to the test-strategist-agent, telling it to fill the named TestPlan.
+// The controller itself does not contain any HTTP client — it only creates a
+// Kubernetes Job. The Job pod (curlimages/curl) does the HTTP call and exits.
+// The Job is automatically garbage-collected 5 minutes after completion.
+func (r *PreviewReconciler) createTestStrategistTriggerJob(
+	ctx context.Context,
+	preview *platformv1alpha1.Preview,
+	nsName, planName string,
+) {
+	if !kagentEnabled(preview) {
+		return
+	}
+	logger := log.FromContext(ctx).WithValues("preview", preview.Name, "testPlan", planName)
+
+	agentURL := kagentTestStrategistURL(preview)
+
+	// Build a targeted prompt so the agent processes only this one TestPlan.
+	prompt := fmt.Sprintf(
+		"A TestPlan named %q in namespace %q has status.phase=Pending and needs to be filled. "+
+			"Read the Preview %q from the same namespace (spec.changeContext.changedFiles, "+
+			"spec.changeContext.diffPatch, spec.changeContext.detectedImpacts, "+
+			"spec.testStrategy.confidenceThreshold). "+
+			"Read the last 20 ReconcileEvents in namespace %q for historical signal. "+
+			"Decide mustRun, canSkip, confidence (0-100), and rationale. "+
+			"Patch the TestPlan spec (generatedBy=Agent) and set status.phase=Ready.",
+		planName, nsName, preview.Name, nsName,
+	)
+
+	// Escape for shell embedding — replace single quotes with '"'"'.
+	shellPrompt := "'" + replaceAll(prompt, "'", "'\"'\"'") + "'"
+
+	curlCmd := fmt.Sprintf(
+		`curl -sf -X POST %s `+
+			`-H 'Content-Type: application/json' `+
+			`-d '{"jsonrpc":"2.0","method":"message/send","id":"trigger","params":{"message":{"role":"user","messageId":"trigger","parts":[{"type":"text","text":%s}]}}}' `+
+			`|| echo "kagent call failed (non-blocking)"`,
+		agentURL, shellPrompt,
+	)
+
+	ttl := int32(300) // auto-delete 5 min after completion
+	backoff := int32(0)
+
+	jobName := "trigger-" + planName
+	if len(jobName) > 63 {
+		jobName = jobName[:63]
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: nsName,
+			Labels: map[string]string{
+				"platform.company.io/preview-name":  preview.Name,
+				"platform.company.io/testplan-name": planName,
+				"app.kubernetes.io/component":       "test-strategist-trigger",
+			},
+		},
+		Spec: batchv1.JobSpec{
+			TTLSecondsAfterFinished: &ttl,
+			BackoffLimit:            &backoff,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy:      corev1.RestartPolicyNever,
+					ServiceAccountName: "kagent-test-strategist",
+					Containers: []corev1.Container{
+						{
+							Name:    "trigger",
+							Image:   "curlimages/curl:8.7.1",
+							Command: []string{"sh", "-c", curlCmd},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10m"),
+									corev1.ResourceMemory: resource.MustParse("16Mi"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("32Mi"),
+								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								RunAsNonRoot:             ptr.To(true),
+								AllowPrivilegeEscalation: ptr.To(false),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := r.Create(ctx, job); err != nil {
+		if !errors.IsAlreadyExists(err) {
+			logger.Error(err, "failed to create test-strategist trigger Job")
+		}
+		return
+	}
+	logger.Info("created test-strategist trigger Job", "job", job.Name)
+}
+
+func replaceAll(s, old, new string) string {
+	result := ""
+	for {
+		idx := indexOf(s, old)
+		if idx < 0 {
+			return result + s
+		}
+		result += s[:idx] + new
+		s = s[idx+len(old):]
+	}
+}
+
+func indexOf(s, sub string) int {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return i
+		}
+	}
+	return -1
 }

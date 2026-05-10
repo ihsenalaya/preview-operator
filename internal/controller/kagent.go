@@ -107,6 +107,20 @@ func kagentDiffAnalyzerURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
+func kagentTestStrategistURL(c *platformv1alpha1.Preview) string {
+	ns := "kagent-system"
+	name := "test-strategist-agent"
+	if c.Spec.Kagent != nil {
+		if c.Spec.Kagent.Namespace != "" {
+			ns = c.Spec.Kagent.Namespace
+		}
+		if c.Spec.Kagent.TestStrategistAgentName != "" {
+			name = c.Spec.Kagent.TestStrategistAgentName
+		}
+	}
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
+}
+
 // triggerKagentDiffAnalysis calls the preview-diff-analyzer agent once the preview
 // reaches Running phase. Fetches a fresh copy of the preview to avoid ResourceVersion
 // conflicts from earlier status updates in the reconcile loop. Idempotent.

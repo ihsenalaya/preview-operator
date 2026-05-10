@@ -16,6 +16,5 @@ resources:
   # Agent ServiceAccount + ClusterRole + ClusterRoleBinding
   - ../../rbac/agent_role.yaml
   - ../../rbac/agent_rolebinding.yaml
-  # kagent Agent CR and CronJob trigger
+  # kagent Agent CR (the controller creates trigger Jobs directly — no CronJob needed)
   - ../../../k8s/kagent/agents/test-strategist-agent.yaml
-  - ../../../k8s/kagent/agents/test-strategist-trigger.yaml
