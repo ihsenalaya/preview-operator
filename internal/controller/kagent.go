@@ -112,8 +112,14 @@ func kagentDiffAnalyzerURL(c *platformv1alpha1.Preview) string {
 // conflicts from earlier status updates in the reconcile loop. Idempotent.
 func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, spec *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
+	logger.Info("diff-analyzer: reconcile hook entered", "preview", spec.Name)
 
-	if !kagentEnabled(spec) || spec.Spec.GitHub == nil {
+	if !kagentEnabled(spec) {
+		logger.Info("diff-analyzer: skipped, kagent not enabled")
+		return
+	}
+	if spec.Spec.GitHub == nil {
+		logger.Info("diff-analyzer: skipped, no github spec")
 		return
 	}
 
@@ -127,12 +133,19 @@ func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, spec 
 
 	// Idempotency guard on fresh copy.
 	if c.Status.DiffAnalysis != nil {
-		switch c.Status.DiffAnalysis.Phase {
-		case phaseSucceeded, "Running":
+		phase := c.Status.DiffAnalysis.Phase
+		logger.Info("diff-analyzer: idempotency check", "phase", phase)
+		switch phase {
+		case phaseSucceeded:
+			logger.Info("diff-analyzer: already succeeded, skipping")
+			return
+		case "Running":
+			logger.Info("diff-analyzer: already running, skipping")
 			return
 		case phaseFailed:
 			if c.Status.DiffAnalysis.TriggeredAt != nil &&
 				time.Since(c.Status.DiffAnalysis.TriggeredAt.Time) < 5*time.Minute {
+				logger.Info("diff-analyzer: failed recently, backing off")
 				return
 			}
 		}
