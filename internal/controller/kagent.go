@@ -267,7 +267,8 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 
 	r.setKagentPhase(ctx, c, "Running")
 
-	analysis, err := r.callKagentAgent(ctx, c)
+	plan := r.fetchActiveTestPlan(ctx, c)
+	analysis, err := r.callKagentAgent(ctx, c, plan)
 	if err != nil {
 		logger.Error(err, "kagent analysis failed", "preview", c.Name)
 		r.setKagentPhase(ctx, c, phaseFailed)
@@ -297,7 +298,7 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 
 // callKagentAgent sends a message to the agent via A2A JSON-RPC and returns
 // the text of the agent's response.
-func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview) (string, error) {
+func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) (string, error) {
 	agentURL := kagentAgentURL(c)
 
 	payload := a2aMessage{
@@ -308,7 +309,7 @@ func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1al
 			Message: a2aUserMessage{
 				Role:      "user",
 				MessageID: uuid.New().String(),
-				Parts:     []a2aPart{{Type: "text", Text: buildAnalysisPrompt(c)}},
+				Parts:     []a2aPart{{Type: "text", Text: buildAnalysisPrompt(c, plan)}},
 			},
 		},
 	}
@@ -376,15 +377,36 @@ func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1al
 	return strings.Join(texts, "\n"), nil
 }
 
-func buildAnalysisPrompt(c *platformv1alpha1.Preview) string {
+func buildAnalysisPrompt(c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) string {
 	tests := c.Status.Tests
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Analyze the test failures for preview environment %q (PR #%d, branch: %s).\n\n",
+	fmt.Fprintf(&b, "Analyze the test results for preview environment %q (PR #%d, branch: %s).\n\n",
 		c.Name, c.Spec.PRNumber, c.Spec.Branch)
 	fmt.Fprintf(&b, "Namespace: %s\n", c.Status.NamespaceName)
 	if c.Spec.GitHub != nil {
 		fmt.Fprintf(&b, "GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
+	}
+
+	// Include test-strategist decision context so the troubleshooter can explain skips.
+	if plan != nil {
+		b.WriteString("\n## Test Strategy (decided by test-strategist-agent)\n\n")
+		if plan.Spec.Rationale != "" {
+			fmt.Fprintf(&b, "Rationale: %s\n", plan.Spec.Rationale)
+		}
+		fmt.Fprintf(&b, "Confidence: %d%%\n", plan.Spec.Confidence)
+		if len(plan.Spec.CanSkip) > 0 {
+			b.WriteString("\nSkipped suites:\n")
+			for _, sel := range plan.Spec.CanSkip {
+				fmt.Fprintf(&b, "  - %s: %s\n", sel.Suite, sel.Reason)
+			}
+		}
+		if len(plan.Spec.MustRun) > 0 {
+			b.WriteString("\nRequired suites:\n")
+			for _, sel := range plan.Spec.MustRun {
+				fmt.Fprintf(&b, "  - %s: %s\n", sel.Suite, sel.Reason)
+			}
+		}
 	}
 
 	if tests != nil {
@@ -400,23 +422,34 @@ func buildAnalysisPrompt(c *platformv1alpha1.Preview) string {
 ## Required output format
 
 Your response will be embedded directly into a GitHub PR comment.
-Produce a markdown section for EACH failing suite in this exact format:
+Produce TWO sections:
+
+### Section 1 — Failed suites
+For EACH failed suite, use this format:
 
 #### ❌ <Suite name>
-
 **Cause:** <one sentence root cause>
-
 **Details:** <what exactly failed, with the failing test name/assertion if visible in the logs>
-
 **Fix:** <concrete code or config change to resolve it>
 
 ---
 
+### Section 2 — Skipped suites
+If any suites were skipped by the test-strategist-agent, add this section:
+
+#### ⏭️ Suites ignorées par kagent
+| Suite | Raison |
+|-------|--------|
+| <suite> | <reason from the test strategy above> |
+
+> *Ces suites ont été ignorées car le diff du PR ne touche pas les couches correspondantes.*
+
 Rules:
-- Only include sections for FAILED suites. Do not mention passing or skipped suites.
-- Use the test output above as your primary source. Only call Kubernetes tools if the output is insufficient.
-- Keep each section concise — 3-5 lines max.
-- Do not add any preamble or conclusion outside the per-suite sections.
+- Section 1 is mandatory if any suite failed; omit if all suites passed.
+- Section 2 is mandatory if any suite was skipped; omit if nothing was skipped.
+- Use the test output as your primary source. Only call Kubernetes tools if output is missing.
+- Keep each section concise — 3-5 lines max per suite.
+- Do not add any preamble or conclusion outside these sections.
 `)
 	return b.String()
 }

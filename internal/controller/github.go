@@ -395,6 +395,21 @@ func defaultStatus(value string) string {
 	return value
 }
 
+func (r *PreviewReconciler) fetchActiveTestPlan(ctx context.Context, c *platformv1alpha1.Preview) *platformv1alpha1.TestPlan {
+	if c.Status.TestPlanRef == nil {
+		return nil
+	}
+	plan := &platformv1alpha1.TestPlan{}
+	key := types.NamespacedName{
+		Name:      c.Status.TestPlanRef.Name,
+		Namespace: c.Status.TestPlanRef.Namespace,
+	}
+	if err := r.Get(ctx, key, plan); err != nil {
+		return nil
+	}
+	return plan
+}
+
 func (r *PreviewReconciler) postTestResultsComment(ctx context.Context, c *platformv1alpha1.Preview) {
 	logger := log.FromContext(ctx)
 	if !githubEnabled(c) || c.Spec.GitHub.Owner == "" || c.Spec.GitHub.Repo == "" {
@@ -410,7 +425,8 @@ func (r *PreviewReconciler) postTestResultsComment(ctx context.Context, c *platf
 		return
 	}
 
-	body := buildTestResultsCommentBody(c)
+	plan := r.fetchActiveTestPlan(ctx, c)
+	body := buildTestResultsCommentBody(c, plan)
 	var response githubIssueCommentResponse
 	path := fmt.Sprintf("/repos/%s/%s/issues/%d/comments",
 		url.PathEscape(c.Spec.GitHub.Owner),
@@ -456,7 +472,7 @@ func (r *PreviewReconciler) syncGitHubAIComment(ctx context.Context, c *platform
 	}
 }
 
-func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
+func buildTestResultsCommentBody(c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) string {
 	tests := c.Status.Tests
 	if tests == nil {
 		return "## Test Suite\n\nNo test results available."
@@ -472,6 +488,24 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
 		overallIcon = "🔄"
 	}
 	b.WriteString(fmt.Sprintf("**Overall: %s %s**\n\n", overallIcon, tests.Phase))
+
+	// kagent test-strategist decision — rationale + skipped suites.
+	if plan != nil && plan.Spec.GeneratedBy != "" {
+		b.WriteString("### 🧠 Stratégie kagent\n\n")
+		if plan.Spec.Rationale != "" {
+			b.WriteString(fmt.Sprintf("> %s\n\n", plan.Spec.Rationale))
+		}
+		b.WriteString(fmt.Sprintf("Confiance : **%d%%**\n\n", plan.Spec.Confidence))
+		if len(plan.Spec.CanSkip) > 0 {
+			b.WriteString("**Suites ignorées :**\n\n")
+			b.WriteString("| Suite | Raison du skip |\n")
+			b.WriteString("|-------|----------------|\n")
+			for _, sel := range plan.Spec.CanSkip {
+				b.WriteString(fmt.Sprintf("| ⏭️ %s | %s |\n", sel.Suite, sel.Reason))
+			}
+			b.WriteString("\n")
+		}
+	}
 
 	// Table — show all suites that have a phase or are enabled in spec.
 	showMigration := (c.Spec.TestSuite != nil && c.Spec.TestSuite.Migration != nil) || tests.Migration.Phase != ""
@@ -555,7 +589,8 @@ func (r *PreviewReconciler) updateGitHubTestsComment(ctx context.Context, c *pla
 		return fmt.Errorf("spec.github.owner and spec.github.repo are required")
 	}
 
-	body := buildTestResultsCommentBody(c)
+	plan := r.fetchActiveTestPlan(ctx, c)
+	body := buildTestResultsCommentBody(c, plan)
 	payload := githubIssueCommentRequest{Body: body}
 	path := fmt.Sprintf("/repos/%s/%s/issues/comments/%d",
 		url.PathEscape(spec.Owner),
