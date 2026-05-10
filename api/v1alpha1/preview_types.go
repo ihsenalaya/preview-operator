@@ -335,10 +335,16 @@ type KagentIntegrationSpec struct {
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 
-	// AgentName is the kagent Agent CR to trigger.
+	// AgentName is the kagent Agent CR to trigger on test failure.
 	// +kubebuilder:default="preview-troubleshooter-agent"
 	// +optional
 	AgentName string `json:"agentName,omitempty"`
+
+	// DiffAnalyzerAgentName is the kagent Agent CR called when the preview first becomes Running.
+	// It analyses the PR diff and posts a structured comment on the PR.
+	// +kubebuilder:default="preview-diff-analyzer"
+	// +optional
+	DiffAnalyzerAgentName string `json:"diffAnalyzerAgentName,omitempty"`
 }
 
 // KagentStatus describes the kagent analysis triggered for this preview.
@@ -651,6 +657,10 @@ type PreviewStatus struct {
 	// Kagent describes the kagent analysis triggered when the test suite failed.
 	// +optional
 	Kagent *KagentStatus `json:"kagent,omitempty"`
+
+	// DiffAnalysis describes the kagent diff analysis triggered when the preview first becomes Running.
+	// +optional
+	DiffAnalysis *KagentStatus `json:"diffAnalysis,omitempty"`
 }
 
 // Condition types

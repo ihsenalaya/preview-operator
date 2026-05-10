@@ -92,6 +92,101 @@ func kagentAgentURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
+func kagentDiffAnalyzerURL(c *platformv1alpha1.Preview) string {
+	ns := "kagent-system"
+	name := "preview-diff-analyzer"
+	if c.Spec.Kagent != nil {
+		if c.Spec.Kagent.Namespace != "" {
+			ns = c.Spec.Kagent.Namespace
+		}
+		if c.Spec.Kagent.DiffAnalyzerAgentName != "" {
+			name = c.Spec.Kagent.DiffAnalyzerAgentName
+		}
+	}
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
+}
+
+// triggerKagentDiffAnalysis calls the preview-diff-analyzer agent when the preview
+// first becomes Running. It is idempotent: fires once per preview lifecycle.
+func (r *PreviewReconciler) triggerKagentDiffAnalysis(ctx context.Context, c *platformv1alpha1.Preview) {
+	logger := log.FromContext(ctx)
+
+	if !kagentEnabled(c) {
+		return
+	}
+	if c.Spec.GitHub == nil {
+		return
+	}
+	// Idempotency: only run once (Succeeded) or skip if already running.
+	if c.Status.DiffAnalysis != nil {
+		if c.Status.DiffAnalysis.Phase == phaseSucceeded || c.Status.DiffAnalysis.Phase == "Running" {
+			return
+		}
+		// Retry after 5 minutes on failure.
+		if c.Status.DiffAnalysis.Phase == phaseFailed && c.Status.DiffAnalysis.TriggeredAt != nil {
+			if time.Since(c.Status.DiffAnalysis.TriggeredAt.Time) < 5*time.Minute {
+				return
+			}
+		}
+	}
+
+	now := metav1.Now()
+	c.Status.DiffAnalysis = &platformv1alpha1.KagentStatus{Phase: "Running", TriggeredAt: &now}
+	_ = r.Status().Update(ctx, c)
+
+	agentURL := kagentDiffAnalyzerURL(c)
+	prompt := fmt.Sprintf(
+		"Analyze the diff for PR #%d in repo %s/%s and post a structured analysis comment on the PR.",
+		c.Spec.PRNumber, c.Spec.GitHub.Owner, c.Spec.GitHub.Repo,
+	)
+
+	payload := a2aMessage{
+		JSONRPC: "2.0",
+		Method:  "message/send",
+		ID:      uuid.New().String(),
+		Params: a2aParams{
+			Message: a2aUserMessage{
+				Role:      "user",
+				MessageID: uuid.New().String(),
+				Parts:     []a2aPart{{Type: "text", Text: prompt}},
+			},
+		},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		logger.Error(err, "diff-analyzer: marshal payload")
+		c.Status.DiffAnalysis.Phase = phaseFailed
+		_ = r.Status().Update(ctx, c)
+		return
+	}
+
+	httpCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodPost, agentURL, bytes.NewReader(body))
+	if err != nil {
+		logger.Error(err, "diff-analyzer: create request")
+		c.Status.DiffAnalysis.Phase = phaseFailed
+		_ = r.Status().Update(ctx, c)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		logger.Error(err, "diff-analyzer: A2A call failed", "url", agentURL)
+		c.Status.DiffAnalysis.Phase = phaseFailed
+		_ = r.Status().Update(ctx, c)
+		return
+	}
+	defer resp.Body.Close()
+
+	c.Status.DiffAnalysis.Phase = phaseSucceeded
+	_ = r.Status().Update(ctx, c)
+	logger.Info("kagent diff-analyzer triggered", "pr", c.Spec.PRNumber, "repo", c.Spec.GitHub.Repo)
+}
+
 // triggerKagentAnalysis calls the preview-troubleshooter-agent via the A2A
 // JSON-RPC API, waits for the analysis, and posts (or updates) a GitHub PR comment.
 // It fires once per test run: when tests.phase=Failed and kagent.phase≠Succeeded.

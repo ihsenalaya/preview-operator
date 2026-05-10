@@ -209,12 +209,16 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 	}
 
 	previewURL := r.previewURL(preview)
-	if statusChanged := preview.Status.Phase != platformv1alpha1.PhaseRunning || preview.Status.URL != previewURL; statusChanged {
+	firstRunning := preview.Status.Phase != platformv1alpha1.PhaseRunning
+	if firstRunning || preview.Status.URL != previewURL {
 		r.markRunningStatus(preview, nsName, previewURL)
 		if err := r.Status().Update(ctx, preview); err != nil {
 			return ctrl.Result{}, err
 		}
 		syncGitHubAfterStatus(ctx, r, preview, previewURL)
+	}
+	if firstRunning {
+		go r.triggerKagentDiffAnalysis(ctx, preview)
 	}
 
 	if aiEnrichmentEnabled(preview) {
