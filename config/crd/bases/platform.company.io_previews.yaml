@@ -426,6 +426,12 @@ spec:
                     default: kagent-system
                     description: Namespace is the namespace where kagent runs.
                     type: string
+                  testStrategistAgentName:
+                    default: test-strategist-agent
+                    description: |-
+                      TestStrategistAgentName is the kagent Agent CR triggered when a Pending TestPlan is created.
+                      The agent reads the diff, historical ReconcileEvents, and fills the TestPlan.
+                    type: string
                 type: object
               prNumber:
                 description: PRNumber is the pull request number
@@ -883,6 +889,26 @@ spec:
                     description: Enabled controls whether the test suite runs after
                       the environment is ready.
                     type: boolean
+                  migration:
+                    description: |-
+                      Migration configures a test job that validates Alembic migration scripts.
+                      Runs before regression and e2e when migration files are detected in the diff.
+                    properties:
+                      command:
+                        description: Command overrides the default command used to
+                          run the tests.
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: true
+                        description: Enabled controls whether this test type runs.
+                        type: boolean
+                      image:
+                        description: Image overrides the container image. Defaults
+                          to the app image.
+                        type: string
+                    type: object
                   regression:
                     description: |-
                       Regression configures the regression test job (existing endpoints).
@@ -1134,6 +1160,11 @@ spec:
                 description: DiffAnalysis describes the kagent diff analysis triggered
                   when the preview first becomes Running.
                 properties:
+                  analysis:
+                    description: |-
+                      Analysis is the raw text produced by the troubleshooter agent.
+                      Embedded into the test results GitHub PR comment instead of a separate comment.
+                    type: string
                   commentId:
                     description: |-
                       CommentID is the GitHub PR comment ID where the analysis was posted.
@@ -1191,6 +1222,11 @@ spec:
                 description: Kagent describes the kagent analysis triggered when the
                   test suite failed.
                 properties:
+                  analysis:
+                    description: |-
+                      Analysis is the raw text produced by the troubleshooter agent.
+                      Embedded into the test results GitHub PR comment instead of a separate comment.
+                    type: string
                   commentId:
                     description: |-
                       CommentID is the GitHub PR comment ID where the analysis was posted.
@@ -1312,6 +1348,26 @@ spec:
                     type: object
                   e2e:
                     description: E2E holds the end-to-end test results.
+                    properties:
+                      failed:
+                        description: Failed is the number of failing test cases.
+                        type: integer
+                      output:
+                        description: Output contains the PASS/FAIL lines from the
+                          test job.
+                        items:
+                          type: string
+                        type: array
+                      passed:
+                        description: Passed is the number of passing test cases.
+                        type: integer
+                      phase:
+                        description: 'Phase: Pending | Running | Succeeded | Failed
+                          | Skipped'
+                        type: string
+                    type: object
+                  migration:
+                    description: Migration holds the migration test results.
                     properties:
                       failed:
                         description: Failed is the number of failing test cases.

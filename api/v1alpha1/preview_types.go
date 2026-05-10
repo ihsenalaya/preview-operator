@@ -565,6 +565,11 @@ type KagentStatus struct {
 	// Non-zero means the analysis has already been posted — prevents re-posting.
 	// +optional
 	CommentID int64 `json:"commentId,omitempty"`
+
+	// Analysis is the raw text produced by the troubleshooter agent.
+	// Embedded into the test results GitHub PR comment instead of a separate comment.
+	// +optional
+	Analysis string `json:"analysis,omitempty"`
 }
 
 // PreviewSpec defines the desired state
@@ -721,6 +726,10 @@ type TestSuiteStatus struct {
 	// E2E holds the end-to-end test results.
 	// +optional
 	E2E TestResult `json:"e2e,omitempty"`
+
+	// Migration holds the migration test results.
+	// +optional
+	Migration TestResult `json:"migration,omitempty"`
 }
 
 // TestJobSpec configures a test job type run by the operator (smoke, regression, e2e).
@@ -819,6 +828,11 @@ type TestSuiteSpec struct {
 	// Default command: sh -c "pip install requests -q && python /app/tests/e2e.py"
 	// +optional
 	E2E *TestJobSpec `json:"e2e,omitempty"`
+
+	// Migration configures a test job that validates Alembic migration scripts.
+	// Runs before regression and e2e when migration files are detected in the diff.
+	// +optional
+	Migration *TestJobSpec `json:"migration,omitempty"`
 }
 
 // PreviewStatus defines the observed state

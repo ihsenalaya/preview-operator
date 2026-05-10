@@ -274,20 +274,25 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 		return
 	}
 
-	commentID, err := r.postKagentComment(ctx, c, analysis)
-	if err != nil {
-		logger.Error(err, "Failed to post kagent comment to GitHub", "preview", c.Name)
-		r.setKagentPhase(ctx, c, phaseFailed)
-		return
-	}
-
+	// Store the analysis in status so buildTestResultsCommentBody can embed it.
 	if c.Status.Kagent == nil {
 		c.Status.Kagent = &platformv1alpha1.KagentStatus{}
 	}
 	c.Status.Kagent.Phase = phaseSucceeded
-	c.Status.Kagent.CommentID = commentID
+	c.Status.Kagent.Analysis = analysis
 	_ = r.Status().Update(ctx, c)
-	logger.Info("kagent analysis posted to GitHub", "commentId", commentID)
+
+	// Update the existing test results comment to include the kagent section.
+	token, err := r.githubToken(ctx, c)
+	if err != nil {
+		logger.Error(err, "Failed to read GitHub token to update test comment with kagent analysis")
+		return
+	}
+	if err := r.updateGitHubTestsComment(ctx, c, token); err != nil {
+		logger.Error(err, "Failed to update test results comment with kagent analysis")
+		return
+	}
+	logger.Info("kagent analysis embedded into test results comment", "preview", c.Name)
 }
 
 // callKagentAgent sends a message to the agent via A2A JSON-RPC and returns
@@ -375,26 +380,44 @@ func buildAnalysisPrompt(c *platformv1alpha1.Preview) string {
 	tests := c.Status.Tests
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Analyze the test failure for preview environment %q.\n\n", c.Name)
-	fmt.Fprintf(&b, "Context:\n")
-	fmt.Fprintf(&b, "  PR #%d — branch: %s\n", c.Spec.PRNumber, c.Spec.Branch)
-	fmt.Fprintf(&b, "  Namespace: %s\n", c.Status.NamespaceName)
+	fmt.Fprintf(&b, "Analyze the test failures for preview environment %q (PR #%d, branch: %s).\n\n",
+		c.Name, c.Spec.PRNumber, c.Spec.Branch)
+	fmt.Fprintf(&b, "Namespace: %s\n", c.Status.NamespaceName)
 	if c.Spec.GitHub != nil {
-		fmt.Fprintf(&b, "  GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
+		fmt.Fprintf(&b, "GitHub repo: %s/%s\n", c.Spec.GitHub.Owner, c.Spec.GitHub.Repo)
 	}
 
-	// Include test output directly to reduce the number of k8s tool calls needed.
 	if tests != nil {
-		b.WriteString("\nTest results:\n")
+		b.WriteString("\n## Test Results\n\n")
 		appendSuiteOutput(&b, "smoke", tests.Smoke)
-		appendSuiteOutput(&b, "microcks-contract", tests.Contract)
+		appendSuiteOutput(&b, "migration", tests.Migration)
+		appendSuiteOutput(&b, "contract (Microcks)", tests.Contract)
 		appendSuiteOutput(&b, "regression", tests.Regression)
 		appendSuiteOutput(&b, "e2e", tests.E2E)
 	}
 
-	b.WriteString("\nUsing this information and any pod/job events you can gather from the namespace, ")
-	b.WriteString("produce a structured failure analysis in the format described in your system prompt. ")
-	b.WriteString("Focus on the failed suites only — skip tool calls for passing suites.")
+	b.WriteString(`
+## Required output format
+
+Your response will be embedded directly into a GitHub PR comment.
+Produce a markdown section for EACH failing suite in this exact format:
+
+#### ❌ <Suite name>
+
+**Cause:** <one sentence root cause>
+
+**Details:** <what exactly failed, with the failing test name/assertion if visible in the logs>
+
+**Fix:** <concrete code or config change to resolve it>
+
+---
+
+Rules:
+- Only include sections for FAILED suites. Do not mention passing or skipped suites.
+- Use the test output above as your primary source. Only call Kubernetes tools if the output is insufficient.
+- Keep each section concise — 3-5 lines max.
+- Do not add any preamble or conclusion outside the per-suite sections.
+`)
 	return b.String()
 }
 

@@ -463,49 +463,77 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Preview) string {
 	}
 
 	var b strings.Builder
-	b.WriteString("## Test Suite Results\n\n")
+	b.WriteString("## 🧪 Test Suite Results\n\n")
 
 	overallIcon := "✅"
 	if tests.Phase == phaseFailed {
 		overallIcon = "❌"
+	} else if tests.Phase == phaseRunning {
+		overallIcon = "🔄"
 	}
 	b.WriteString(fmt.Sprintf("**Overall: %s %s**\n\n", overallIcon, tests.Phase))
 
-	b.WriteString("| Suite | Status | Passed | Failed |\n")
-	b.WriteString("|-------|--------|--------|--------|\n")
-	b.WriteString(fmt.Sprintf("| Smoke | %s | %d | %d |\n",
+	// Table — show all suites that have a phase or are enabled in spec.
+	showMigration := (c.Spec.TestSuite != nil && c.Spec.TestSuite.Migration != nil) || tests.Migration.Phase != ""
+	showContract := contractTestEnabled(c) || tests.Contract.Phase != ""
+
+	b.WriteString("| Suite | Résultat | Passed | Failed |\n")
+	b.WriteString("|-------|----------|--------|--------|\n")
+	b.WriteString(fmt.Sprintf("| 🔥 Smoke | %s | %d | %d |\n",
 		testResultBadge(tests.Smoke.Phase), tests.Smoke.Passed, tests.Smoke.Failed))
-	if contractTestEnabled(c) || tests.Contract.Phase != "" {
-		b.WriteString(fmt.Sprintf("| Contract (Microcks) | %s | %d | %d |\n",
+	if showMigration {
+		b.WriteString(fmt.Sprintf("| 🗄️ Migration | %s | — | — |\n",
+			testResultBadge(tests.Migration.Phase)))
+	}
+	if showContract {
+		b.WriteString(fmt.Sprintf("| 📋 Contract (Microcks) | %s | %d | %d |\n",
 			testResultBadge(tests.Contract.Phase), tests.Contract.Passed, tests.Contract.Failed))
 	}
-	b.WriteString(fmt.Sprintf("| Regression | %s | %d | %d |\n",
+	b.WriteString(fmt.Sprintf("| 🔁 Regression | %s | %d | %d |\n",
 		testResultBadge(tests.Regression.Phase), tests.Regression.Passed, tests.Regression.Failed))
-	b.WriteString(fmt.Sprintf("| E2E | %s | %d | %d |\n",
+	b.WriteString(fmt.Sprintf("| 🌐 E2E | %s | %d | %d |\n",
 		testResultBadge(tests.E2E.Phase), tests.E2E.Passed, tests.E2E.Failed))
 
+	// Collapsible output per suite.
 	suites := []struct {
 		name   string
 		result platformv1alpha1.TestResult
 		show   bool
 	}{
-		{"Smoke", tests.Smoke, true},
-		{"Contract (Microcks)", tests.Contract, contractTestEnabled(c) || tests.Contract.Phase != ""},
-		{"Regression", tests.Regression, true},
-		{"E2E", tests.E2E, true},
+		{"🔥 Smoke", tests.Smoke, true},
+		{"🗄️ Migration", tests.Migration, showMigration},
+		{"📋 Contract (Microcks)", tests.Contract, showContract},
+		{"🔁 Regression", tests.Regression, true},
+		{"🌐 E2E", tests.E2E, true},
 	}
 	for _, suite := range suites {
-		if !suite.show {
+		if !suite.show || len(suite.result.Output) == 0 {
 			continue
 		}
-		if len(suite.result.Output) > 0 {
-			b.WriteString(fmt.Sprintf("\n<details>\n<summary>%s Details</summary>\n\n```\n", suite.name))
-			for _, line := range suite.result.Output {
-				b.WriteString(line)
-				b.WriteByte('\n')
-			}
-			b.WriteString("```\n</details>\n")
+		b.WriteString(fmt.Sprintf("\n<details>\n<summary>%s — Logs</summary>\n\n```\n", suite.name))
+		for _, line := range suite.result.Output {
+			b.WriteString(line)
+			b.WriteByte('\n')
 		}
+		b.WriteString("```\n</details>\n")
+	}
+
+	// kagent analysis — embedded when available, placeholder when running.
+	if c.Status.Kagent != nil {
+		switch c.Status.Kagent.Phase {
+		case "Running":
+			b.WriteString("\n---\n\n### 🤖 Analyse kagent\n\n> ⏳ Analyse en cours — l'agent inspecte les logs et les traces...\n")
+		case phaseSucceeded:
+			if c.Status.Kagent.Analysis != "" {
+				b.WriteString("\n---\n\n### 🤖 Analyse kagent — Causes des échecs\n\n")
+				b.WriteString(c.Status.Kagent.Analysis)
+				b.WriteString("\n")
+			}
+		case phaseFailed:
+			b.WriteString("\n---\n\n### 🤖 Analyse kagent\n\n> ⚠️ L'agent n'a pas pu compléter l'analyse.\n")
+		}
+	} else if tests.Phase == phaseFailed {
+		b.WriteString("\n---\n\n### 🤖 Analyse kagent\n\n> ⏳ Analyse en cours — l'agent inspecte les logs et les traces...\n")
 	}
 
 	if section := buildAIEnrichmentSection(c); section != "" {
