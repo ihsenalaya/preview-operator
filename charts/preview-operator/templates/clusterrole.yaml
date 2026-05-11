@@ -24,7 +24,7 @@ rules:
   resources: [jobs]
   verbs: [create, delete, get, list, patch, update, watch]
 - apiGroups: [networking.k8s.io]
-  resources: [ingresses]
+  resources: [ingresses, networkpolicies]
   verbs: [create, delete, get, list, patch, update, watch]
 - apiGroups: [networking.istio.io]
   resources: [virtualservices]
