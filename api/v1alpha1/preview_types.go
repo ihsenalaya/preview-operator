@@ -1012,7 +1012,7 @@ type DiagnosticLogExcerpt struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,shortName=cz
+// +kubebuilder:resource:scope=Cluster,shortName=prev
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Branch",type=string,JSONPath=`.spec.branch`
 // +kubebuilder:printcolumn:name="Tier",type=string,JSONPath=`.spec.resourceTier`

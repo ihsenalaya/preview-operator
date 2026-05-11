@@ -12,7 +12,7 @@ spec:
     listKind: PreviewList
     plural: previews
     shortNames:
-    - cz
+    - prev
     singular: preview
   scope: Cluster
   versions:
@@ -230,6 +230,14 @@ spec:
                           seed data should be regenerated.
                         type: boolean
                     type: object
+                  diffPatch:
+                    description: |-
+                      DiffPatch is the raw unified diff produced by `git diff base...head`.
+                      Populated by the GitHub Actions classifier when the diff is under 64 KiB.
+                      The test-strategist-agent reads this to reason about WHAT changed, not
+                      just WHICH files changed (e.g. detect a new API endpoint vs a doc fix).
+                    maxLength: 65536
+                    type: string
                   diffRef:
                     description: DiffRef identifies the Git diff.
                     properties:

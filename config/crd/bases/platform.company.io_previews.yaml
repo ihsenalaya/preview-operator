@@ -12,7 +12,7 @@ spec:
     listKind: PreviewList
     plural: previews
     shortNames:
-    - cz
+    - prev
     singular: preview
   scope: Cluster
   versions:
