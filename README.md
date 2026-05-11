@@ -17,6 +17,7 @@ kubectl apply -f pr-42.yaml
 
 1. [Feature Matrix](#1-feature-matrix)
 2. [General Architecture](#2-general-architecture)
+   - [Namespace Security — NetworkPolicy & Pod Security Standards](#namespace-security--networkpolicy--pod-security-standards)
 3. [Installation](#3-installation)
 4. [Controller Deep Dive](#4-controller-deep-dive)
 5. [Ephemeral PostgreSQL](#5-ephemeral-postgresql)
@@ -179,6 +180,69 @@ cluster
 ├── preview-pr-2/                   ← PR #2 is entirely independent
 └── preview-pr-N/ …
 ```
+
+### Namespace Security — NetworkPolicy & Pod Security Standards
+
+Every preview namespace is hardened automatically by the operator **before any workload is created**. There is no opt-in flag — both controls are always on.
+
+#### NetworkPolicy `preview-isolation`
+
+```
+┌── Namespace: preview-pr-42 ──────────────────────────────────────┐
+│                                                                    │
+│  NetworkPolicy: preview-isolation                                  │
+│                                                                    │
+│  Ingress — two sources allowed, everything else denied:           │
+│    ① pods within the same namespace  (app ↔ postgres, tests ↔ app)│
+│    ② pods in namespace "ingress-nginx"  (public traffic in)       │
+│                                                                    │
+│  Egress — unrestricted:                                            │
+│    ① AI API calls  (Azure OpenAI / OpenAI)                        │
+│    ② GitHub API    (PR comments, Deployment status)               │
+│    ③ GHCR          (image pulls)                                  │
+│    ④ kube-dns      (service discovery)                            │
+│                                                                    │
+│  Result: preview-pr-42 cannot reach preview-pr-43, production,    │
+│  or any other namespace — even if a pod is compromised.           │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+The policy is created in `reconcileNamespace()`, the first step of provisioning. If creation fails the controller returns an error and retries — no deployment proceeds without it.
+
+```bash
+# Verify the policy is in place
+kubectl get networkpolicy -n preview-pr-42
+# NAME                POD-SELECTOR   AGE
+# preview-isolation   <none>         5s
+
+kubectl describe networkpolicy preview-isolation -n preview-pr-42
+```
+
+#### Pod Security Standards labels
+
+```yaml
+# Applied to the namespace at creation time
+pod-security.kubernetes.io/enforce: baseline    # blocks: privileged containers,
+                                                #   hostPath mounts, host networking,
+                                                #   host ports, host PID/IPC
+pod-security.kubernetes.io/warn:    restricted  # surfaces further gaps (seccomp,
+                                                #   runAsNonRoot, readOnlyRootFilesystem)
+                                                #   without blocking workloads
+```
+
+`enforce: baseline` is strict enough to block the most dangerous misconfigurations. `warn: restricted` logs actionable warnings in the API server audit log without rejecting Pods that aren't yet hardened for the full restricted profile.
+
+```bash
+# Verify the labels are set
+kubectl get namespace preview-pr-42 \
+  -o jsonpath='{.metadata.labels}' | jq 'with_entries(select(.key | startswith("pod-security")))'
+# {
+#   "pod-security.kubernetes.io/enforce": "baseline",
+#   "pod-security.kubernetes.io/warn": "restricted"
+# }
+```
+
+For the full threat model, RBAC table, PAT → GitHub App migration path, and known limitations, see [SECURITY.md](SECURITY.md).
 
 ---
 
