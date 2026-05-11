@@ -38,6 +38,7 @@ kubectl apply -f pr-42.yaml
 21. [Helm Values Reference](#21-helm-values-reference)
 22. [Development & Release](#22-development--release)
 23. [Debugging & Troubleshooting](#23-debugging--troubleshooting)
+24. [Security](#24-security)
 
 ---
 
@@ -70,6 +71,8 @@ kubectl apply -f pr-42.yaml
 | **AI test selection (test-strategist)** | `spec.testStrategy.mode: Auto` | `FullSuite` |
 | Smart failure diagnostics | always on when `Failed` | — |
 | Copilot Extension commands | sidecar server | optional |
+| **NetworkPolicy per namespace** | always on | deny cross-PR ingress; allow ingress-nginx + intra-pod |
+| **Pod Security Standards labels** | always on | `enforce: baseline`, `warn: restricted` |
 
 ---
 
@@ -2639,6 +2642,26 @@ kubectl logs -n preview-operator-system deployment/preview-operator -f
 # Watch all Jobs in a preview namespace
 kubectl get jobs -n preview-pr-42 -w
 ```
+
+---
+
+## 24. Security
+
+Every preview namespace is isolated by a **NetworkPolicy** (`preview-isolation`) created automatically by the operator:
+
+- **Ingress**: allows only traffic from same-namespace pods and the `ingress-nginx` namespace. All other cross-namespace ingress is denied — a pod in `preview-pr-42` cannot reach `preview-pr-43`.
+- **Egress**: unrestricted (required for AI API, GitHub API, image pulls). Restrict to known CIDRs for environments containing PII.
+
+Every preview namespace also carries **Pod Security Standard** labels:
+
+```yaml
+pod-security.kubernetes.io/enforce: baseline    # blocks privileged containers, hostPath mounts, host networking
+pod-security.kubernetes.io/warn:    restricted   # surfaces further hardening opportunities without blocking workloads
+```
+
+For the full threat model, RBAC table, PAT vs GitHub App security analysis, and known limitations, see [SECURITY.md](SECURITY.md).
+
+For architecture, demo scenario, measured timings, failure modes, and production-readiness assessment of each component, see [docs/kubecon-demo.md](docs/kubecon-demo.md).
 
 ---
 
