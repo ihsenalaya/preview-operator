@@ -1,4 +1,4 @@
-# cellenza-operator - AI Agent Guide
+# preview-operator - AI Agent Guide
 
 ## Project Structure
 

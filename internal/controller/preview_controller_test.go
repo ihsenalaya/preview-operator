@@ -276,7 +276,7 @@ var _ = Describe("Preview Controller", func() {
 
 			body := githubReadyCommentBody(preview, "http://pr-7.preview.localtest.me:8080")
 
-			Expect(body).To(ContainSubstring("Preview Preview Ready"))
+			Expect(body).To(ContainSubstring("## Preview Ready"))
 			Expect(body).To(ContainSubstring("PostgreSQL: ready"))
 			Expect(body).To(ContainSubstring("Migration: Succeeded"))
 			Expect(body).To(ContainSubstring("Seed: Skipped"))
@@ -324,12 +324,12 @@ var _ = Describe("Preview Controller", func() {
 					},
 				},
 			}
-			Expect(appServiceURL(multi)).To(Equal("http://svc-api:80"))
+			Expect(appServiceURL(multi)).To(Equal("http://svc-api:8080"))
 		})
 
 		It("should return http://app:80 in single-service mode", func() {
 			single := &platformv1alpha1.Preview{Spec: platformv1alpha1.PreviewSpec{Image: "nginx:latest"}}
-			Expect(appServiceURL(single)).To(Equal("http://app:80"))
+			Expect(appServiceURL(single)).To(Equal("http://app:8080"))
 		})
 
 		It("should reconcile multi-service deployments and ingress in the cluster", func() {
@@ -515,7 +515,7 @@ var _ = Describe("Preview Controller", func() {
 
 			body := githubFailedCommentBody(preview)
 
-			Expect(body).To(ContainSubstring("Preview Preview Failed"))
+			Expect(body).To(ContainSubstring("## Preview Failed"))
 			Expect(body).To(ContainSubstring("DatabaseMigrationFailed"))
 			Expect(body).To(ContainSubstring("migration"))
 			Expect(body).To(ContainSubstring("Database migration failed"))
