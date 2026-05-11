@@ -2442,13 +2442,20 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/preview-operator
   pullPolicy: IfNotPresent
-  tag: ""                       # defaults to Chart.appVersion
+  tag: ""                       # defaults to Chart.appVersion (1.0.38)
 
+# ── AI Enrichment ──────────────────────────────────────────────────────────────
 ai:
-  apiURL: "https://api.openai.com/v1"   # override for GitHub Models or Azure OpenAI
-  systemPrompt: |               # override the default AI system prompt
-    You are a developer tool for preview environments.
-    Generate realistic data that matches the PR diff and DB schema.
+  # LLM endpoint — supports OpenAI, Azure OpenAI, or GitHub Models (free tier)
+  # Azure OpenAI:   https://<resource>.openai.azure.com/openai/deployments/<model>
+  # OpenAI:         https://api.openai.com/v1
+  # GitHub Models:  https://models.inference.ai.azure.com  (default — free tier)
+  apiURL: "https://models.inference.ai.azure.com"
+
+  # Override the default system prompt for seed + test generation.
+  # Leave empty to use the built-in prompt (recommended).
+  # Override via: --set-file ai.systemPrompt=./my-prompt.txt
+  systemPrompt: ""
 
 # Base domain for preview URLs — each PR gets http://pr-<N>.<previewDomain>
 # Requires a wildcard DNS record: *.<previewDomain> → Istio Gateway or Ingress IP

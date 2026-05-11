@@ -1,44 +1,74 @@
-cellenza-operator {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
+preview-operator {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
 
-Prerequisites:
-  - cert-manager is required when webhooks are enabled.
-  - An ingress controller is required before preview URLs can route traffic.
-  - OpenTelemetry Operator is optional and required only for app auto-instrumentation.
-
-Create a preview environment:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Quick start — create your first preview env:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   kubectl apply -f - <<EOF
   apiVersion: platform.company.io/v1alpha1
-  kind: Cellenza
+  kind: Preview
   metadata:
     name: pr-42
   spec:
     branch: feature/my-feature
     prNumber: 42
-    image: myapp:latest
+    image: ghcr.io/myorg/myapp:sha-abc
+    ttl: 48h
+    database:
+      enabled: true
+    aiEnrichment:
+      enabled: true
+      apiSecretRef:
+        name: ai-api-key
+        key: api-key
+    testSuite:
+      enabled: true
+      smoke: {}
+      regression:
+        enabled: true
   EOF
 
-Check status:
+  kubectl get prev          # shortname for Preview
+  kubectl get prev pr-42 -o jsonpath='{.status.phase}'
+  kubectl get prev pr-42 -o jsonpath='{.status.url}'
 
-  kubectl get cellenza pr-42
-
-Enable app auto-instrumentation by adding spec.telemetry to a Cellenza resource:
-
-  telemetry:
-    enabled: true
-    serviceName: my-preview-app
-    autoInstrumentation:
-      language: python
-      instrumentationRef: observability/python
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Prerequisites
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {{- if .Values.webhook.enabled }}
+  ✓ Webhooks enabled — cert-manager must be installed.
+{{- else }}
+  ℹ Webhooks disabled (webhook.enabled=false) — no cert-manager required.
+    Note: admission validation (large tier gate, Go telemetry checks) is skipped.
+{{- end }}
+  • Ingress controller required for preview URLs (ingress-nginx or Istio — auto-detected).
+  • OpenTelemetry Operator optional — needed only for spec.telemetry.autoInstrumentation.
+  • Microcks optional — needed only for spec.testSuite.contractTesting.
+  • kagent optional — needed only for spec.kagent.enabled and spec.testStrategy.mode=Auto.
 
-Webhooks are enabled. cert-manager must be installed in the cluster.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Secrets to create after install
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # AI enrichment (required if aiEnrichment.enabled)
+  kubectl create secret generic ai-api-key \
+    --namespace {{ .Release.Namespace }} \
+    --from-literal=api-key="<OPENAI_OR_AZURE_KEY>"
+
+  # GitHub integration (required if spec.github.enabled)
+  kubectl create secret generic preview-github-token \
+    --namespace {{ .Release.Namespace }} \
+    --from-literal=token="<GITHUB_PAT>"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Preview domain
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{{- if .Values.previewDomain }}
+  Preview URLs → http://pr-<N>.{{ .Values.previewDomain }}
+  Wildcard DNS record required: *.{{ .Values.previewDomain }} → Istio Gateway or Ingress IP
+{{- else }}
+  previewDomain is not set — preview URLs will use localtest.me with port-forward.
+  Set --set previewDomain=preview.<YOUR_ZONE> for public URLs.
 {{- end }}
 
-Install ingress-nginx with Helm if your cluster does not already have an ingress controller:
-
-  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-  helm repo update
-  helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-    --namespace ingress-nginx --create-namespace
+  Full documentation: https://github.com/ihsenalaya/preview-operator

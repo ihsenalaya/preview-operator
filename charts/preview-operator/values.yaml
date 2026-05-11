@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/preview-operator
   pullPolicy: IfNotPresent
-  tag: "1.0.36"
+  tag: ""                       # defaults to Chart.appVersion (1.0.38)
 
 imagePullSecrets: []
 nameOverride: ""
@@ -12,7 +12,27 @@ fullnameOverride: ""
 serviceAccount:
   name: ""
 
-leaderElect: true
+# Base domain for preview URLs — each PR gets http://pr-<N>.<previewDomain>
+# Requires a wildcard DNS record: *.<previewDomain> → Istio Gateway or Ingress IP
+# Example: "preview.ihsenalaya.xyz"
+# Leave empty to use localtest.me (no DNS setup, requires port-forward)
+previewDomain: ""
+
+# ── AI Enrichment ──────────────────────────────────────────────────────────────
+ai:
+  # LLM endpoint — supports OpenAI, Azure OpenAI, or GitHub Models (free tier)
+  # Azure OpenAI:   https://<resource>.openai.azure.com/openai/deployments/<model>
+  # OpenAI:         https://api.openai.com/v1
+  # GitHub Models:  https://models.inference.ai.azure.com  (default — free tier)
+  apiURL: "https://models.inference.ai.azure.com"
+
+  # Override the default system prompt for seed + test generation.
+  # Leave empty to use the built-in prompt (recommended).
+  # Override via: --set-file ai.systemPrompt=./my-prompt.txt
+  systemPrompt: ""
+
+# ── Operator ───────────────────────────────────────────────────────────────────
+leaderElect: true               # set false for single-node dev clusters
 
 resources:
   limits:
@@ -22,27 +42,20 @@ resources:
     cpu: 10m
     memory: 64Mi
 
+# ── Webhooks ───────────────────────────────────────────────────────────────────
 webhook:
-  enabled: true
+  enabled: true                 # requires cert-manager; set false to skip TLS setup
   port: 9443
 
 certManager:
   enabled: true
-  issuerName: ""
+  issuerName: ""                # auto-creates a self-signed Issuer when empty
 
+# ── Metrics ────────────────────────────────────────────────────────────────────
 metrics:
   port: 8443
 
-ai:
-  apiURL: "https://models.inference.ai.azure.com"
-  systemPrompt: ""
-
-# Base domain for preview URLs.
-# Each PR gets: http://pr-<N>.<previewDomain>
-# Requires a wildcard DNS record: *.<previewDomain> → Istio Gateway or Ingress IP
-# Example: "preview.ihsenalaya.xyz"
-previewDomain: ""
-
+# ── Scheduling ─────────────────────────────────────────────────────────────────
 nodeSelector: {}
 tolerations: []
 affinity: {}
