@@ -608,9 +608,12 @@ The admission webhook runs before any CR reaches the controller. Two behaviors a
 |---------|---------------|
 | `spec.resourceTier: large` | Automatically sets `spec.requiresApproval: true` — cannot be bypassed |
 | `spec.replicas > 3` | Admission **warning** posted: *"running N replicas in a preview env is expensive"* — not a rejection, but visible in `kubectl apply` output |
-| `spec.telemetry.autoInstrumentation.language: go` | Rejects the CR if `goTargetExecutable` is not set — required for Go binary path injection |
+| `spec.telemetry.enabled: true` | Rejects if `spec.telemetry.autoInstrumentation` is nil — the field is required when telemetry is on |
+| `spec.telemetry.autoInstrumentation.language: go` | Rejects if `goTargetExecutable` is not set — required for Go binary path injection |
 | `spec.database.migration.enabled: true` | Rejects if `spec.database.migration.command` is empty |
 | `spec.database.seed.enabled: true` | Rejects if `spec.database.seed.command` is empty |
+| `spec.github.enabled: true` | Rejects if any of `owner`, `repo`, `deploymentId` (must be > 0), or `tokenSecretRef.name` are missing |
+| `spec.aiEnrichment.enabled: true` | Defaults `spec.aiEnrichment.seed` and `spec.aiEnrichment.tests` to `{enabled: true}` if omitted |
 
 Disable the webhook entirely with `--set webhook.enabled=false` (no TLS/cert-manager needed, but the above validations are skipped).
 
@@ -811,6 +814,14 @@ Reconcile(ctx, Request{Name: "pr-42"})
                  ▼
              Running
            (AI enrichment + test suite executing)
+                 │
+                 │ testStrategy.mode=Auto
+                 │ (waiting for test-strategist-agent to fill TestPlan)
+                 ▼
+        AwaitingTestPlan ──────────────────────────────► Running
+           (kagent agent reads diff,                     (TestPlan accepted,
+            historical ReconcileEvents,                   test suite starts)
+            decides which suites to run)
                  │
                  │ kubectl delete / TTL expired
                  ▼
@@ -1904,9 +1915,17 @@ kubectl describe pod -n preview-pr-42 -l app=svc-frontend
 spec:
   kagent:
     enabled: true
-    namespace: kagent-system          # namespace where the agent runs
-    agentName: preview-troubleshooter-agent
+    namespace: kagent-system                        # namespace where the agent runs
+    agentName: preview-troubleshooter-agent         # triggered on test suite failure
+    diffAnalyzerAgentName: preview-diff-analyzer    # triggered when preview first reaches Running
+    testStrategistAgentName: test-strategist-agent  # triggered when a Pending TestPlan is created (mode: Auto)
 ```
+
+| Field | Default | Description |
+|---|---|---|
+| `agentName` | `preview-troubleshooter-agent` | Agent CR triggered after test suite failure — analyses logs, events, produces fix recommendations |
+| `diffAnalyzerAgentName` | `preview-diff-analyzer` | Agent CR triggered when the preview first becomes Running — analyses the PR diff and posts a structured comment |
+| `testStrategistAgentName` | `test-strategist-agent` | Agent CR triggered when `testStrategy.mode: Auto` creates a Pending TestPlan — reads diff + ReconcileEvents and decides which suites to run |
 
 ### Install kagent and the troubleshooter agent
 
@@ -2013,8 +2032,16 @@ The pipeline (`generate_preview_manifest.py`) injects three fields into `spec.ch
 
 | Field | Content |
 |-------|---------|
+| `diffRef.provider` | Git host (`GitHub`) |
+| `diffRef.repository` | `owner/repo` |
+| `diffRef.prNumber` | Pull request number |
+| `diffRef.baseSHA` | Base commit SHA |
+| `diffRef.headSHA` | Head commit SHA |
+| `summary.changedFilesCount` | Total number of changed files |
+| `summary.additions` | Total lines added |
+| `summary.deletions` | Total lines deleted |
 | `changedFiles[]` | Each changed file with its classified `type` (`backend`, `frontend`, `database-migration`, `api-contract`, `docs`, `other`) |
-| `detectedImpacts[]` | High-level impact flags: `database`, `apiContract`, `backend`, `frontend`, `requiresSeedData` |
+| `detectedImpacts` | Flags: `database`, `apiContract`, `backend`, `frontend`, `requiresSeedData`, `requiresContractTests`, `requiresRegressionTests` |
 | `diffPatch` | Raw `git diff base...head` output (truncated to 64 KiB) — allows the agent to reason about *what* changed semantically, not just which files |
 
 The `diffPatch` field is the key signal for edge cases: a backend file that adds a new HTTP route should trigger `contract` tests even if `openapi.yaml` was not updated.
@@ -2334,6 +2361,8 @@ spec:
       timeoutSeconds: 60
     regression:
       enabled: true
+    migration:
+      enabled: true  # validates Alembic scripts; runs before regression/e2e when migration files detected in diff
     e2e:
       enabled: true
 
@@ -2341,7 +2370,9 @@ spec:
   kagent:
     enabled: true
     namespace: kagent-system
-    agentName: preview-troubleshooter-agent
+    agentName: preview-troubleshooter-agent         # triggered on test suite failure
+    diffAnalyzerAgentName: preview-diff-analyzer    # triggered on first Running (diff comment)
+    testStrategistAgentName: test-strategist-agent  # triggered when TestPlan is Pending (Auto mode)
 
   # ── AI Enrichment ──────────────────────────────────────────────────────────
   aiEnrichment:
@@ -2372,6 +2403,33 @@ spec:
       name: preview-github-token
       namespace: preview-operator-system
       key: token
+
+  # ── PR Diff Context (set by generate_preview_manifest.py) ──────────────────
+  changeContext:
+    diffRef:
+      provider: GitHub
+      repository: acme/myapp
+      prNumber: 42
+      baseSHA: "abc123"
+      headSHA: "def456"
+    summary:
+      changedFilesCount: 5
+      additions: 120
+      deletions: 30
+    changedFiles:
+      - path: api/routes/orders.py
+        type: backend
+      - path: migrations/20260510_add_status.py
+        type: database-migration
+    detectedImpacts:
+      database: true
+      apiContract: false
+      backend: true
+      frontend: false
+      requiresSeedData: true
+      requiresContractTests: false
+      requiresRegressionTests: true
+    diffPatch: "diff --git a/api/routes/orders.py …"  # max 64 KiB
 ```
 
 ---
@@ -2384,7 +2442,7 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 
 | Field | Description |
 |---|---|
-| `status.phase` | `Pending` / `Provisioning` / `Running` / `Failed` / `Terminating` |
+| `status.phase` | `Pending` / `Provisioning` / `Running` / `AwaitingTestPlan` / `Failed` / `Terminating` |
 | `status.url` | Preview URL (`http://pr-42.preview.localtest.me:8080`) |
 | `status.namespaceName` | `preview-pr-42` |
 | `status.readyAt` | Timestamp of first `Running` transition |
@@ -2398,9 +2456,12 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 | `status.database.seed` | `Skipped` / `Running` / `Succeeded` / `Failed` |
 | `status.database.checkpoints` | `["after-seed","before-order-flow"]` |
 | `status.aiEnrichment.phase` | `Pending` / `Generating` / `Running` / `Succeeded` / `Failed` |
-| `status.aiEnrichment.seedStatus` | Job status |
-| `status.aiEnrichment.testsStatus` | Job status |
+| `status.aiEnrichment.rerunOnly` | `true` while an AI-only rerun (no deployment change) is in progress |
+| `status.aiEnrichment.seedStatus` | `Skipped` / `Running` / `Succeeded` / `Failed` |
+| `status.aiEnrichment.testsStatus` | `Skipped` / `Running` / `Succeeded` / `Failed` |
 | `status.aiEnrichment.testResults` | `["PASS: test_health", "FAIL: test_order_stock — …"]` |
+| `status.aiEnrichment.summary` | Human-readable enrichment summary posted to the GitHub PR comment |
+| `status.aiEnrichment.error` | Latest enrichment error message (non-fatal, enrichment retried) |
 | `status.aiEnrichment.completedAt` | Timestamp |
 | `status.tests.phase` | `Running` / `Succeeded` / `Failed` |
 | `status.tests.step` | Current step: `saving` / `smoke` / `import-spec` / `contract` / `restore-regression` / `regression` / `restore-e2e` / `e2e` |
@@ -2413,9 +2474,13 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 | `status.tests.contract.output` | `["PASS contract GET /api/products", "FAIL contract …"]` |
 | `status.tests.regression.*` | Same structure as smoke |
 | `status.tests.e2e.*` | Same structure as smoke |
-| `status.kagent.phase` | `Running` / `Succeeded` / `Failed` |
+| `status.kagent.phase` | `Running` / `Succeeded` / `Failed` — failure analysis agent (post-test) |
 | `status.kagent.triggeredAt` | Timestamp of last trigger |
 | `status.kagent.commentId` | GitHub comment ID where analysis was posted |
+| `status.diffAnalysis.phase` | `Running` / `Succeeded` / `Failed` — diff analysis agent (on first Running) |
+| `status.diffAnalysis.triggeredAt` | Timestamp when diff analysis started |
+| `status.diffAnalysis.commentId` | GitHub PR comment ID where diff analysis was posted |
+| `status.diffAnalysis.analysis` | Raw text from the diff-analyzer agent |
 | `status.github.deploymentState` | Last state sent to GitHub (`in_progress` / `success` / `failure`) |
 | `status.github.lastNotifiedPhase` | Phase that triggered the last GitHub notification |
 | `status.github.commentId` | PR comment ID — updated in-place on each notification |
@@ -2430,7 +2495,7 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 | `status.diagnostics.podLogs` | Last 30 lines from the crashed container |
 | `status.diagnostics.lastEvents` | Recent Kubernetes Warning events |
 | `status.diagnostics.debugCommands` | Ready-to-paste kubectl commands |
-| `status.conditions` | `Ready`, `Approved`, `Expired`, `DatabaseReady`, `MigrationReady`, `SeedReady`, `AIEnrichmentReady`, `TestSuiteReady` |
+| `status.conditions` | `Ready`, `Approved`, `Expired`, `DatabaseReady`, `MigrationReady`, `SeedReady`, `AIEnrichmentReady`, `ContractTestReady`, `TestSuiteReady` |
 
 ---
 
