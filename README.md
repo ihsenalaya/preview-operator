@@ -600,6 +600,20 @@ kubectl create secret generic preview-github-token \
 
 ## 4. Controller Deep Dive
 
+### Webhook behaviors (defaulter + validator)
+
+The admission webhook runs before any CR reaches the controller. Two behaviors are important to know:
+
+| Trigger | Webhook action |
+|---------|---------------|
+| `spec.resourceTier: large` | Automatically sets `spec.requiresApproval: true` — cannot be bypassed |
+| `spec.replicas > 3` | Admission **warning** posted: *"running N replicas in a preview env is expensive"* — not a rejection, but visible in `kubectl apply` output |
+| `spec.telemetry.autoInstrumentation.language: go` | Rejects the CR if `goTargetExecutable` is not set — required for Go binary path injection |
+| `spec.database.migration.enabled: true` | Rejects if `spec.database.migration.command` is empty |
+| `spec.database.seed.enabled: true` | Rejects if `spec.database.seed.command` is empty |
+
+Disable the webhook entirely with `--set webhook.enabled=false` (no TLS/cert-manager needed, but the above validations are skipped).
+
 ### Source files
 
 ```
@@ -1660,6 +1674,8 @@ Block provisioning of sensitive or large environments until a human explicitly a
 spec:
   requiresApproval: true    # large tier always forces this (enforced by webhook)
 ```
+
+> **Webhook defaulter**: `spec.resourceTier: large` automatically sets `requiresApproval: true` — you cannot bypass the gate on large environments even if you omit the field.
 
 The environment stays in `Pending` phase. The controller requeues every 30 seconds to check. Approve:
 
