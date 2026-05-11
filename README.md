@@ -1,14 +1,55 @@
 # Preview Operator
 
-> **A Kubernetes operator that reconciles `Preview` custom resources into fully isolated environments — multi-service stack, ephemeral PostgreSQL, sequential test pipeline, OpenTelemetry, AI-generated seed data, and GitHub integration. The CI pipeline creates the CR; the operator owns everything that happens next.**
+> **A Kubernetes operator that reconciles `Preview` custom resources into fully isolated environments — multi-service stack, ephemeral PostgreSQL, sequential test pipeline, OpenTelemetry, AI-generated seed data, and GitHub integration.**
 
-```bash
-kubectl apply -f pr-42.yaml
-# → http://pr-42.preview.ihsenalaya.xyz        (frontend — public, no port-forward)
-# → http://pr-42.preview.ihsenalaya.xyz/api    (backend)
-# → operator runs AI enrichment → smoke → regression → E2E
-# → results posted to the GitHub PR as a comment
-# → kubectl delete preview pr-42 → full cleanup
+The operator does **not** watch GitHub pull requests. It only reconciles `Preview` CRs. The typical integration point is a CI pipeline (GitHub Actions, GitLab CI, …) that creates the CR when a PR is opened and deletes it when the PR is closed.
+
+### Full workflow — CI + Operator
+
+```
+ Pull request opened
+        │
+        ▼
+ CI pipeline (GitHub Actions)
+   ├── build image → push to registry
+   ├── classify diff → detect changed files, impacted layers
+   └── kubectl apply -f - <<EOF
+       apiVersion: platform.company.io/v1alpha1
+       kind: Preview
+       metadata:
+         name: pr-42
+       spec:
+         branch: feature/my-feature
+         prNumber: 42
+         image: ghcr.io/myorg/myapp:sha-abc
+         ttl: 48h
+         database:        { enabled: true, migration: { enabled: true, command: [...] } }
+         aiEnrichment:    { enabled: true, apiSecretRef: { name: ai-api-key, key: api-key } }
+         testSuite:       { enabled: true, smoke: {}, regression: { enabled: true } }
+         kagent:          { enabled: true }
+         github:          { enabled: true, owner: myorg, repo: myapp, ... }
+         changeContext:   { diffRef: {...}, changedFiles: [...], diffPatch: "..." }
+       EOF
+        │
+        ▼
+ Preview Operator (reconcile loop takes over)
+   ├── create namespace preview-pr-42 (NetworkPolicy, ResourceQuota, PSS labels)
+   ├── provision ephemeral PostgreSQL + run migrations + static seed
+   ├── deploy application (Deployment + Service + VirtualService/Ingress)
+   ├── wait for pods ready → phase = Running → post GitHub Deployment status
+   ├── AI enrichment: pg_dump → LLM → seed.sql + test.py → Jobs
+   ├── diff-analyzer agent → structured PR comment (what changed, what to watch)
+   ├── test-strategist agent (if mode=Auto) → decide which suites to run
+   └── test pipeline: smoke → contract (Microcks) → regression → E2E
+         └── on failure: kagent troubleshooter → diagnosis posted to PR comment
+        │
+        ▼
+ Pull request closed
+        │
+        ▼
+ CI pipeline
+   └── kubectl delete preview pr-42
+         └── operator finalizer: namespace deleted, GitHub: inactive
 ```
 
 ---
