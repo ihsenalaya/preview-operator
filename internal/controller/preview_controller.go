@@ -78,6 +78,7 @@ type PreviewReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kagent.dev,resources=agents,verbs=get;create
 
 func (r *PreviewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -180,6 +181,10 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 
 	if err := r.reconcileResourceQuota(ctx, preview, nsName); err != nil {
 		return r.setFailedStatus(ctx, preview, "QuotaFailed", err)
+	}
+
+	if err := r.reconcileNetworkPolicy(ctx, preview, nsName); err != nil {
+		return r.setFailedStatus(ctx, preview, "NetworkPolicyFailed", err)
 	}
 
 	if handled, result, err := r.handleResetRequested(ctx, preview, nsName); handled {
@@ -754,10 +759,13 @@ func (r *PreviewReconciler) reconcileNamespace(ctx context.Context, c *platformv
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nsName,
 				Labels: map[string]string{
-					labelManagedBy:    "preview-operator",
+					labelManagedBy:   "preview-operator",
 					labelPreviewName: c.Name,
-					"branch":          sanitizeLabel(c.Spec.Branch),
-					"pr-number":       fmt.Sprintf("%d", c.Spec.PRNumber),
+					"branch":         sanitizeLabel(c.Spec.Branch),
+					"pr-number":      fmt.Sprintf("%d", c.Spec.PRNumber),
+					// Pod Security Standards: enforce baseline, warn on restricted violations
+					"pod-security.kubernetes.io/enforce": "baseline",
+					"pod-security.kubernetes.io/warn":    "restricted",
 				},
 				Annotations: map[string]string{
 					"platform.company.io/ttl":        c.Spec.TTL,
@@ -1777,6 +1785,59 @@ func (r *PreviewReconciler) deleteAIResources(ctx context.Context, nsName string
 	return nil
 }
 
+// reconcileNetworkPolicy creates a NetworkPolicy that isolates the preview namespace:
+// - allows inter-pod traffic within the namespace
+// - allows ingress from ingress-nginx (so preview URLs are reachable)
+// - allows all egress (DB connections, AI API, GitHub API, image pulls)
+// - denies all other ingress by default
+func (r *PreviewReconciler) reconcileNetworkPolicy(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
+	np := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "preview-isolation",
+			Namespace: nsName,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, np, func() error {
+		if err := controllerutil.SetControllerReference(c, np, r.Scheme); err != nil {
+			return err
+		}
+		np.Labels = map[string]string{labelManagedBy: "preview-operator"}
+		np.Spec = networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			PolicyTypes: []networkingv1.PolicyType{
+				networkingv1.PolicyTypeIngress,
+				networkingv1.PolicyTypeEgress,
+			},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					// Allow inter-pod communication within the preview namespace
+					From: []networkingv1.NetworkPolicyPeer{
+						{PodSelector: &metav1.LabelSelector{}},
+					},
+				},
+				{
+					// Allow ingress from the ingress-nginx controller namespace
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "ingress-nginx",
+								},
+							},
+						},
+					},
+				},
+			},
+			// Allow all egress: external DB, AI API, GitHub API, container registry
+			Egress: []networkingv1.NetworkPolicyEgressRule{
+				{},
+			},
+		}
+		return nil
+	})
+	return err
+}
+
 // SetupWithManager registers the controller
 func (r *PreviewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.IstioEnabled = istioAvailable(mgr.GetRESTMapper())
@@ -1802,6 +1863,8 @@ func (r *PreviewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	} else {
 		b = b.Owns(&networkingv1.Ingress{})
 	}
+
+	b = b.Owns(&networkingv1.NetworkPolicy{})
 
 	return b.Complete(r)
 }

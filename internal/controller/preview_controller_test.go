@@ -23,10 +23,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -522,6 +524,195 @@ var _ = Describe("Preview Controller", func() {
 			Expect(body).To(ContainSubstring("Make the migration idempotent"))
 			Expect(body).To(ContainSubstring("relation messages already exists"))
 			Expect(body).To(ContainSubstring("kubectl logs -n preview-pr-9 job/postgres-migrate"))
+		})
+	})
+
+	Context("Idempotence — multiple reconcile calls produce no error", func() {
+		It("should be fully idempotent across repeated reconcile passes", func() {
+			ctx := context.Background()
+			const prNumber = 70
+			nsName := fmt.Sprintf("preview-pr-%d", prNumber)
+			resourceName := fmt.Sprintf("pr-%d", prNumber)
+
+			cr := &platformv1alpha1.Preview{
+				ObjectMeta: metav1.ObjectMeta{Name: resourceName, Namespace: "default"},
+				Spec: platformv1alpha1.PreviewSpec{
+					Branch:       "feature/idempotent",
+					PRNumber:     prNumber,
+					Image:        "nginx:alpine",
+					TTL:          "48h",
+					ResourceTier: platformv1alpha1.TierSmall,
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+
+			reconciler := &PreviewReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+			req := reconcile.Request{NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"}}
+
+			for i := 0; i < 4; i++ {
+				_, err := reconciler.Reconcile(ctx, req)
+				Expect(err).NotTo(HaveOccurred(), "reconcile pass %d should not error", i+1)
+			}
+
+			By("namespace must exist exactly once")
+			nsList := &corev1.NamespaceList{}
+			Expect(k8sClient.List(ctx, nsList, client.MatchingLabels{labelPreviewName: resourceName})).To(Succeed())
+			Expect(nsList.Items).To(HaveLen(1))
+
+			By("cleanup")
+			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}})
+		})
+	})
+
+	Context("Resource creation — namespace (PSS labels), NetworkPolicy, Deployment, Service", func() {
+		It("should create all expected resources after two reconcile passes", func() {
+			ctx := context.Background()
+			const prNumber = 71
+			nsName := fmt.Sprintf("preview-pr-%d", prNumber)
+			resourceName := fmt.Sprintf("pr-%d", prNumber)
+
+			cr := &platformv1alpha1.Preview{
+				ObjectMeta: metav1.ObjectMeta{Name: resourceName, Namespace: "default"},
+				Spec: platformv1alpha1.PreviewSpec{
+					Branch:       "feature/resources",
+					PRNumber:     prNumber,
+					Image:        "nginx:alpine",
+					TTL:          "48h",
+					ResourceTier: platformv1alpha1.TierSmall,
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+
+			reconciler := &PreviewReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+			req := reconcile.Request{NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"}}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("namespace has Pod Security Standards labels")
+			ns := &corev1.Namespace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nsName}, ns)).To(Succeed())
+			Expect(ns.Labels).To(HaveKeyWithValue("pod-security.kubernetes.io/enforce", "baseline"))
+			Expect(ns.Labels).To(HaveKeyWithValue("pod-security.kubernetes.io/warn", "restricted"))
+
+			By("NetworkPolicy preview-isolation isolates the namespace")
+			np := &networkingv1.NetworkPolicy{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "preview-isolation", Namespace: nsName}, np)).To(Succeed())
+			Expect(np.Spec.PolicyTypes).To(ContainElements(networkingv1.PolicyTypeIngress, networkingv1.PolicyTypeEgress))
+			Expect(np.Spec.Egress).To(HaveLen(1))
+			Expect(np.Spec.Ingress).To(HaveLen(2))
+
+			By("Deployment app is created with the correct image")
+			deploy := &appsv1.Deployment{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "app", Namespace: nsName}, deploy)).To(Succeed())
+			Expect(deploy.Spec.Template.Spec.Containers[0].Image).To(Equal("nginx:alpine"))
+
+			By("ClusterIP Service app is created")
+			svc := &corev1.Service{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "app", Namespace: nsName}, svc)).To(Succeed())
+			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+
+			By("cleanup")
+			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}})
+		})
+	})
+
+	Context("Job resumption — pre-existing Job does not cause a reconcile error", func() {
+		It("should skip Job creation if Job already exists", func() {
+			ctx := context.Background()
+			const prNumber = 72
+			nsName := fmt.Sprintf("preview-pr-%d", prNumber)
+			resourceName := fmt.Sprintf("pr-%d", prNumber)
+
+			By("pre-creating the namespace and a smoke-tests Job")
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+			_ = k8sClient.Create(ctx, ns)
+
+			existingJob := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: nsName},
+				Spec: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							RestartPolicy: corev1.RestartPolicyNever,
+							Containers:    []corev1.Container{{Name: "test", Image: "alpine"}},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, existingJob)).To(Succeed())
+
+			cr := &platformv1alpha1.Preview{
+				ObjectMeta: metav1.ObjectMeta{Name: resourceName, Namespace: "default"},
+				Spec: platformv1alpha1.PreviewSpec{
+					Branch:       "feature/job-resume",
+					PRNumber:     prNumber,
+					Image:        "nginx:alpine",
+					TTL:          "48h",
+					ResourceTier: platformv1alpha1.TierSmall,
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+
+			reconciler := &PreviewReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+			req := reconcile.Request{NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"}}
+			for i := 0; i < 3; i++ {
+				_, err := reconciler.Reconcile(ctx, req)
+				Expect(err).NotTo(HaveOccurred(), "reconcile pass %d should not error with pre-existing job", i+1)
+			}
+
+			By("pre-existing smoke job is still present — not deleted or duplicated")
+			job := &batchv1.Job{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: smokeJobName, Namespace: nsName}, job)).To(Succeed())
+			Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal("alpine"))
+
+			By("cleanup")
+			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}})
+		})
+	})
+
+	Context("Cleanup — finalizer added then removed on CR deletion", func() {
+		It("should add finalizer on first reconcile and remove it when CR is deleted", func() {
+			ctx := context.Background()
+			const prNumber = 73
+			resourceName := fmt.Sprintf("pr-%d", prNumber)
+			nsName := fmt.Sprintf("preview-pr-%d", prNumber)
+
+			cr := &platformv1alpha1.Preview{
+				ObjectMeta: metav1.ObjectMeta{Name: resourceName, Namespace: "default"},
+				Spec: platformv1alpha1.PreviewSpec{
+					Branch:       "feature/finalizer",
+					PRNumber:     prNumber,
+					Image:        "nginx:alpine",
+					TTL:          "48h",
+					ResourceTier: platformv1alpha1.TierSmall,
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+
+			reconciler := &PreviewReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+			req := reconcile.Request{NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"}}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("finalizer is added after the first reconcile")
+			updated := &platformv1alpha1.Preview{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, updated)).To(Succeed())
+			Expect(updated.Finalizers).To(ContainElement(previewFinalizer))
+
+			By("deleting the CR and running deletion reconcile removes the finalizer")
+			Expect(k8sClient.Delete(ctx, updated)).To(Succeed())
+			_, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			deleted := &platformv1alpha1.Preview{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, deleted)
+			Expect(errors.IsNotFound(err)).To(BeTrue(), "CR should be gone after finalizer runs")
+
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}})
 		})
 	})
 })
