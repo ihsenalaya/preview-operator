@@ -1,6 +1,6 @@
 # Preview Operator
 
-> **A Kubernetes operator that turns every pull request into a fully isolated preview environment — multi-service stack, ephemeral PostgreSQL, sequential test pipeline, OpenTelemetry, AI-generated seed data, and GitHub integration — all from a single custom resource.**
+> **A Kubernetes operator that reconciles `Preview` custom resources into fully isolated environments — multi-service stack, ephemeral PostgreSQL, sequential test pipeline, OpenTelemetry, AI-generated seed data, and GitHub integration. The CI pipeline creates the CR; the operator owns everything that happens next.**
 
 ```bash
 kubectl apply -f pr-42.yaml
@@ -47,7 +47,7 @@ kubectl apply -f pr-42.yaml
 
 | Feature | Flag / Field | Default |
 |---------|-------------|---------|
-| Isolated namespace per PR | always on | — |
+| Isolated namespace per Preview CR | always on | — |
 | Ephemeral PostgreSQL | `spec.database.enabled` | `false` |
 | DB migrations | `spec.database.migration.enabled` | `false` |
 | Static DB seed | `spec.database.seed.enabled` | `false` |
@@ -136,7 +136,7 @@ kubectl apply -f pr-42.yaml
          ┌──────────────────┼──────────────────┐
          ▼                  ▼                  ▼
    kubectl delete     TTL expired        rerunRequested=true
-   PR closed          r.Delete(cz)       AI-only rerun cycle
+   (CI on PR close)   r.Delete(prev)     AI-only rerun cycle
          │                  │
          └──────────────────┘
                    │  finalizer runs
@@ -338,7 +338,7 @@ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
 
 ### Step 3b — Install Istio (recommended for AKS / public URLs)
 
-The operator creates a `VirtualService` per PR pointing to a shared `Gateway`. Each PR gets a public URL — no port-forward.
+The operator creates a `VirtualService` per Preview CR pointing to a shared `Gateway`. Each environment gets a public URL — no port-forward.
 
 ```bash
 # Install istioctl
@@ -1273,7 +1273,7 @@ Classic shared staging has two fatal problems:
 - **Cross-PR pollution** — PR #28 and PR #29 share the same DB; test data from one breaks the other.
 - **Unstable baseline** — staging accumulates data from previous runs.
 
-The Preview controller eliminates both: each PR has its own namespace + DB, and a checkpoint is taken after the AI seed — then restored before each suite for a guaranteed, identical starting state.
+The Preview controller eliminates both: each preview environment has its own namespace + DB, and a checkpoint is taken after the AI seed — then restored before each suite for a guaranteed, identical starting state.
 
 ### Full pipeline
 
@@ -1820,7 +1820,7 @@ kubectl get preview pr-42 -o jsonpath='{.status.diagnostics}' | jq .
 
 ### Recommendations
 1. Verify that `ghcr.io/acme/myapp:sha-abc` exists and is accessible from the cluster.
-2. Check that the Kaniko job succeeded and the image was pushed to GHCR.
+2. Check that your CI build job succeeded and the image was pushed to the registry.
 3. Confirm the namespace has the required imagePullSecrets if the registry is private.
 
 ### Recent Events
