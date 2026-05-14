@@ -219,6 +219,13 @@ func migrationEnabled(c *platformv1alpha1.Preview) bool {
 	return c.Spec.TestSuite.Migration.Enabled
 }
 
+func checkpointIsolationEnabled(c *platformv1alpha1.Preview) bool {
+	if c.Spec.Database == nil || c.Spec.Database.IsolationEnabled == nil {
+		return true
+	}
+	return *c.Spec.Database.IsolationEnabled
+}
+
 func ensureTestSuiteStatus(c *platformv1alpha1.Preview) *platformv1alpha1.TestSuiteStatus {
 	if c.Status.Tests == nil {
 		c.Status.Tests = &platformv1alpha1.TestSuiteStatus{}
@@ -239,7 +246,9 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.ensureTestSuiteConfigMap(ctx, c, nsName); err != nil {
+	scripts := r.loadTestScripts(ctx)
+
+	if err := r.ensureTestSuiteConfigMap(ctx, c, nsName, scripts); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -247,7 +256,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	// Initialise step on first entry.
 	if tests.Step == "" {
-		if dbEnabled {
+		if dbEnabled && checkpointIsolationEnabled(c) {
 			tests.Step = suiteStepSaving
 		} else {
 			tests.Step = suiteStepSmoke
@@ -283,7 +292,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	case suiteStepSmoke:
 		if smokeEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteSmoke) {
-			state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName))
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName, scripts))
 			tests.Smoke.Phase = state
 			tests.Smoke.Output = output
 			tests.Smoke.Passed, tests.Smoke.Failed = countTestResults(output)
@@ -306,7 +315,11 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 			} else if contractSelected {
 				tests.Step = suiteStepContract
 			} else if dbEnabled && regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
-				tests.Step = suiteStepRestoreRegression
+				if checkpointIsolationEnabled(c) {
+					tests.Step = suiteStepRestoreRegression
+				} else {
+					tests.Step = suiteStepRegression
+				}
 			} else {
 				tests.Step = suiteStepRegression
 			}
@@ -318,7 +331,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	case suiteStepMigration:
 		if migrationEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteMigration) {
-			state, output := r.checkOrCreateTestJob(ctx, c, nsName, migrationTestJobName, r.migrationTestJob(c, nsName))
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, migrationTestJobName, r.migrationTestJob(c, nsName, scripts))
 			tests.Migration.Phase = state
 			tests.Migration.Output = output
 			if !testResultFinal(state) {
@@ -337,7 +350,11 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		} else if contractSelected {
 			tests.Step = suiteStepContract
 		} else if dbEnabled && regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
-			tests.Step = suiteStepRestoreRegression
+			if checkpointIsolationEnabled(c) {
+				tests.Step = suiteStepRestoreRegression
+			} else {
+				tests.Step = suiteStepRegression
+			}
 		} else {
 			tests.Step = suiteStepRegression
 		}
@@ -380,7 +397,11 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 		}
 		// Contract failure does not block regression — continue pipeline regardless.
 		if dbEnabled && regressionEnabled(c) {
-			tests.Step = suiteStepRestoreRegression
+			if checkpointIsolationEnabled(c) {
+				tests.Step = suiteStepRestoreRegression
+			} else {
+				tests.Step = suiteStepRegression
+			}
 		} else {
 			tests.Step = suiteStepRegression
 		}
@@ -405,7 +426,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	case suiteStepRegression:
 		if regressionEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteRegression) {
-			state, output := r.checkOrCreateTestJob(ctx, c, nsName, regressionJobName, r.regressionTestJob(c, nsName, previewURL))
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, regressionJobName, r.regressionTestJob(c, nsName, previewURL, scripts))
 			tests.Regression.Phase = state
 			tests.Regression.Output = output
 			tests.Regression.Passed, tests.Regression.Failed = countTestResults(output)
@@ -420,7 +441,11 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 			tests.Regression.Phase = phaseSkipped
 		}
 		if dbEnabled && e2eEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteE2E) {
-			tests.Step = suiteStepRestoreE2E
+			if checkpointIsolationEnabled(c) {
+				tests.Step = suiteStepRestoreE2E
+			} else {
+				tests.Step = suiteStepE2E
+			}
 		} else {
 			tests.Step = suiteStepE2E
 		}
@@ -445,7 +470,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	case suiteStepE2E:
 		if e2eEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteE2E) {
-			state, output := r.checkOrCreateTestJob(ctx, c, nsName, e2eJobName, r.e2eTestJob(c, nsName, previewURL))
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, e2eJobName, r.e2eTestJob(c, nsName, previewURL, scripts))
 			tests.E2E.Phase = state
 			tests.E2E.Output = output
 			tests.E2E.Passed, tests.E2E.Failed = countTestResults(output)
@@ -524,8 +549,8 @@ func (r *PreviewReconciler) checkOrCreateTestJob(ctx context.Context, c *platfor
 	return phaseRunning, nil
 }
 
-// ensureTestSuiteConfigMap creates the test suite ConfigMap with the smoke script.
-func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
+// ensureTestSuiteConfigMap creates the test suite ConfigMap with scripts loaded from the operator namespace.
+func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *platformv1alpha1.Preview, nsName string, scripts *TestScripts) error {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testSuiteConfigMap,
@@ -542,21 +567,21 @@ func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *pla
 			"app.kubernetes.io/component": "test-suite",
 		}
 		cm.Data = map[string]string{
-			"smoke.py":          smokeScript,
-			"microcks.py":       microcksContractScript,
-			"microcks-import.py": microcksImportScript,
+			"smoke.py":           scripts.SmokeScript,
+			"microcks.py":        scripts.MicrocksScript,
+			"microcks-import.py": scripts.MicrocksImportScript,
 		}
 		return nil
 	})
 	return err
 }
 
-func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
-	image := "python:3.12-slim"
+func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName string, scripts *TestScripts) *batchv1.Job {
+	image := scripts.SmokeImage
 	if c.Spec.TestSuite.Smoke != nil && c.Spec.TestSuite.Smoke.Image != "" {
 		image = c.Spec.TestSuite.Smoke.Image
 	}
-	cmd := []string{"sh", "-c", "pip install requests -q 2>/dev/null && python /data/smoke.py"}
+	cmd := []string{"sh", "-c", scripts.SmokeCommand}
 	if c.Spec.TestSuite.Smoke != nil && len(c.Spec.TestSuite.Smoke.Command) > 0 {
 		cmd = c.Spec.TestSuite.Smoke.Command
 	}
@@ -767,27 +792,24 @@ func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview,
 	}
 }
 
-func (r *PreviewReconciler) migrationTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
+func (r *PreviewReconciler) migrationTestJob(c *platformv1alpha1.Preview, nsName string, scripts *TestScripts) *batchv1.Job {
 	image := mainAppImage(c)
 	if c.Spec.TestSuite.Migration != nil && c.Spec.TestSuite.Migration.Image != "" {
 		image = c.Spec.TestSuite.Migration.Image
 	}
-	cmd := []string{"sh", "-c",
-		"pip install alembic psycopg2-binary -q 2>/dev/null && " +
-			"alembic upgrade head && " +
-			"echo 'PASS migration alembic upgrade head: OK'"}
+	cmd := []string{"sh", "-c", scripts.MigrationCommand}
 	if c.Spec.TestSuite.Migration != nil && len(c.Spec.TestSuite.Migration.Command) > 0 {
 		cmd = c.Spec.TestSuite.Migration.Command
 	}
 	return r.testJobNoMount(c, nsName, migrationTestJobName, image, cmd, migrationTestJobName, true)
 }
 
-func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {
+func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsName, previewURL string, scripts *TestScripts) *batchv1.Job {
 	image := mainAppImage(c)
 	if c.Spec.TestSuite.Regression != nil && c.Spec.TestSuite.Regression.Image != "" {
 		image = c.Spec.TestSuite.Regression.Image
 	}
-	cmd := []string{"sh", "-c", "pip install requests -q 2>/dev/null && python /app/tests/regression.py"}
+	cmd := []string{"sh", "-c", scripts.RegressionCommand}
 	if c.Spec.TestSuite.Regression != nil && len(c.Spec.TestSuite.Regression.Command) > 0 {
 		cmd = c.Spec.TestSuite.Regression.Command
 	}
@@ -805,13 +827,13 @@ func (r *PreviewReconciler) regressionTestJob(c *platformv1alpha1.Preview, nsNam
 // e2eTestJob builds a Job that runs real browser tests via Playwright.
 // An init container copies e2e.py from the app image into a shared emptyDir,
 // then the Playwright container (with Chromium pre-installed) executes the tests.
-func (r *PreviewReconciler) e2eTestJob(c *platformv1alpha1.Preview, nsName, previewURL string) *batchv1.Job {
+func (r *PreviewReconciler) e2eTestJob(c *platformv1alpha1.Preview, nsName, previewURL string, scripts *TestScripts) *batchv1.Job {
 	appImage := mainAppImage(c)
-	pwImage := playwrightImage
+	pwImage := scripts.E2EImage
 	if c.Spec.TestSuite.E2E != nil && c.Spec.TestSuite.E2E.Image != "" {
 		pwImage = c.Spec.TestSuite.E2E.Image
 	}
-	cmd := []string{"sh", "-c", "python -m pip install requests playwright==1.44.0 -q >/dev/null 2>&1 && python /data/tests/e2e.py"}
+	cmd := []string{"sh", "-c", scripts.E2ECommand}
 	if c.Spec.TestSuite.E2E != nil && len(c.Spec.TestSuite.E2E.Command) > 0 {
 		cmd = c.Spec.TestSuite.E2E.Command
 	}

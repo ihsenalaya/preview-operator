@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: preview-test-scripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "preview-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test-scripts
+data:
+  # ── Python test scripts ────────────────────────────────────────────────────
+  # Edit these to change test behaviour without rebuilding the operator.
+  # Changes take effect on the next Preview environment creation.
+  smoke.py: |-
+{{ .Files.Get "files/test-scripts/smoke.py" | indent 4 }}
+  microcks.py: |-
+{{ .Files.Get "files/test-scripts/microcks.py" | indent 4 }}
+  microcks-import.py: |-
+{{ .Files.Get "files/test-scripts/microcks-import.py" | indent 4 }}
+
+  # ── Default images (overridable per Preview via spec.testSuite.<suite>.image) ─
+  smoke.image: "python:3.12-slim"
+  e2e.image: "mcr.microsoft.com/playwright/python:v1.44.0-jammy"
+
+  # ── Default commands (overridable per Preview via spec.testSuite.<suite>.command) ─
+  # Use sh -c "<value>" format — no JSON arrays.
+  smoke.command: "pip install requests -q 2>/dev/null && python /data/smoke.py"
+  migration.command: "pip install alembic psycopg2-binary -q 2>/dev/null && alembic upgrade head && echo 'PASS migration alembic upgrade head: OK'"
+  regression.command: "pip install requests -q 2>/dev/null && python /app/tests/regression.py"
+  e2e.command: "python -m pip install requests playwright==1.44.0 -q >/dev/null 2>&1 && python /data/tests/e2e.py"

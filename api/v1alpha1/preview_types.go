@@ -49,6 +49,12 @@ type DatabaseSpec struct {
 	// The operator clears this field after the Job completes.
 	// +optional
 	CheckpointRestore string `json:"checkpointRestore,omitempty"`
+
+	// IsolationEnabled controls whether the test pipeline saves and restores a
+	// database checkpoint between suites. Set to false to skip the saving and
+	// restore steps (used for baseline experiments). Defaults to true.
+	// +optional
+	IsolationEnabled *bool `json:"isolationEnabled,omitempty"`
 }
 
 // DatabaseTaskSpec configures a one-shot database task.
