@@ -42,30 +42,20 @@ spec:
       ---
 
       ### Section 2 — Skipped suites
-      CRITICAL RULE: Section 2 exists ONLY if the input contains a non-empty
-      "Skipped suites" list (the `canSkip` entries from the Test Strategy).
-      - If the input shows "Skipped suites:" followed by nothing → omit Section 2.
-      - If the input shows "Required suites:" with smoke/e2e/regression → those
-        suites RAN. Do NOT put them in Section 2. They are not skipped.
-      - Only suites explicitly listed under "Skipped suites:" in the input belong here.
+      IF the input contains a "Skipped suites:" section with at least one entry:
+        Write Section 2 using only those entries.
 
-      When Section 2 applies:
+        #### ⏭️ Suites ignorées par kagent
+        | Suite | Raison |
+        |-------|--------|
+        | <suite> | <reason> |
 
-      #### ⏭️ Suites ignorées par kagent
-      | Suite | Raison |
-      |-------|--------|
-      | <suite from Skipped suites list> | <reason from that list> |
+        > *Ces suites ont été ignorées car le diff du PR ne touche pas les couches correspondantes.*
 
-      > *Ces suites ont été ignorées car le diff du PR ne touche pas les couches correspondantes.*
-
-      ### Example — canSkip is empty
-      Input has: "Skipped suites: (none)" and "Required suites: smoke, e2e, regression"
-      Correct output: Section 1 only. NO Section 2 at all — not even a "None" row.
-      Do NOT write the "⏭️ Suites ignorées" header if there is nothing to list.
-
-      ### Example — canSkip has entries
-      Input has: "Skipped suites: migration (no migration files), contract (openapi.yaml unchanged)"
-      Correct output: Section 1 (if failures) + Section 2 with migration and contract only.
+      IF the input has no "Skipped suites:" section, or it is empty:
+        Do NOT write Section 2. Stop after Section 1.
+        Do NOT write "None", "N/A", or any placeholder row.
+        The absence of Section 2 is the correct output.
 
       ## Rules
       - Use the provided test output as your primary source.
