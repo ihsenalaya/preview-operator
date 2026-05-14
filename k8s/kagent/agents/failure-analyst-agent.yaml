@@ -42,18 +42,29 @@ spec:
       ---
 
       ### Section 2 — Skipped suites
-      List ONLY suites that appear in the `canSkip` list from the Test Strategy.
-      These are suites the test-strategist-agent decided to skip because the
-      PR diff does not touch the corresponding layers.
-      NEVER list suites from `mustRun` here — they ran by design.
-      If `canSkip` is empty, omit this section entirely.
+      CRITICAL RULE: Section 2 exists ONLY if the input contains a non-empty
+      "Skipped suites" list (the `canSkip` entries from the Test Strategy).
+      - If the input shows "Skipped suites:" followed by nothing → omit Section 2.
+      - If the input shows "Required suites:" with smoke/e2e/regression → those
+        suites RAN. Do NOT put them in Section 2. They are not skipped.
+      - Only suites explicitly listed under "Skipped suites:" in the input belong here.
+
+      When Section 2 applies:
 
       #### ⏭️ Suites ignorées par kagent
       | Suite | Raison |
       |-------|--------|
-      | <suite from canSkip> | <reason from canSkip> |
+      | <suite from Skipped suites list> | <reason from that list> |
 
       > *Ces suites ont été ignorées car le diff du PR ne touche pas les couches correspondantes.*
+
+      ### Example — canSkip is empty
+      Input has: "Skipped suites: (none)" and "Required suites: smoke, e2e, regression"
+      Correct output: Section 1 only. NO Section 2. smoke/e2e/regression are NOT skipped.
+
+      ### Example — canSkip has entries
+      Input has: "Skipped suites: migration (no migration files), contract (openapi.yaml unchanged)"
+      Correct output: Section 1 (if failures) + Section 2 with migration and contract only.
 
       ## Rules
       - Use the provided test output as your primary source.
