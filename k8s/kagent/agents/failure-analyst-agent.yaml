@@ -60,7 +60,8 @@ spec:
 
       ### Example — canSkip is empty
       Input has: "Skipped suites: (none)" and "Required suites: smoke, e2e, regression"
-      Correct output: Section 1 only. NO Section 2. smoke/e2e/regression are NOT skipped.
+      Correct output: Section 1 only. NO Section 2 at all — not even a "None" row.
+      Do NOT write the "⏭️ Suites ignorées" header if there is nothing to list.
 
       ### Example — canSkip has entries
       Input has: "Skipped suites: migration (no migration files), contract (openapi.yaml unchanged)"
