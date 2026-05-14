@@ -1786,7 +1786,7 @@ func (r *PreviewReconciler) deleteAIResources(ctx context.Context, nsName string
 
 // reconcileNetworkPolicy creates a NetworkPolicy that isolates the preview namespace:
 // - allows inter-pod traffic within the namespace
-// - allows ingress from ingress-nginx (so preview URLs are reachable)
+// - allows ingress from ingress-nginx and istio-system (so preview URLs are reachable)
 // - allows all egress (DB connections, AI API, GitHub API, image pulls)
 // - denies all other ingress by default
 func (r *PreviewReconciler) reconcileNetworkPolicy(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
@@ -1815,12 +1815,19 @@ func (r *PreviewReconciler) reconcileNetworkPolicy(ctx context.Context, c *platf
 					},
 				},
 				{
-					// Allow ingress from the ingress-nginx controller namespace
+					// Allow ingress from ingress-nginx and Istio ingress gateway
 					From: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
 									"kubernetes.io/metadata.name": "ingress-nginx",
+								},
+							},
+						},
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "istio-system",
 								},
 							},
 						},
