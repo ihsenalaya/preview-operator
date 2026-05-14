@@ -14,9 +14,8 @@ serviceAccount:
 
 # Base domain for preview URLs — each PR gets http://pr-<N>.<previewDomain>
 # Requires a wildcard DNS record: *.<previewDomain> → Istio Gateway or Ingress IP
-# Example: "preview.ihsenalaya.xyz"
 # Leave empty to use localtest.me (no DNS setup, requires port-forward)
-previewDomain: ""
+previewDomain: "preview.ihsenalaya.xyz"
 
 # ── AI Enrichment ──────────────────────────────────────────────────────────────
 ai:

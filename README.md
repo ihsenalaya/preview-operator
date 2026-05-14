@@ -595,6 +595,9 @@ helm upgrade preview-operator ./charts/preview-operator \
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
 ```
 
+> **`previewDomain` is baked into `values.yaml`** (`preview.ihsenalaya.xyz`).
+> `--reuse-values` preserves it across upgrades — never drop it or the operator falls back to `localtest.me`.
+
 > **Why CRD first?** If a new operator version writes a new status field not in the CRD schema, the API server silently strips it, causing an **infinite reconcile loop**. Always apply the CRD before the operator image.
 
 ### Uninstalling
