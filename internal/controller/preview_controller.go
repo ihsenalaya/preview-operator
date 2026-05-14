@@ -187,6 +187,10 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 		return r.setFailedStatus(ctx, preview, "NetworkPolicyFailed", err)
 	}
 
+	if err := r.migrateDiffPatch(ctx, preview, nsName); err != nil {
+		return r.setFailedStatus(ctx, preview, "DiffPatchMigrationFailed", err)
+	}
+
 	if handled, result, err := r.handleResetRequested(ctx, preview, nsName); handled {
 		return result, err
 	}
@@ -1842,6 +1846,33 @@ func (r *PreviewReconciler) reconcileNetworkPolicy(ctx context.Context, c *platf
 		return nil
 	})
 	return err
+}
+
+// migrateDiffPatch moves spec.changeContext.diffPatch into a ConfigMap so that
+// the raw diff does not appear in kubectl describe output.
+func (r *PreviewReconciler) migrateDiffPatch(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
+	if c.Spec.ChangeContext == nil || c.Spec.ChangeContext.DiffPatch == "" {
+		return nil
+	}
+	cmName := "preview-diff-" + c.Name
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: nsName},
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, func() error {
+		if err := controllerutil.SetControllerReference(c, cm, r.Scheme); err != nil {
+			return err
+		}
+		cm.Labels = map[string]string{labelManagedBy: "preview-operator"}
+		cm.Data = map[string]string{"diff.patch": c.Spec.ChangeContext.DiffPatch}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	patch := client.MergeFrom(c.DeepCopy())
+	c.Spec.ChangeContext.DiffPatchRef = cmName
+	c.Spec.ChangeContext.DiffPatch = ""
+	return r.Patch(ctx, c, patch)
 }
 
 // SetupWithManager registers the controller

@@ -529,11 +529,16 @@ type ChangeContextSpec struct {
 
 	// DiffPatch is the raw unified diff produced by `git diff base...head`.
 	// Populated by the GitHub Actions classifier when the diff is under 64 KiB.
-	// The test-strategist-agent reads this to reason about WHAT changed, not
-	// just WHICH files changed (e.g. detect a new API endpoint vs a doc fix).
+	// The controller moves it to a ConfigMap on first reconcile and clears this field.
 	// +optional
 	// +kubebuilder:validation:MaxLength=65536
 	DiffPatch string `json:"diffPatch,omitempty"`
+
+	// DiffPatchRef is the name of the ConfigMap (in the preview namespace) that
+	// holds the raw diff under key "diff.patch". Set by the controller after
+	// migrating DiffPatch out of the spec.
+	// +optional
+	DiffPatchRef string `json:"diffPatchRef,omitempty"`
 }
 
 // KagentIntegrationSpec configures automatic kagent failure analysis.

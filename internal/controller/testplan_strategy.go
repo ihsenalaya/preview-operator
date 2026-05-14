@@ -515,12 +515,12 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 	promptText := fmt.Sprintf(
 		"A TestPlan named %q in namespace %q has status.phase=Pending and needs to be filled. "+
 			"Read the Preview %q from the same namespace (spec.changeContext.changedFiles, "+
-			"spec.changeContext.diffPatch, spec.changeContext.detectedImpacts, "+
-			"spec.testStrategy.confidenceThreshold). "+
+			"spec.changeContext.detectedImpacts, spec.testStrategy.confidenceThreshold). "+
+			"The raw diff is in ConfigMap spec.changeContext.diffPatchRef (key: diff.patch) in namespace %q — read it for detailed change analysis. "+
 			"Read the last 20 ReconcileEvents in namespace %q for historical signal. "+
 			"Decide mustRun, canSkip, confidence (0-100), and rationale. "+
 			"Patch the TestPlan spec (generatedBy=Agent) and set status.phase=Ready.",
-		planName, nsName, preview.Name, nsName,
+		planName, nsName, preview.Name, nsName, nsName,
 	)
 
 	// Build JSON payload in Go to avoid any shell escaping issues.
