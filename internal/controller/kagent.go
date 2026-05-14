@@ -121,6 +121,14 @@ func kagentTestStrategistURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
+func kagentFailureAnalystURL(c *platformv1alpha1.Preview) string {
+	ns := "kagent-system"
+	if c.Spec.Kagent != nil && c.Spec.Kagent.Namespace != "" {
+		ns = c.Spec.Kagent.Namespace
+	}
+	return fmt.Sprintf("http://failure-analyst-agent.%s.svc.cluster.local:8080", ns)
+}
+
 // triggerKagentDiffAnalysis calls the preview-diff-analyzer agent once the preview
 // reaches Running phase. Fetches a fresh copy of the preview to avoid ResourceVersion
 // conflicts from earlier status updates in the reconcile loop. Idempotent.
@@ -299,7 +307,7 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 // callKagentAgent sends a message to the agent via A2A JSON-RPC and returns
 // the text of the agent's response.
 func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) (string, error) {
-	agentURL := kagentAgentURL(c)
+	agentURL := kagentFailureAnalystURL(c)
 
 	payload := a2aMessage{
 		JSONRPC: "2.0",
@@ -418,39 +426,6 @@ func buildAnalysisPrompt(c *platformv1alpha1.Preview, plan *platformv1alpha1.Tes
 		appendSuiteOutput(&b, "e2e", tests.E2E)
 	}
 
-	b.WriteString(`
-## Required output format
-
-Your response will be embedded directly into a GitHub PR comment.
-Produce TWO sections:
-
-### Section 1 — Failed suites
-For EACH failed suite, use this format:
-
-#### ❌ <Suite name>
-**Cause:** <one sentence root cause>
-**Details:** <what exactly failed, with the failing test name/assertion if visible in the logs>
-**Fix:** <concrete code or config change to resolve it>
-
----
-
-### Section 2 — Skipped suites
-If any suites were skipped by the test-strategist-agent, add this section:
-
-#### ⏭️ Suites ignorées par kagent
-| Suite | Raison |
-|-------|--------|
-| <suite> | <reason from the test strategy above> |
-
-> *Ces suites ont été ignorées car le diff du PR ne touche pas les couches correspondantes.*
-
-Rules:
-- Section 1 is mandatory if any suite failed; omit if all suites passed.
-- Section 2 is mandatory if any suite was skipped; omit if nothing was skipped.
-- Use the test output as your primary source. Only call Kubernetes tools if output is missing.
-- Keep each section concise — 3-5 lines max per suite.
-- Do not add any preamble or conclusion outside these sections.
-`)
 	return b.String()
 }
 
