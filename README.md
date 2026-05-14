@@ -113,7 +113,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 | **AI test selection (test-strategist)** | `spec.testStrategy.mode: Auto` | `FullSuite` |
 | Smart failure diagnostics | always on when `Failed` | — |
 | Copilot Extension commands | sidecar server | optional |
-| **NetworkPolicy per namespace** | always on | deny cross-PR ingress; allow ingress-nginx + intra-pod |
+| **NetworkPolicy per namespace** | always on | deny cross-PR ingress; allow ingress-nginx + istio-system + intra-pod |
 | **Pod Security Standards labels** | always on | `enforce: baseline`, `warn: restricted` |
 
 ---
@@ -233,9 +233,10 @@ Every preview namespace is hardened automatically by the operator **before any w
 │                                                                    │
 │  NetworkPolicy: preview-isolation                                  │
 │                                                                    │
-│  Ingress — two sources allowed, everything else denied:           │
+│  Ingress — three sources allowed, everything else denied:         │
 │    ① pods within the same namespace  (app ↔ postgres, tests ↔ app)│
-│    ② pods in namespace "ingress-nginx"  (public traffic in)       │
+│    ② pods in namespace "ingress-nginx"  (nginx public traffic in) │
+│    ③ pods in namespace "istio-system"   (Istio gateway traffic in)│
 │                                                                    │
 │  Egress — unrestricted:                                            │
 │    ① AI API calls  (Azure OpenAI / OpenAI)                        │
@@ -463,10 +464,10 @@ Build the image locally and load it into Kind (no registry push needed for local
 ```bash
 # 1. Build
 cd preview-operator
-docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.21 .
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.42 .
 
 # 2. Load into Kind
-kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.21
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.42
 
 # 3. Apply CRD manually (Helm does not update CRDs on upgrade)
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
@@ -475,7 +476,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.21 \
+  --set image.tag=1.0.42 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -489,8 +490,9 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.21 \
+  --set image.tag=1.0.42 \
   --set webhook.enabled=false
+
 ```
 
 **Verify:**
@@ -2576,7 +2578,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/preview-operator
   pullPolicy: IfNotPresent
-  tag: ""                       # defaults to Chart.appVersion (1.0.39)
+  tag: ""                       # defaults to Chart.appVersion (1.0.42)
 
 # ── AI Enrichment ──────────────────────────────────────────────────────────────
 ai:
