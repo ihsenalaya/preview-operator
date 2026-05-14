@@ -1967,6 +1967,25 @@ spec:
 | `agentName` | `preview-troubleshooter-agent` | Agent CR triggered after test suite failure — analyses logs, events, produces fix recommendations |
 | `diffAnalyzerAgentName` | `preview-diff-analyzer` | Agent CR triggered when the preview first becomes Running — analyses the PR diff and posts a structured comment |
 | `testStrategistAgentName` | `test-strategist-agent` | Agent CR triggered when `testStrategy.mode: Auto` creates a Pending TestPlan — reads diff + ReconcileEvents and decides which suites to run |
+| *(built-in)* | `failure-analyst-agent` | Agent CR called on test failure to format the structured analysis section in the PR comment. Prompt is fully external — update with `kubectl apply` only, no operator rebuild needed. |
+
+### Externalised prompts — update without rebuilding
+
+The `failure-analyst-agent` and `test-strategist-agent` prompts live in kagent Agent CRs, not in the operator binary. To change analysis rules or output format:
+
+```bash
+# Edit the prompt
+vim k8s/kagent/agents/failure-analyst-agent.yaml
+
+# Apply — no rebuild, no redeploy
+kubectl apply -f k8s/kagent/agents/failure-analyst-agent.yaml
+
+# Verify
+kubectl get agent failure-analyst-agent -n kagent-system
+# Expected: READY=True ACCEPTED=True
+```
+
+The same applies to `test-strategist-agent.yaml` for changing suite selection rules.
 
 ### Install kagent and the troubleshooter agent
 
@@ -1993,9 +2012,15 @@ kubectl patch modelconfig default-model-config -n kagent-system --type=merge -p 
   }
 }'
 
-# 3. Deploy the troubleshooter agent (from the reference app repo)
+# 3. Deploy all kagent agents
 kubectl apply -f k8s/kagent/rbac-readonly.yaml
 kubectl apply -f k8s/kagent/preview-troubleshooter-agent.yaml
+kubectl apply -f k8s/kagent/agents/test-strategist-agent.yaml
+kubectl apply -f k8s/kagent/agents/failure-analyst-agent.yaml
+
+# 4. Verify all agents are ready
+kubectl get agents -n kagent-system | grep -E "test-strategist|failure-analyst|troubleshooter"
+# Expected: READY=True ACCEPTED=True for all three
 ```
 
 ### Status fields
@@ -2548,7 +2573,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/preview-operator
   pullPolicy: IfNotPresent
-  tag: ""                       # defaults to Chart.appVersion (1.0.38)
+  tag: ""                       # defaults to Chart.appVersion (1.0.39)
 
 # ── AI Enrichment ──────────────────────────────────────────────────────────────
 ai:
