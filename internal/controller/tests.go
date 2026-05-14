@@ -26,8 +26,6 @@ const (
 	microcksJobName    = "microcks-contract-tests"
 	regressionJobName  = "regression-tests"
 	e2eJobName         = "e2e-tests"
-	testSuiteConfigMap = "preview-test-suite"
-
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
 	suiteStepMigration         = "migration"
@@ -39,115 +37,6 @@ const (
 	suiteStepE2E               = "e2e"
 
 	migrationTestJobName = "migration-tests"
-
-	// microcksImportScript fetches an OpenAPI spec from a URL and imports it into Microcks.
-	// Uses only stdlib — runs in python:3.11-slim without pip install.
-	microcksImportScript = `import os,sys,urllib.request,urllib.parse,json
-KEYCLOAK=os.environ['MICROCKS_KEYCLOAK_URL'].rstrip('/')
-MICROCKS=os.environ['MICROCKS_URL'].rstrip('/')
-CLIENT_ID=os.environ.get('MICROCKS_CLIENT_ID','microcks-serviceaccount')
-SECRET=os.environ.get('MICROCKS_CLIENT_SECRET','ab54d329-e435-41ae-a900-ec6b3fe15c54')
-USER=os.environ.get('MICROCKS_USERNAME','manager')
-PASSWD=os.environ.get('MICROCKS_PASSWORD','microcks123')
-SPEC_URL=os.environ['SPEC_URL']
-print('Fetching spec from',SPEC_URL)
-with urllib.request.urlopen(SPEC_URL,timeout=15) as r:
-    spec_bytes=r.read()
-print('Spec fetched:',len(spec_bytes),'bytes')
-payload=urllib.parse.urlencode({'grant_type':'password','client_id':CLIENT_ID,'client_secret':SECRET,'username':USER,'password':PASSWD}).encode()
-req=urllib.request.Request(KEYCLOAK+'/protocol/openid-connect/token',data=payload,method='POST',headers={'Content-Type':'application/x-www-form-urlencoded'})
-with urllib.request.urlopen(req,timeout=10) as r:
-    token=json.loads(r.read())['access_token']
-print('Token obtained')
-boundary=b'----MicrocksImport'
-body=b'--'+boundary+b'\r\nContent-Disposition: form-data; name="file"; filename="openapi.yaml"\r\nContent-Type: application/yaml\r\n\r\n'+spec_bytes+b'\r\n--'+boundary+b'--\r\n'
-req2=urllib.request.Request(MICROCKS+'/api/artifact/upload?mainArtifact=true',data=body,method='POST',headers={'Authorization':'Bearer '+token,'Content-Type':'multipart/form-data; boundary='+boundary.decode()})
-try:
-    with urllib.request.urlopen(req2,timeout=30) as r:
-        raw=r.read()
-        try:
-            result=json.loads(raw)
-            names=[s.get('name','')+':'+s.get('version','') for s in result] if isinstance(result,list) else [str(result)]
-            print('Microcks import OK:',', '.join(names))
-        except (json.JSONDecodeError,ValueError):
-            print('Microcks import OK (status',r.status,')')
-except urllib.error.HTTPError as e:
-    print('Microcks import error:',e.code,e.read().decode()[:300],file=sys.stderr)
-    sys.exit(1)
-`
-
-	// microcksContractScript is the Python script that drives Microcks contract tests.
-	// Uses only stdlib so it runs in python:3.11-slim without pip install.
-	microcksContractScript = `import sys,os,json,time
-try:
-    import urllib.request,urllib.error,urllib.parse
-except ImportError:
-    print("FAIL contract: urllib not available")
-    sys.exit(1)
-MICROCKS_URL=os.environ.get('MICROCKS_URL','').rstrip('/')
-BACKEND_URL=os.environ.get('BACKEND_URL','')
-API_NAME=os.environ.get('API_NAME','Preview Catalog API')
-API_VERSION=os.environ.get('API_VERSION','1.0.0')
-TEST_RUNNER=os.environ.get('TEST_RUNNER','OPEN_API_SCHEMA')
-TIMEOUT_MS=int(os.environ.get('TEST_TIMEOUT_MS','60000'))
-CLIENT_ID=os.environ.get('MICROCKS_CLIENT_ID','')
-CLIENT_SECRET=os.environ.get('MICROCKS_CLIENT_SECRET','')
-KEYCLOAK_URL=os.environ.get('MICROCKS_KEYCLOAK_URL','')
-def http_json(url,method='GET',data=None,hdrs={}):
-    body=json.dumps(data).encode() if data else None
-    req=urllib.request.Request(url,data=body,method=method,headers={'Content-Type':'application/json','Accept':'application/json',**hdrs})
-    try:
-        with urllib.request.urlopen(req,timeout=15) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        raise Exception('HTTP '+str(e.code)+': '+e.read().decode()[:200])
-token=''
-if CLIENT_ID and CLIENT_SECRET and KEYCLOAK_URL:
-    try:
-        data=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':CLIENT_ID,'client_secret':CLIENT_SECRET}).encode()
-        req=urllib.request.Request(KEYCLOAK_URL,data=data,method='POST',headers={'Content-Type':'application/x-www-form-urlencoded'})
-        with urllib.request.urlopen(req,timeout=10) as r:
-            token=json.loads(r.read()).get('access_token','')
-        print('  auth: token obtained')
-    except Exception as e:
-        print('  WARN auth: '+str(e))
-auth={'Authorization':'Bearer '+token} if token else {}
-try:
-    payload={'serviceId':API_NAME+':'+API_VERSION,'testEndpoint':BACKEND_URL,'runnerType':TEST_RUNNER,'timeout':TIMEOUT_MS}
-    result=http_json(MICROCKS_URL+'/api/tests','POST',payload,auth)
-    test_id=result.get('id','')
-    if not test_id:
-        print('FAIL contract: no test id from Microcks')
-        sys.exit(1)
-    print('  submitted test '+test_id)
-except Exception as e:
-    print('FAIL contract: submit failed: '+str(e))
-    sys.exit(1)
-max_poll=int(TIMEOUT_MS/1000/5)+6
-for i in range(max_poll):
-    time.sleep(5)
-    try:
-        result=http_json(MICROCKS_URL+'/api/tests/'+test_id,hdrs=auth)
-    except Exception as e:
-        print('  WARN poll: '+str(e))
-        continue
-    if result.get('inProgress',True):
-        continue
-    p,f=0,0
-    for tc in result.get('testCaseResults',[]):
-        op=tc.get('operationName','?')
-        for step in tc.get('testStepResults',[]):
-            if step.get('success',False):
-                print('PASS contract '+op)
-                p+=1
-            else:
-                print('FAIL contract '+op+': '+step.get('message','schema violation'))
-                f+=1
-    print('Results: '+str(p)+' passed, '+str(f)+' failed')
-    sys.exit(1 if f>0 else 0)
-print('FAIL contract: timeout')
-sys.exit(1)
-`
 
 	testJobCPURequest    = "50m"
 	testJobMemoryRequest = "128Mi"
@@ -161,26 +50,6 @@ sys.exit(1)
 	e2eJobMemoryLimit   = "1Gi"
 
 	playwrightImage = "mcr.microsoft.com/playwright/python:v1.44.0-jammy"
-
-	// smokeScript is embedded in the operator — no external file required.
-	// It tests the health endpoint and the main products endpoint.
-	smokeScript = `import requests,sys,os
-BASE=os.environ.get('APP_URL','http://app')
-checks=[('/healthz',200),('/api/products',200)]
-p,f=0,0
-for path,code in checks:
-    try:
-        r=requests.get(BASE+path,timeout=5)
-        ok=r.status_code==code
-        label='PASS' if ok else 'FAIL'
-        print(label+' smoke '+path+': '+str(r.status_code))
-        p,f=(p+1,f) if ok else (p,f+1)
-    except Exception as e:
-        print('FAIL smoke '+path+': '+str(e))
-        f+=1
-print('Results: '+str(p)+' passed, '+str(f)+' failed')
-sys.exit(1 if f>0 else 0)
-`
 )
 
 func testSuiteEnabled(c *platformv1alpha1.Preview) bool {
@@ -248,10 +117,6 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	scripts := r.loadTestScripts(ctx)
 
-	if err := r.ensureTestSuiteConfigMap(ctx, c, nsName, scripts); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	dbEnabled := databaseEnabled(c)
 
 	// Initialise step on first entry.
@@ -292,7 +157,7 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 
 	case suiteStepSmoke:
 		if smokeEnabled(c) && policy.IsSuiteSelected(plan, platformv1alpha1.TestSuiteSmoke) {
-			state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName, scripts))
+			state, output := r.checkOrCreateTestJob(ctx, c, nsName, smokeJobName, r.smokeTestJob(c, nsName))
 			tests.Smoke.Phase = state
 			tests.Smoke.Output = output
 			tests.Smoke.Passed, tests.Smoke.Failed = countTestResults(output)
@@ -549,44 +414,17 @@ func (r *PreviewReconciler) checkOrCreateTestJob(ctx context.Context, c *platfor
 	return phaseRunning, nil
 }
 
-// ensureTestSuiteConfigMap creates the test suite ConfigMap with scripts loaded from the operator namespace.
-func (r *PreviewReconciler) ensureTestSuiteConfigMap(ctx context.Context, c *platformv1alpha1.Preview, nsName string, scripts *TestScripts) error {
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSuiteConfigMap,
-			Namespace: nsName,
-		},
-	}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, func() error {
-		if err := controllerutil.SetControllerReference(c, cm, r.Scheme); err != nil {
-			return err
-		}
-		cm.Labels = map[string]string{
-			labelManagedBy:                "preview-operator",
-			labelPreviewName:             c.Name,
-			"app.kubernetes.io/component": "test-suite",
-		}
-		cm.Data = map[string]string{
-			"smoke.py":           scripts.SmokeScript,
-			"microcks.py":        scripts.MicrocksScript,
-			"microcks-import.py": scripts.MicrocksImportScript,
-		}
-		return nil
-	})
-	return err
-}
-
-func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName string, scripts *TestScripts) *batchv1.Job {
-	image := scripts.SmokeImage
+func (r *PreviewReconciler) smokeTestJob(c *platformv1alpha1.Preview, nsName string) *batchv1.Job {
+	image := mainAppImage(c)
 	if c.Spec.TestSuite.Smoke != nil && c.Spec.TestSuite.Smoke.Image != "" {
 		image = c.Spec.TestSuite.Smoke.Image
 	}
-	cmd := []string{"sh", "-c", scripts.SmokeCommand}
+	cmd := []string{"python", "/app/tests/smoke.py"}
 	if c.Spec.TestSuite.Smoke != nil && len(c.Spec.TestSuite.Smoke.Command) > 0 {
 		cmd = c.Spec.TestSuite.Smoke.Command
 	}
 
-	job := r.testJob(c, nsName, smokeJobName, image, cmd, testSuiteConfigMap, "smoke.py", smokeJobName, false)
+	job := r.testJobNoMount(c, nsName, smokeJobName, image, cmd, smokeJobName, false)
 	job.Spec.Template.Spec.Containers[0].Env = append(
 		job.Spec.Template.Spec.Containers[0].Env,
 		corev1.EnvVar{Name: "APP_URL", Value: appServiceURL(c)},
@@ -659,25 +497,11 @@ func (r *PreviewReconciler) microcksImportJob(c *platformv1alpha1.Preview, nsNam
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{{
 						Name:            microcksImportJob,
-						Image:           "python:3.11-slim",
-						Command:         []string{"python", "/data/microcks-import.py"},
+						Image:           mainAppImage(c),
+						Command:         []string{"python", "/app/tests/microcks-import.py"},
 						Env:             env,
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Resources:       testJobResources(),
-						VolumeMounts: []corev1.VolumeMount{
-							{Name: "test-data", MountPath: "/data"},
-						},
-					}},
-					Volumes: []corev1.Volume{{
-						Name: "test-data",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{Name: testSuiteConfigMap},
-								Items: []corev1.KeyToPath{
-									{Key: "microcks-import.py", Path: "microcks-import.py"},
-								},
-							},
-						},
 					}},
 				},
 			},
@@ -768,23 +592,11 @@ func (r *PreviewReconciler) microcksContractTestJob(c *platformv1alpha1.Preview,
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{{
 						Name:            microcksJobName,
-						Image:           "python:3.11-slim",
-						Command:         []string{"python", "/data/microcks.py"},
+						Image:           mainAppImage(c),
+						Command:         []string{"python", "/app/tests/microcks.py"},
 						Env:             env,
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Resources:       testJobResources(),
-						VolumeMounts: []corev1.VolumeMount{
-							{Name: "test-data", MountPath: "/data"},
-						},
-					}},
-					Volumes: []corev1.Volume{{
-						Name: "test-data",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{Name: testSuiteConfigMap},
-								Items:                []corev1.KeyToPath{{Key: "microcks.py", Path: "microcks.py"}},
-							},
-						},
 					}},
 				},
 			},

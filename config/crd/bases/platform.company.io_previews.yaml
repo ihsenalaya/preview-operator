@@ -297,6 +297,12 @@ spec:
                     description: Enabled controls whether a PostgreSQL instance is
                       provisioned alongside the app
                     type: boolean
+                  isolationEnabled:
+                    description: |-
+                      IsolationEnabled controls whether the test pipeline saves and restores a
+                      database checkpoint between suites. Set to false to skip the saving and
+                      restore steps (used for baseline experiments). Defaults to true.
+                    type: boolean
                   migration:
                     description: |-
                       Migration configures an optional one-shot Job that runs before the app is deployed.

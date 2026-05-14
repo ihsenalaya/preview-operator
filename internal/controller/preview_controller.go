@@ -421,7 +421,7 @@ func (r *PreviewReconciler) resetDerivedStateForNewGeneration(ctx context.Contex
 			return err
 		}
 	}
-	for _, name := range []string{testSuiteConfigMap, aiEnrichmentConfigMap} {
+	for _, name := range []string{aiEnrichmentConfigMap} {
 		cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: nsName}}
 		if err := r.Delete(ctx, cm); err != nil && !errors.IsNotFound(err) {
 			return err
@@ -731,7 +731,6 @@ func (r *PreviewReconciler) deleteKnownChildren(ctx context.Context, nsName stri
 		&networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: nsName}},
 		&corev1.ResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: "preview-quota", Namespace: nsName}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: postgresSecretName, Namespace: nsName}},
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testSuiteConfigMap, Namespace: nsName}},
 	}
 
 	for _, child := range children {
