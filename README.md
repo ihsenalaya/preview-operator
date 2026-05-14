@@ -28,7 +28,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
          testSuite:       { enabled: true, smoke: {}, regression: { enabled: true } }
          kagent:          { enabled: true }
          github:          { enabled: true, owner: myorg, repo: myapp, ... }
-         changeContext:   { diffRef: {...}, changedFiles: [...], diffPatch: "..." }
+         changeContext:   { diffRef: {...}, changedFiles: [...], diffPatchRef: "preview-diff-pr-42" }
        EOF
         │
         ▼
@@ -464,10 +464,10 @@ Build the image locally and load it into Kind (no registry push needed for local
 ```bash
 # 1. Build
 cd preview-operator
-docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.42 .
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.43 .
 
 # 2. Load into Kind
-kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.42
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.43
 
 # 3. Apply CRD manually (Helm does not update CRDs on upgrade)
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
@@ -476,7 +476,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.42 \
+  --set image.tag=1.0.43 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -490,7 +490,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.42 \
+  --set image.tag=1.0.43 \
   --set webhook.enabled=false
 
 ```
@@ -2070,7 +2070,7 @@ Controller creates an ephemeral Kubernetes Job
            -d '<A2A JSON-RPC payload with targeted prompt>'
        │
        ├─ Agent reads spec.changeContext.changedFiles
-       ├─ Agent reads spec.changeContext.diffPatch  (raw unified diff, max 64 KiB)
+       ├─ Agent reads ConfigMap spec.changeContext.diffPatchRef  (raw unified diff, key: diff.patch)
        ├─ Agent reads spec.changeContext.detectedImpacts
        ├─ Agent reads recent ReconcileEvents (historical signal)
        │
@@ -2113,9 +2113,14 @@ The pipeline (`generate_preview_manifest.py`) injects three fields into `spec.ch
 | `summary.deletions` | Total lines deleted |
 | `changedFiles[]` | Each changed file with its classified `type` (`backend`, `frontend`, `database-migration`, `api-contract`, `docs`, `other`) |
 | `detectedImpacts` | Flags: `database`, `apiContract`, `backend`, `frontend`, `requiresSeedData`, `requiresContractTests`, `requiresRegressionTests` |
-| `diffPatch` | Raw `git diff base...head` output (truncated to 64 KiB) — allows the agent to reason about *what* changed semantically, not just which files |
+| `diffPatchRef` | Name of the ConfigMap (in the preview namespace) holding the raw diff under key `diff.patch`. The controller migrates the raw diff here so it does not appear in `kubectl describe`. |
 
-The `diffPatch` field is the key signal for edge cases: a backend file that adds a new HTTP route should trigger `contract` tests even if `openapi.yaml` was not updated.
+The diff content is the key signal for edge cases: a backend file that adds a new HTTP route should trigger `contract` tests even if `openapi.yaml` was not updated.
+
+```bash
+# Read the raw diff for a preview
+kubectl get configmap preview-diff-pr-42 -n preview-pr-42 -o jsonpath='{.data.diff\.patch}'
+```
 
 ### TestPlan CRD
 
@@ -2500,7 +2505,7 @@ spec:
       requiresSeedData: true
       requiresContractTests: false
       requiresRegressionTests: true
-    diffPatch: "diff --git a/api/routes/orders.py …"  # max 64 KiB
+    diffPatchRef: preview-diff-pr-42   # ConfigMap in preview namespace, key: diff.patch
 ```
 
 ---
@@ -2578,7 +2583,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/preview-operator
   pullPolicy: IfNotPresent
-  tag: ""                       # defaults to Chart.appVersion (1.0.42)
+  tag: ""                       # defaults to Chart.appVersion (1.0.43)
 
 # ── AI Enrichment ──────────────────────────────────────────────────────────────
 ai:
