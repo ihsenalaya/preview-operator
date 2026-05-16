@@ -24,7 +24,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
          image: ghcr.io/myorg/myapp:sha-abc
          ttl: 48h
          database:        { enabled: true, migration: { enabled: true, command: [...] } }
-         aiEnrichment:    { enabled: true, apiSecretRef: { name: ai-api-key, key: api-key } }
+         aiEnrichment:    { enabled: true, apiSecretRef: { name: ai-api-key, key: api-key }, temperature: "0.7" }
          testSuite:       { enabled: true, smoke: {}, regression: { enabled: true } }
          kagent:          { enabled: true }
          github:          { enabled: true, owner: myorg, repo: myapp, ... }
@@ -108,6 +108,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 | Regression tests | `spec.testSuite.regression.enabled` | `false` |
 | E2E tests (Playwright) | `spec.testSuite.e2e.enabled` | `false` |
 | AI seed data + tests | `spec.aiEnrichment.enabled` | `false` |
+| AI sampling temperature | `spec.aiEnrichment.temperature` (string, `"0".."2"`) | `"0.2"` |
 | AI-only rerun | `spec.aiEnrichment.rerunRequested` | `false` |
 | **AI failure analysis (kagent)** | `spec.kagent.enabled` | `false` |
 | **AI test selection (test-strategist)** | `spec.testStrategy.mode: Auto` | `FullSuite` |
