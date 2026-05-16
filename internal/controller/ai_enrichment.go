@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	"github.com/ihsenalaya/preview-operator/internal/ai"
@@ -262,6 +264,14 @@ func (r *PreviewReconciler) generateAndStoreAIContent(ctx context.Context, c *pl
 	}
 
 	aiClient := ai.NewClient(r.AIAPIBaseURL, apiKey, c.Spec.AIEnrichment.Model)
+	if c.Spec.AIEnrichment.Temperature != "" {
+		if t, perr := strconv.ParseFloat(c.Spec.AIEnrichment.Temperature, 64); perr == nil {
+			aiClient.Temperature = t
+		} else {
+			log.FromContext(ctx).Info("invalid spec.aiEnrichment.temperature value, using default",
+				"value", c.Spec.AIEnrichment.Temperature, "error", perr.Error())
+		}
+	}
 	if r.AIHTTPClient != nil {
 		aiClient.HTTPClient = r.AIHTTPClient
 	}

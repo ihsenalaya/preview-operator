@@ -207,6 +207,17 @@ type AIEnrichmentSpec struct {
 	// +optional
 	Model string `json:"model,omitempty"`
 
+	// Temperature controls the LLM sampling diversity, as a decimal string in [0, 2]
+	// (e.g. "0", "0.0", "0.7", "1.5"). 0 is deterministic; higher values yield more diverse
+	// outputs. When omitted, the operator uses 0.2 (default). Used to differentiate experimental
+	// seed-quality conditions (e.g. RQ4 mutation-detection study, static vs llm_fixed vs llm_free).
+	//
+	// Stored as a string because Kubernetes API conventions discourage native float types.
+	// The operator parses the value with `strconv.ParseFloat`. Invalid strings fall back to 0.2.
+	// +kubebuilder:validation:Pattern=`^([01](\.[0-9]+)?|2(\.0+)?)$`
+	// +optional
+	Temperature string `json:"temperature,omitempty"`
+
 	// Seed configures AI seed data generation and execution.
 	// When omitted while AI enrichment is enabled, the operator treats this task as enabled.
 	// +optional

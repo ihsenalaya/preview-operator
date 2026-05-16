@@ -16,12 +16,15 @@ const defaultModel = "gpt-4o-mini"
 
 var routeDecoratorRE = regexp.MustCompile(`@\w+\.(?:route|get|post|put|patch|delete)\(\s*["']([^"']+)["']`)
 
+const defaultTemperature = 0.2
+
 // Client is an OpenAI-compatible AI client.
 type Client struct {
-	BaseURL    string
-	APIKey     string
-	Model      string
-	HTTPClient *http.Client
+	BaseURL     string
+	APIKey      string
+	Model       string
+	Temperature float64
+	HTTPClient  *http.Client
 }
 
 // NewClient creates a new AI client.
@@ -30,10 +33,11 @@ func NewClient(baseURL, apiKey, model string) *Client {
 		model = defaultModel
 	}
 	return &Client{
-		BaseURL:    strings.TrimRight(baseURL, "/"),
-		APIKey:     apiKey,
-		Model:      model,
-		HTTPClient: &http.Client{Timeout: 60 * time.Second},
+		BaseURL:     strings.TrimRight(baseURL, "/"),
+		APIKey:      apiKey,
+		Model:       model,
+		Temperature: defaultTemperature,
+		HTTPClient:  &http.Client{Timeout: 60 * time.Second},
 	}
 }
 
@@ -84,7 +88,7 @@ func (c *Client) generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 			{"role": "system", "content": systemPrompt},
 			{"role": "user", "content": userPrompt},
 		},
-		"temperature":     0.2,
+		"temperature":     c.Temperature,
 		"response_format": map[string]string{"type": "json_object"},
 	})
 	if err != nil {
