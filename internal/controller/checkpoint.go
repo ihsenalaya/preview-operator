@@ -510,7 +510,17 @@ func (r *PreviewReconciler) ensureSuiteCheckpointSaved(ctx context.Context, c *p
 
 // ensureSuiteCheckpointRestored creates and waits for a restore job identified by jobName.
 // Returns (true, nil) once the restore job has succeeded.
+//
+// Dispatches on Spec.Database.IsolationMode:
+//   - "restore" (default): pg_dump + psql restore via the saved ConfigMap
+//   - "migration": DROP SCHEMA public CASCADE + replay the user migration command
+//
+// Both produce the same effect (clean DB ready for the next suite); migration mode
+// is the baseline for RQ3 comparison.
 func (r *PreviewReconciler) ensureSuiteCheckpointRestored(ctx context.Context, c *platformv1alpha1.Preview, nsName, jobName string) (bool, error) {
+	if isolationMode(c) == "migration" {
+		return r.ensureSuiteMigrationReplayed(ctx, c, nsName, jobName)
+	}
 	if _, err := r.ensureCheckpointConfigMap(ctx, c, nsName, suiteCheckpointName); err != nil {
 		return false, fmt.Errorf("suite checkpoint not found: %w", err)
 	}
@@ -533,4 +543,163 @@ func (r *PreviewReconciler) ensureSuiteCheckpointRestored(ctx context.Context, c
 		}
 	}
 	return job.Status.Succeeded > 0, nil
+}
+
+// migrationReplayDropSchemaScript wipes the application data so the subsequent
+// container can re-run the user's migration on a clean DB. Used in the init
+// container of migrationReplayJob.
+func migrationReplayDropSchemaScript() string {
+	return strings.Join([]string{
+		`set -e`,
+		`# Wipe all application data via schema drop + recreate (faster + more`,
+		`# thorough than per-table TRUNCATE for cross-FK graphs).`,
+		`psql -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO \"$POSTGRES_USER\"; GRANT ALL ON SCHEMA public TO public;"`,
+	}, "\n")
+}
+
+// ensureSuiteMigrationReplayed creates and waits for a migration-replay Job
+// identified by jobName. Mirrors ensureSuiteCheckpointRestored but uses
+// DROP SCHEMA + migration replay instead of pg_dump restore.
+//
+// Used as the RQ3 baseline (paper §6) — measured ~37.6s per cycle vs ~14.6s
+// for checkpoint restore (~2.57× more expensive, same isolation outcome).
+func (r *PreviewReconciler) ensureSuiteMigrationReplayed(ctx context.Context, c *platformv1alpha1.Preview, nsName, jobName string) (bool, error) {
+	job := &batchv1.Job{}
+	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: nsName}, job)
+	if errors.IsNotFound(err) {
+		newJob := r.migrationReplayJob(c, nsName, jobName)
+		if err := controllerutil.SetControllerReference(c, newJob, r.Scheme); err != nil {
+			return false, err
+		}
+		return false, r.Create(ctx, newJob)
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, cond := range job.Status.Conditions {
+		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
+			return false, fmt.Errorf("suite migration replay job %s failed: %s", jobName, cond.Message)
+		}
+	}
+	return job.Status.Succeeded > 0, nil
+}
+
+// migrationReplayJob builds a Job that drops the public schema (init container,
+// postgres image) and then replays the user-provided migration command (main
+// container, user image) — same shape as databaseTaskJob.
+//
+// Falls back to a noop main container if Spec.Database.Migration is nil or
+// empty (defensive: replay is meaningless without a migration command, but
+// the schema-drop init still happens to wipe data).
+func (r *PreviewReconciler) migrationReplayJob(c *platformv1alpha1.Preview, nsName, jobName string) *batchv1.Job {
+	backoffLimit := int32(0)
+	ttl := int32(300)
+	pgImage := fmt.Sprintf("postgres:%s-alpine", databaseVersion(c))
+
+	// User migration spec — main container uses these.
+	var (
+		userCmd   []string
+		userArgs  []string
+		userImage string
+	)
+	if c.Spec.Database != nil && c.Spec.Database.Migration != nil {
+		userCmd = c.Spec.Database.Migration.Command
+		userArgs = c.Spec.Database.Migration.Args
+		userImage = c.Spec.Database.Migration.Image
+	}
+	if userImage == "" {
+		userImage = c.Spec.Image
+	}
+	if len(userCmd) == 0 {
+		// Defensive fallback: just a no-op so the Job can complete after the init.
+		userCmd = []string{"sh", "-c", "echo 'migrationReplayJob: no migration command provided; schema dropped only'"}
+	}
+
+	commonEnv := []corev1.EnvVar{
+		{Name: "POSTGRES_USER", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName}, Key: "POSTGRES_USER"}}},
+		{Name: "POSTGRES_PASSWORD", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName}, Key: "POSTGRES_PASSWORD"}}},
+		{Name: "POSTGRES_DB", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName}, Key: "POSTGRES_DB"}}},
+		{Name: "DATABASE_URL", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName}, Key: "DATABASE_URL"}}},
+	}
+	psqlEnv := append([]corev1.EnvVar{
+		{Name: "PGPASSWORD", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: postgresSecretName}, Key: "POSTGRES_PASSWORD"}}},
+	}, commonEnv...)
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: nsName,
+			Labels: map[string]string{
+				labelManagedBy:                "preview-operator",
+				labelPreviewName:              c.Name,
+				"app.kubernetes.io/component": "db-migration-replay",
+				"platform.company.io/task":    "migration-replay",
+			},
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						labelManagedBy:             "preview-operator",
+						labelPreviewName:           c.Name,
+						"platform.company.io/task": "migration-replay",
+					},
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					InitContainers: []corev1.Container{
+						{
+							Name:    "wait-for-postgres",
+							Image:   "busybox:1.36",
+							Command: []string{"sh", "-c", "until nc -z postgres 5432; do echo 'waiting for postgres...'; sleep 2; done"},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("10m"), corev1.ResourceMemory: resource.MustParse("32Mi")},
+								Limits:   corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("50m"), corev1.ResourceMemory: resource.MustParse("64Mi")},
+							},
+						},
+						{
+							Name:            "drop-schema",
+							Image:           pgImage,
+							Command:         []string{"sh", "-c", migrationReplayDropSchemaScript()},
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Env:             psqlEnv,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("50m"), corev1.ResourceMemory: resource.MustParse("64Mi")},
+								Limits:   corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("200m"), corev1.ResourceMemory: resource.MustParse("128Mi")},
+							},
+						},
+					},
+					Containers: []corev1.Container{{
+						Name:    "migration-replay",
+						Image:   userImage,
+						Command: userCmd,
+						Args:    userArgs,
+						Env:     commonEnv,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse(aiJobCPURequest),
+								corev1.ResourceMemory: resource.MustParse(aiJobMemoryRequest),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse(aiJobCPULimit),
+								corev1.ResourceMemory: resource.MustParse(aiJobMemoryLimit),
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+}
+
+// ensureSuiteCheckpointSaved becomes a no-op in migration mode — no dump is needed
+// since the inter-suite reset re-runs the migration command instead of restoring.
+// In restore mode, the original save flow is unchanged.
+func (r *PreviewReconciler) ensureSuiteCheckpointSavedOrSkipped(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, error) {
+	if isolationMode(c) == "migration" {
+		return true, nil
+	}
+	return r.ensureSuiteCheckpointSaved(ctx, c, nsName)
 }

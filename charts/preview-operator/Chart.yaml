@@ -2,8 +2,8 @@ apiVersion: v2
 name: preview-operator
 description: Kubernetes operator for managing ephemeral preview environments with optional PostgreSQL sidecar
 type: application
-version: 1.0.44
-appVersion: "1.0.44"
+version: 1.0.45
+appVersion: "1.0.45"
 keywords:
   - kubernetes
   - operator

@@ -55,6 +55,19 @@ type DatabaseSpec struct {
 	// restore steps (used for baseline experiments). Defaults to true.
 	// +optional
 	IsolationEnabled *bool `json:"isolationEnabled,omitempty"`
+
+	// IsolationMode selects the inter-suite isolation mechanism when
+	// IsolationEnabled is true:
+	//   - "restore"   : pg_dump + psql restore (default, current behavior,
+	//                   measured ~14.6s overhead per cycle)
+	//   - "migration" : DROP SCHEMA public CASCADE + re-run user migration
+	//                   command (baseline for paper comparison, measured
+	//                   ~37.6s overhead per cycle)
+	// Defaults to "restore" if unset. Used by RQ3 baseline experiments.
+	// +kubebuilder:validation:Enum=restore;migration
+	// +kubebuilder:default=restore
+	// +optional
+	IsolationMode string `json:"isolationMode,omitempty"`
 }
 
 // DatabaseTaskSpec configures a one-shot database task.

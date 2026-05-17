@@ -1104,6 +1104,36 @@ def run(name, fn):
 
 The extension patches `spec.database.checkpointRestore` → controller creates a restore Job → extension polls until complete → returns HTTP 200 → test starts.
 
+### Isolation mechanism — `spec.database.isolationMode` (added in 1.0.45)
+
+When `isolationEnabled: true` and a test suite is configured, the operator
+resets the DB between suites. Two mechanisms are available:
+
+| Mode | Mechanism | Per-cycle overhead (5-stack measured) | Use case |
+|---|---|---|---|
+| `restore` (default) | `pg_dump` once + `psql restore` between suites (`suite-restore-regression`, `suite-restore-e2e` Jobs) | ~14.6 s | production / standard preview workflow |
+| `migration` | `DROP SCHEMA public CASCADE; CREATE SCHEMA public` + replay `spec.database.migration.command` (`migration-restore-regression`, `migration-restore-e2e` Jobs) | ~37.6 s (theoretical, baseline for paper RQ3) | research baseline / comparison |
+
+Both modes produce identical isolation outcomes (`run_log_clean`, `entity_count_matches_seed` probes pass on both). `restore` is preferred for cost; `migration` is the baseline that demonstrates the **2.5–2.7× speedup** of checkpoint-based isolation.
+
+```yaml
+spec:
+  database:
+    enabled: true
+    isolationEnabled: true
+    isolationMode: restore           # default — pg_dump + psql restore
+    # isolationMode: migration       # baseline — DROP SCHEMA + replay migration
+    migration:
+      enabled: true
+      command: ["python", "manage.py", "migrate"]
+```
+
+In `migration` mode the operator does not run `suite-checkpoint-save` (no
+ConfigMap needed); each `restore-*` step instead spawns an init container
+that drops the public schema and a main container that re-executes the
+user's migration command — exactly the same image, command, and env vars
+as the initial `postgres-migrate` Job.
+
 ---
 
 ## 7. Multi-Service Mode

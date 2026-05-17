@@ -95,6 +95,16 @@ func checkpointIsolationEnabled(c *platformv1alpha1.Preview) bool {
 	return *c.Spec.Database.IsolationEnabled
 }
 
+// isolationMode returns the selected isolation mechanism: "restore" (default,
+// pg_dump+psql restore) or "migration" (DROP SCHEMA + replay migration command).
+// Only meaningful when checkpointIsolationEnabled(c) is true.
+func isolationMode(c *platformv1alpha1.Preview) string {
+	if c.Spec.Database == nil || c.Spec.Database.IsolationMode == "" {
+		return "restore"
+	}
+	return c.Spec.Database.IsolationMode
+}
+
 func ensureTestSuiteStatus(c *platformv1alpha1.Preview) *platformv1alpha1.TestSuiteStatus {
 	if c.Status.Tests == nil {
 		c.Status.Tests = &platformv1alpha1.TestSuiteStatus{}

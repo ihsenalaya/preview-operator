@@ -319,6 +319,21 @@ spec:
                       database checkpoint between suites. Set to false to skip the saving and
                       restore steps (used for baseline experiments). Defaults to true.
                     type: boolean
+                  isolationMode:
+                    default: restore
+                    description: |-
+                      IsolationMode selects the inter-suite isolation mechanism when
+                      IsolationEnabled is true:
+                        - "restore"   : pg_dump + psql restore (default, current behavior,
+                                        measured ~14.6s overhead per cycle)
+                        - "migration" : DROP SCHEMA public CASCADE + re-run user migration
+                                        command (baseline for paper comparison, measured
+                                        ~37.6s overhead per cycle)
+                      Defaults to "restore" if unset. Used by RQ3 baseline experiments.
+                    enum:
+                    - restore
+                    - migration
+                    type: string
                   migration:
                     description: |-
                       Migration configures an optional one-shot Job that runs before the app is deployed.
