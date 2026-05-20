@@ -121,14 +121,6 @@ func kagentTestStrategistURL(c *platformv1alpha1.Preview) string {
 	return fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", name, ns)
 }
 
-func kagentFailureAnalystURL(c *platformv1alpha1.Preview) string {
-	ns := "kagent-system"
-	if c.Spec.Kagent != nil && c.Spec.Kagent.Namespace != "" {
-		ns = c.Spec.Kagent.Namespace
-	}
-	return fmt.Sprintf("http://failure-analyst-agent.%s.svc.cluster.local:8080", ns)
-}
-
 // triggerKagentDiffAnalysis calls the preview-diff-analyzer agent once the preview
 // reaches Running phase. Fetches a fresh copy of the preview to avoid ResourceVersion
 // conflicts from earlier status updates in the reconcile loop. Idempotent.
@@ -307,7 +299,11 @@ func (r *PreviewReconciler) triggerKagentAnalysis(ctx context.Context, c *platfo
 // callKagentAgent sends a message to the agent via A2A JSON-RPC and returns
 // the text of the agent's response.
 func (r *PreviewReconciler) callKagentAgent(ctx context.Context, c *platformv1alpha1.Preview, plan *platformv1alpha1.TestPlan) (string, error) {
-	agentURL := kagentFailureAnalystURL(c)
+	// Use the troubleshooter agent configured on the CR (spec.kagent.agentName,
+	// default preview-troubleshooter-agent). The previous kagentFailureAnalystURL
+	// hard-coded a "failure-analyst-agent" service that is not deployed, so every
+	// A2A call failed with a DNS error and kagent.phase never left Failed.
+	agentURL := kagentAgentURL(c)
 
 	payload := a2aMessage{
 		JSONRPC: "2.0",
