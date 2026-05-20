@@ -98,10 +98,15 @@ func aiSeedEnabled(c *platformv1alpha1.Preview) bool {
 	if !aiEnrichmentEnabled(c) {
 		return false
 	}
-	if c.Spec.AIEnrichment.Seed != nil && !c.Spec.AIEnrichment.Seed.Enabled {
-		return false
+	// An explicit seed configuration is authoritative: if seed.enabled is set,
+	// honour it directly. This prevents the changeContext heuristic below from
+	// silently skipping the AI seed (which leaves the database empty and breaks
+	// the regression/e2e suites that depend on seeded products).
+	if c.Spec.AIEnrichment.Seed != nil {
+		return c.Spec.AIEnrichment.Seed.Enabled
 	}
-	// If changeContext is present and seed data is not required, skip AI seed generation.
+	// No explicit seed config: fall back to the changeContext heuristic — skip
+	// AI seed generation only when the PR diff does not require seed data.
 	if cc := c.Spec.ChangeContext; cc != nil && !cc.DetectedImpacts.RequiresSeedData {
 		return false
 	}
