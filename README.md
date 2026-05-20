@@ -56,7 +56,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 
 ## Table of Contents
 
-0. [Release notes — 1.0.46](#release-notes--1046)
+0. [Release notes — 1.0.47](#release-notes--1047)
 1. [Feature Matrix](#1-feature-matrix)
 2. [General Architecture](#2-general-architecture)
    - [Namespace Security — NetworkPolicy & Pod Security Standards](#namespace-security--networkpolicy--pod-security-standards)
@@ -85,13 +85,13 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 
 ---
 
-## Release notes — 1.0.46
+## Release notes — 1.0.47
 
-Version 1.0.46 fixes two defects that broke the test pipeline on real
-(multi-PR, AKS) clusters. Both fixes are in this chart/image — no extra
-configuration is required.
+Versions 1.0.46–1.0.47 fix defects that broke the test pipeline on real
+(multi-PR, AKS) clusters. All fixes are in this chart/image. Note the
+**kagent 0.9.2 requirement** below.
 
-### Reliable e2e checkpoint restore (`preview-extension`)
+### Reliable e2e checkpoint restore (`preview-extension`) — 1.0.46
 
 **Problem.** The e2e suite calls `reset_db()` before every test, which hits
 the extension's `POST /api/previews/<pr>/checkpoints/<name>/restore`
@@ -113,7 +113,7 @@ collision entirely. Measured: restore returns in ~6s, no requeue loop.
 The extension ClusterRole now also grants `batch/jobs`
 (`get,list,watch,create,delete`) — see `config/extension/rbac.yaml`.
 
-### AI seed honours an explicit `seed.enabled` (`preview-operator`)
+### AI seed honours an explicit `seed.enabled` (`preview-operator`) — 1.0.46
 
 **Problem.** `aiSeedEnabled()` skipped the AI seed whenever
 `spec.changeContext` was present and `detectedImpacts.RequiresSeedData` was
@@ -129,13 +129,32 @@ seed configuration is present. Since the CRD defaults `seed.enabled` to
 `true`, the AI seed now runs for every enriched preview unless explicitly
 disabled.
 
+### kagent troubleshooter agent URL (`preview-operator`) — 1.0.47
+
+**Problem.** `callKagentAgent` used `kagentFailureAnalystURL`, which
+hard-codes a `failure-analyst-agent` service that is not deployed. Every A2A
+call failed with a DNS error, `status.kagent.phase` never left `Failed`, and
+the troubleshooter analysis never ran on a failed test suite.
+
+**Fix.** `callKagentAgent` now uses `kagentAgentURL`, honouring
+`spec.kagent.agentName` (default `preview-troubleshooter-agent`). The unused
+`kagentFailureAnalystURL` helper is removed.
+
+### Requires kagent 0.9.2
+
+The kagent agents (diff-analyzer, test-strategist, troubleshooter) must run
+on **kagent 0.9.2**. kagent 0.9.4 regressed A2A session handling: the session
+is created under `user_id=admin@kagent.dev` but the ADK runner looks it up
+under `user_id=A2A_USER_<ctx>`, so every agent run fails with
+`SessionNotFoundError`. Pin kagent to 0.9.2 — see Step 6c.
+
 ### Upgrade
 
 ```bash
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm upgrade preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
-  --set image.tag=1.0.46 --reuse-values
+  --set image.tag=1.0.47 --reuse-values
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
 
 # the extension is versioned with the operator — redeploy it too
@@ -527,10 +546,10 @@ Build the image locally and load it into Kind (no registry push needed for local
 ```bash
 # 1. Build
 cd preview-operator
-docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.43 .
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.47 .
 
 # 2. Load into Kind
-kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.43
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.47
 
 # 3. Apply CRD manually (Helm does not update CRDs on upgrade)
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
@@ -539,7 +558,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.43 \
+  --set image.tag=1.0.47 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -553,7 +572,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.43 \
+  --set image.tag=1.0.47 \
   --set webhook.enabled=false
 
 ```
@@ -591,13 +610,21 @@ The operator's contract test jobs call `http://microcks.microcks.svc.cluster.loc
 
 ### Step 6c — Install kagent
 
+> **Pin kagent to 0.9.2.** Do not omit `--version` — the default resolves to
+> 0.9.4, which regressed A2A session handling (`SessionNotFoundError` on
+> every agent run; see *Release notes — 1.0.47*). If 0.9.4 is already
+> installed, downgrading also requires resetting the kagent database — see
+> the idp-preview README, Step 4c.
+
 ```bash
-# CRDs first — required before main chart
+# CRDs first — required before main chart; pin 0.9.2
 helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
+  --version 0.9.2 \
   --namespace kagent-system \
   --create-namespace
 
 helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
+  --version 0.9.2 \
   --namespace kagent-system
 
 kubectl -n kagent-system rollout status deployment/kagent-controller --timeout=120s
@@ -2088,12 +2115,13 @@ The same applies to `test-strategist-agent.yaml` for changing suite selection ru
 ### Install kagent and the troubleshooter agent
 
 ```bash
-# 1. Install kagent CRDs + chart
+# 1. Install kagent CRDs + chart — pin 0.9.2 (0.9.4 breaks agents with
+#    SessionNotFoundError; see Release notes — 1.0.47)
 helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
-  --namespace kagent-system --create-namespace
+  --version 0.9.2 --namespace kagent-system --create-namespace
 
 helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
-  --namespace kagent-system
+  --version 0.9.2 --namespace kagent-system
 
 # 2. Configure Azure OpenAI ModelConfig
 kubectl patch modelconfig default-model-config -n kagent-system --type=merge -p '{
@@ -2676,7 +2704,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ihsenalaya/preview-operator
   pullPolicy: IfNotPresent
-  tag: ""                       # defaults to Chart.appVersion (1.0.43)
+  tag: ""                       # defaults to Chart.appVersion (1.0.47)
 
 # ── AI Enrichment ──────────────────────────────────────────────────────────────
 ai:
