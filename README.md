@@ -56,6 +56,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 
 ## Table of Contents
 
+0. [Release notes — 1.0.46](#release-notes--1046)
 1. [Feature Matrix](#1-feature-matrix)
 2. [General Architecture](#2-general-architecture)
    - [Namespace Security — NetworkPolicy & Pod Security Standards](#namespace-security--networkpolicy--pod-security-standards)
@@ -81,6 +82,67 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 22. [Development & Release](#22-development--release)
 23. [Debugging & Troubleshooting](#23-debugging--troubleshooting)
 24. [Security](#24-security)
+
+---
+
+## Release notes — 1.0.46
+
+Version 1.0.46 fixes two defects that broke the test pipeline on real
+(multi-PR, AKS) clusters. Both fixes are in this chart/image — no extra
+configuration is required.
+
+### Reliable e2e checkpoint restore (`preview-extension`)
+
+**Problem.** The e2e suite calls `reset_db()` before every test, which hits
+the extension's `POST /api/previews/<pr>/checkpoints/<name>/restore`
+endpoint. The extension used to patch `spec.database.checkpointRestore` and
+wait for the operator to clear it. The operator services that request with a
+**single, name-derived Job** (`checkpoint-restore-<name>`). When the e2e
+suite fires several `reset_db()` calls in quick succession, that one job is
+deleted and recreated under the same name — the recreate races the previous
+delete (`AlreadyExists`), or the operator reuses the still-terminating Job.
+The handshake stalls past the 60s client timeout, `reset_db()` fails, the
+e2e Job retries, and the operator requeues every 2s (the "infinite loop").
+
+**Fix.** `handleCheckpointRestore` now performs the restore itself: it
+creates a **uniquely-named Job** (`ext-restore-<checkpoint>-<timestamp>`)
+that truncates the public tables and replays `db-checkpoint-<name>`, waits
+for that specific job, and deletes it. A fresh name per call removes the
+collision entirely. Measured: restore returns in ~6s, no requeue loop.
+
+The extension ClusterRole now also grants `batch/jobs`
+(`get,list,watch,create,delete`) — see `config/extension/rbac.yaml`.
+
+### AI seed honours an explicit `seed.enabled` (`preview-operator`)
+
+**Problem.** `aiSeedEnabled()` skipped the AI seed whenever
+`spec.changeContext` was present and `detectedImpacts.RequiresSeedData` was
+false — e.g. for any PR without a schema migration. A skipped seed leaves
+the database empty, so the post-seed checkpoint is empty, and the regression
+and e2e suites run against zero rows (`product_detail`/`related` → 404,
+`catalog_page_loads` finds no grid).
+
+**Fix.** `aiSeedEnabled()` now treats an explicit `aiEnrichment.seed`
+configuration as authoritative: if `seed.enabled` is set it is honoured
+directly, and the `changeContext` heuristic only applies when no explicit
+seed configuration is present. Since the CRD defaults `seed.enabled` to
+`true`, the AI seed now runs for every enriched preview unless explicitly
+disabled.
+
+### Upgrade
+
+```bash
+kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
+helm upgrade preview-operator ./charts/preview-operator \
+  --namespace preview-operator-system \
+  --set image.tag=1.0.46 --reuse-values
+kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
+
+# the extension is versioned with the operator — redeploy it too
+kubectl apply -f config/extension/rbac.yaml
+kubectl apply -f config/extension/deployment.yaml
+kubectl -n preview-operator-system rollout status deployment/preview-extension --timeout=120s
+```
 
 ---
 
