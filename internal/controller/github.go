@@ -496,6 +496,15 @@ func buildTestResultsCommentBody(c *platformv1alpha1.Preview, plan *platformv1al
 			b.WriteString(fmt.Sprintf("> %s\n\n", plan.Spec.Rationale))
 		}
 		b.WriteString(fmt.Sprintf("Confiance : **%d%%**\n\n", plan.Spec.Confidence))
+		if len(plan.Spec.MustRun) > 0 {
+			b.WriteString("**Suites à exécuter :**\n\n")
+			b.WriteString("| Suite | Raison |\n")
+			b.WriteString("|-------|--------|\n")
+			for _, sel := range plan.Spec.MustRun {
+				b.WriteString(fmt.Sprintf("| ▶️ %s | %s |\n", sel.Suite, sel.Reason))
+			}
+			b.WriteString("\n")
+		}
 		if len(plan.Spec.CanSkip) > 0 {
 			b.WriteString("**Suites ignorées :**\n\n")
 			b.WriteString("| Suite | Raison du skip |\n")
