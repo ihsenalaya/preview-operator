@@ -541,6 +541,31 @@ kubectl port-forward -n observability svc/jaeger 16686:16686
 
 ### Step 6 — Install the Preview Operator
 
+#### Production / AKS — install from the published OCI chart
+
+The chart is published to GHCR (private package — authenticate with a PAT that
+has `read:packages`). CRDs are bundled in the chart and applied on first install.
+
+```bash
+helm registry login ghcr.io -u <github-user>   # PAT with read:packages
+
+helm install preview-operator oci://ghcr.io/ihsenalaya/charts/preview-operator \
+  --version 1.0.47 \
+  --namespace preview-operator-system \
+  --create-namespace \
+  --set image.tag=1.0.47 \
+  --set previewDomain=preview.ihsenalaya.xyz \
+  --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
+
+kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
+```
+
+> For a fully GitOps-managed install (Argo CD App-of-Apps covering the operator
+> and every dependency), see the `gitops/` directory in the
+> [idp-preview](https://github.com/ihsenalaya/idp-preview) repository.
+
+#### Local development — Kind
+
 Build the image locally and load it into Kind (no registry push needed for local dev):
 
 ```bash
