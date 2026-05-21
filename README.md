@@ -56,7 +56,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 
 ## Table of Contents
 
-0. [Release notes — 1.0.47](#release-notes--1047)
+0. [Release notes — 1.0.48](#release-notes--1048)
 1. [Feature Matrix](#1-feature-matrix)
 2. [General Architecture](#2-general-architecture)
    - [Namespace Security — NetworkPolicy & Pod Security Standards](#namespace-security--networkpolicy--pod-security-standards)
@@ -85,11 +85,25 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 
 ---
 
-## Release notes — 1.0.47
+## Release notes — 1.0.48
 
-Versions 1.0.46–1.0.47 fix defects that broke the test pipeline on real
-(multi-PR, AKS) clusters. All fixes are in this chart/image. Note the
+Version 1.0.48 makes the kagent test-selection decision visible in the PR
+comment. Versions 1.0.46–1.0.47 fix defects that broke the test pipeline on
+real (multi-PR, AKS) clusters. All fixes are in this chart/image. Note the
 **kagent 0.9.2 requirement** below.
+
+### PR comment shows the test suites kagent chose to run (`preview-operator`) — 1.0.48
+
+**Problem.** The "🧠 Stratégie kagent" section of the test-results comment
+only rendered `canSkip` (skipped suites). When the agent decides that every
+suite must run — so `canSkip` is empty — the comment showed a rationale and a
+confidence score but no list of suites, making the agent's decision look
+absent.
+
+**Fix.** The comment builder now also renders a **"Suites à exécuter"** table
+from `plan.Spec.MustRun`, with the per-suite reason, before the skipped-suites
+table. The agent's test-selection decision is always visible, whether it runs
+or skips suites.
 
 ### Reliable e2e checkpoint restore (`preview-extension`) — 1.0.46
 
@@ -154,7 +168,7 @@ under `user_id=A2A_USER_<ctx>`, so every agent run fails with
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm upgrade preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
-  --set image.tag=1.0.47 --reuse-values
+  --set image.tag=1.0.48 --reuse-values
 kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
 
 # the extension is versioned with the operator — redeploy it too
@@ -550,10 +564,10 @@ has `read:packages`). CRDs are bundled in the chart and applied on first install
 helm registry login ghcr.io -u <github-user>   # PAT with read:packages
 
 helm install preview-operator oci://ghcr.io/ihsenalaya/charts/preview-operator \
-  --version 1.0.47 \
+  --version 1.0.48 \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.47 \
+  --set image.tag=1.0.48 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -571,10 +585,10 @@ Build the image locally and load it into Kind (no registry push needed for local
 ```bash
 # 1. Build
 cd preview-operator
-docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.47 .
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.48 .
 
 # 2. Load into Kind
-kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.47
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.48
 
 # 3. Apply CRD manually (Helm does not update CRDs on upgrade)
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
@@ -583,7 +597,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.47 \
+  --set image.tag=1.0.48 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -597,7 +611,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.47 \
+  --set image.tag=1.0.48 \
   --set webhook.enabled=false
 
 ```
