@@ -476,6 +476,10 @@ func (in *FailureReportStatus) DeepCopyInto(out *FailureReportStatus) {
 		in, out := &in.FailureDetectedAt, &out.FailureDetectedAt
 		*out = (*in).DeepCopy()
 	}
+	if in.DiagnosisAvailableAt != nil {
+		in, out := &in.DiagnosisAvailableAt, &out.DiagnosisAvailableAt
+		*out = (*in).DeepCopy()
+	}
 	if in.EvidenceItems != nil {
 		in, out := &in.EvidenceItems, &out.EvidenceItems
 		*out = make([]FailureEvidenceItem, len(*in))

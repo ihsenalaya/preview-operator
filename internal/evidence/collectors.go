@@ -3,6 +3,7 @@ package evidence
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
@@ -58,6 +59,19 @@ func AssembleBundle(c *platformv1alpha1.Preview, collectors ...Collector) *Bundl
 			b.Add(item)
 		}
 	}
+	return b
+}
+
+// AssembleBundleForLevel runs the collectors enabled by an evidence level
+// (C1..C5), records the level and the assembly duration on the bundle, and
+// returns it. This is the entry point used by the operator: the level is the
+// EVIDENCE_LEVEL knob, and CollectionDuration is the in-process overhead
+// measured by RQ5.
+func AssembleBundleForLevel(c *platformv1alpha1.Preview, level Level) *Bundle {
+	start := time.Now()
+	b := AssembleBundle(c, CollectorsForLevel(level)...)
+	b.Level = level
+	b.CollectionDuration = time.Since(start)
 	return b
 }
 

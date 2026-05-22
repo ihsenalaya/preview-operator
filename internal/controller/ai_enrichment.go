@@ -305,7 +305,7 @@ func (r *PreviewReconciler) generateAndStoreAIContent(ctx context.Context, c *pl
 		}
 		configMap.Labels = map[string]string{
 			labelManagedBy:                "preview-operator",
-			labelPreviewName:             c.Name,
+			labelPreviewName:              c.Name,
 			"app.kubernetes.io/component": "ai-enrichment",
 		}
 		configMap.Data = map[string]string{
@@ -368,7 +368,7 @@ func (r *PreviewReconciler) aiSchemaDumpJob(c *platformv1alpha1.Preview, nsName 
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "ai-enrichment",
 				"platform.company.io/task":    "schema-dump",
 			},
@@ -380,7 +380,7 @@ func (r *PreviewReconciler) aiSchemaDumpJob(c *platformv1alpha1.Preview, nsName 
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": "schema-dump",
 					},
 				},
@@ -675,7 +675,7 @@ func (r *PreviewReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Preview, ns
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "ai-enrichment",
 				"platform.company.io/task":    jobName,
 			},
@@ -687,7 +687,7 @@ func (r *PreviewReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Preview, ns
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},

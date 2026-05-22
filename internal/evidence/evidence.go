@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -50,8 +51,18 @@ type Bundle struct {
 	FailedTest        string
 	FailureDetectedAt metav1.Time
 
-	items     map[string]platformv1alpha1.FailureEvidenceItem
-	diagnosis *platformv1alpha1.FailureDiagnosis
+	// Level is the evidence configuration (C1..C5) this bundle was assembled for.
+	// It is recorded on the FailureReport so each report self-documents which
+	// comparison configuration of the evaluation produced it. An empty Level
+	// means the full default capability (equivalent to C5).
+	Level Level
+	// CollectionDuration is the wall-clock time spent assembling this bundle —
+	// the in-process collection overhead measured by RQ5.
+	CollectionDuration time.Duration
+
+	items       map[string]platformv1alpha1.FailureEvidenceItem
+	diagnosis   *platformv1alpha1.FailureDiagnosis
+	diagnosisAt metav1.Time
 }
 
 // NewBundle creates an empty bundle, seeding its identity fields from a Preview.
@@ -111,6 +122,11 @@ func (b *Bundle) Has(id string) bool {
 // Diagnosis returns the diagnosis attached to the bundle, or nil.
 func (b *Bundle) Diagnosis() *platformv1alpha1.FailureDiagnosis { return b.diagnosis }
 
+// DiagnosisAt returns the time a diagnosis was attached to the bundle. It is the
+// zero value while no diagnosis is set. With FailureDetectedAt it gives the
+// time-to-diagnosis measured by RQ3.
+func (b *Bundle) DiagnosisAt() metav1.Time { return b.diagnosisAt }
+
 // SetDiagnosis attaches a diagnosis to the bundle after enforcing the grounding
 // constraint: every entry in EvidenceRefs must reference the ID of an evidence
 // item that exists in the bundle. If any reference is unknown, the diagnosis is
@@ -119,6 +135,7 @@ func (b *Bundle) Diagnosis() *platformv1alpha1.FailureDiagnosis { return b.diagn
 func (b *Bundle) SetDiagnosis(d *platformv1alpha1.FailureDiagnosis) error {
 	if d == nil {
 		b.diagnosis = nil
+		b.diagnosisAt = metav1.Time{}
 		return nil
 	}
 	var unknown []string
@@ -132,6 +149,7 @@ func (b *Bundle) SetDiagnosis(d *platformv1alpha1.FailureDiagnosis) error {
 			len(unknown), strings.Join(unknown, ", "))
 	}
 	b.diagnosis = d
+	b.diagnosisAt = metav1.Now()
 	return nil
 }
 

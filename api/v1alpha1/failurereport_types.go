@@ -232,6 +232,33 @@ type FailureReportStatus struct {
 	// +optional
 	FailureDetectedAt *metav1.Time `json:"failureDetectedAt,omitempty"`
 
+	// DiagnosisAvailableAt is when a diagnosis was first attached to this report.
+	// With FailureDetectedAt it yields the time-to-diagnosis measured by RQ3.
+	// +optional
+	DiagnosisAvailableAt *metav1.Time `json:"diagnosisAvailableAt,omitempty"`
+
+	// TimeToDiagnosisMillis is DiagnosisAvailableAt - FailureDetectedAt in
+	// milliseconds. It is zero until a diagnosis is available (RQ3).
+	// +optional
+	TimeToDiagnosisMillis int64 `json:"timeToDiagnosisMillis,omitempty"`
+
+	// EvidenceLevel records the evidence configuration (C1..C5) used to produce
+	// this report, so each report self-documents which comparison configuration
+	// of the evaluation it belongs to. Empty means the full default capability.
+	// +optional
+	EvidenceLevel string `json:"evidenceLevel,omitempty"`
+
+	// CollectionDurationMillis is the wall-clock time the operator spent
+	// assembling the evidence bundle — the in-process collection overhead
+	// measured by RQ5.
+	// +optional
+	CollectionDurationMillis int64 `json:"collectionDurationMillis,omitempty"`
+
+	// BundleSizeBytes is the JSON-serialised size of the evidence items — the
+	// storage footprint measured by RQ5.
+	// +optional
+	BundleSizeBytes int64 `json:"bundleSizeBytes,omitempty"`
+
 	// EvidenceSummary is a short human-readable summary of the captured evidence.
 	// +optional
 	EvidenceSummary string `json:"evidenceSummary,omitempty"`
@@ -271,6 +298,7 @@ type FailureReportStatus struct {
 // +kubebuilder:printcolumn:name="Preview",type=string,JSONPath=`.spec.previewRef.name`
 // +kubebuilder:printcolumn:name="PR",type=integer,JSONPath=`.spec.prNumber`
 // +kubebuilder:printcolumn:name="Suite",type=string,JSONPath=`.spec.failedSuite`
+// +kubebuilder:printcolumn:name="Level",type=string,JSONPath=`.status.evidenceLevel`
 // +kubebuilder:printcolumn:name="Component",type=string,JSONPath=`.status.diagnosis.component`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 

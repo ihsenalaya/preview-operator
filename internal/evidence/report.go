@@ -1,6 +1,8 @@
 package evidence
 
 import (
+	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -35,7 +37,42 @@ func BuildFailureReport(b *Bundle) *platformv1alpha1.FailureReport {
 	items := b.Items()
 
 	detectedAt := b.FailureDetectedAt
-	report := &platformv1alpha1.FailureReport{
+	status := platformv1alpha1.FailureReportStatus{
+		Phase:             platformv1alpha1.FailureReportPhaseCaptured,
+		FailureDetectedAt: &detectedAt,
+		EvidenceSummary:   b.Summary(),
+		EvidenceItems:     items,
+		Diagnosis:         b.diagnosis,
+		EvidenceLevel:     string(b.Level),
+		BundleSizeBytes:   bundleSizeBytes(items),
+	}
+	if b.CollectionDuration > 0 {
+		status.CollectionDurationMillis = b.CollectionDuration.Milliseconds()
+	}
+
+	// The provenance graph is materialised only at C5. An unset Level means the
+	// full default capability, so the graph is built there too — this keeps the
+	// behaviour unchanged for callers that do not select a level.
+	if b.Level == "" || b.Level.IncludesProvenanceGraph() {
+		status.ProvenanceGraph = BuildProvenanceGraph(b)
+	}
+
+	// Diagnosis timing: DiagnosisAvailableAt with FailureDetectedAt yields the
+	// time-to-diagnosis measured by RQ3.
+	if b.diagnosis != nil {
+		availableAt := b.diagnosisAt
+		if availableAt.IsZero() {
+			availableAt = metav1.Now()
+		}
+		status.DiagnosisAvailableAt = &availableAt
+		if !detectedAt.IsZero() {
+			if d := availableAt.Sub(detectedAt.Time); d > 0 {
+				status.TimeToDiagnosisMillis = d.Milliseconds()
+			}
+		}
+	}
+
+	return &platformv1alpha1.FailureReport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: FailureReportName(b.PreviewName),
 			Labels: map[string]string{
@@ -54,14 +91,17 @@ func BuildFailureReport(b *Bundle) *platformv1alpha1.FailureReport {
 			FailedSuite: b.FailedSuite,
 			FailedTest:  b.FailedTest,
 		},
-		Status: platformv1alpha1.FailureReportStatus{
-			Phase:             platformv1alpha1.FailureReportPhaseCaptured,
-			FailureDetectedAt: &detectedAt,
-			EvidenceSummary:   b.Summary(),
-			EvidenceItems:     items,
-			Diagnosis:         b.diagnosis,
-			ProvenanceGraph:   BuildProvenanceGraph(b),
-		},
+		Status: status,
 	}
-	return report
+}
+
+// bundleSizeBytes returns the JSON-serialised size of the evidence items — the
+// storage footprint measured by RQ5. A marshalling error (which the typed items
+// cannot realistically produce) yields 0 rather than failing report generation.
+func bundleSizeBytes(items []platformv1alpha1.FailureEvidenceItem) int64 {
+	data, err := json.Marshal(items)
+	if err != nil {
+		return 0
+	}
+	return int64(len(data))
 }

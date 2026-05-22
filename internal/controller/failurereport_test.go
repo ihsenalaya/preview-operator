@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/evidence"
 )
 
 // failedPreviewForReport returns a Preview that has failed on a migration, with
@@ -48,7 +49,7 @@ func TestEnsureFailureReportCreatesReport(t *testing.T) {
 		WithStatusSubresource(&platformv1alpha1.FailureReport{}).
 		Build()
 
-	fr, err := EnsureFailureReport(ctx, cl, failedPreviewForReport())
+	fr, err := EnsureFailureReport(ctx, cl, failedPreviewForReport(), evidence.DefaultLevel)
 	if err != nil {
 		t.Fatalf("EnsureFailureReport returned error: %v", err)
 	}
@@ -60,6 +61,9 @@ func TestEnsureFailureReportCreatesReport(t *testing.T) {
 	}
 	if len(fr.Status.EvidenceItems) == 0 {
 		t.Error("FailureReport captured no evidence items")
+	}
+	if fr.Status.EvidenceLevel != string(evidence.DefaultLevel) {
+		t.Errorf("FailureReport evidence level = %q, want %q", fr.Status.EvidenceLevel, evidence.DefaultLevel)
 	}
 
 	stored := &platformv1alpha1.FailureReport{}
@@ -83,7 +87,7 @@ func TestEnsureFailureReportIsIdempotent(t *testing.T) {
 
 	// Three captures of the same failed Preview must not create duplicate reports.
 	for i := 0; i < 3; i++ {
-		if _, err := EnsureFailureReport(ctx, cl, preview); err != nil {
+		if _, err := EnsureFailureReport(ctx, cl, preview, evidence.DefaultLevel); err != nil {
 			t.Fatalf("EnsureFailureReport call %d returned error: %v", i+1, err)
 		}
 	}

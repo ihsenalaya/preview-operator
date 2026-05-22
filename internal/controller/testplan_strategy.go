@@ -621,4 +621,3 @@ func (r *PreviewReconciler) createTestStrategistTriggerJob(
 	}
 	logger.Info("created test-strategist trigger Job", "job", job.Name)
 }
-

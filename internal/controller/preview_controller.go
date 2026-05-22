@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/evidence"
 )
 
 const (
@@ -57,6 +58,15 @@ type PreviewReconciler struct {
 	KubeClient        kubernetes.Interface
 	PreviewDomain     string // base domain, e.g. "preview.ihsenalaya.xyz"
 	IstioEnabled      bool   // auto-detected at startup
+
+	// EvidenceCollection enables operator-captured failure provenance. When false
+	// (EVIDENCE_COLLECTION=disabled) the operator runs without persisting
+	// FailureReports — the overhead baseline measured by RQ5.
+	EvidenceCollection bool
+	// EvidenceLevel selects the evidence configuration C1..C5 (EVIDENCE_LEVEL),
+	// the comparison configurations of the controlled evaluation (RQ2). Empty
+	// means the full default capability (evidence.DefaultLevel).
+	EvidenceLevel evidence.Level
 }
 
 // +kubebuilder:rbac:groups=platform.company.io,resources=previews,verbs=get;list;watch;create;update;patch;delete

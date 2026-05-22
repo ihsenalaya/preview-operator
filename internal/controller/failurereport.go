@@ -19,7 +19,8 @@ import (
 // +kubebuilder:rbac:groups=platform.company.io,resources=failurereports/status,verbs=get;update;patch
 
 // EnsureFailureReport assembles a failure evidence bundle from a failed Preview
-// and persists it as a cluster-scoped FailureReport.
+// at the given evidence level (C1..C5) and persists it as a cluster-scoped
+// FailureReport.
 //
 // It is idempotent: the report name is deterministic (evidence.FailureReportName),
 // so repeated reconciliation create-or-updates the same object — no duplicate
@@ -32,12 +33,12 @@ import (
 // EnsureFailureReport is the integration point for evidence preservation. It is
 // invoked from the operator's failure paths via captureFailureReport — see
 // setFailedStatus (infrastructure failures) and the test-suite failure path.
-func EnsureFailureReport(ctx context.Context, c client.Client, preview *platformv1alpha1.Preview, collectors ...evidence.Collector) (*platformv1alpha1.FailureReport, error) {
+func EnsureFailureReport(ctx context.Context, c client.Client, preview *platformv1alpha1.Preview, level evidence.Level) (*platformv1alpha1.FailureReport, error) {
 	if preview == nil {
 		return nil, nil
 	}
 
-	bundle := evidence.AssembleBundle(preview, collectors...)
+	bundle := evidence.AssembleBundleForLevel(preview, level)
 	desired := evidence.BuildFailureReport(bundle)
 	if desired == nil {
 		return nil, nil
@@ -80,11 +81,23 @@ func EnsureFailureReport(ctx context.Context, c client.Client, preview *platform
 // best-effort: a capture error is logged but never fails reconciliation, so
 // evidence collection can never break the operator's main loop. The FailureReport
 // is cluster-scoped, so it survives the eventual teardown of the preview namespace.
+//
+// When evidence collection is disabled (EVIDENCE_COLLECTION=disabled) this is a
+// no-op: that configuration is the overhead baseline measured by RQ5. The
+// evidence level (EVIDENCE_LEVEL, C1..C5) selects how much evidence is captured.
 func (r *PreviewReconciler) captureFailureReport(ctx context.Context, c *platformv1alpha1.Preview) {
 	if c == nil {
 		return
 	}
-	if _, err := EnsureFailureReport(ctx, r.Client, c); err != nil {
+	if !r.EvidenceCollection {
+		log.FromContext(ctx).V(1).Info("evidence collection disabled; skipping FailureReport", "preview", c.Name)
+		return
+	}
+	level := r.EvidenceLevel
+	if level == "" {
+		level = evidence.DefaultLevel
+	}
+	if _, err := EnsureFailureReport(ctx, r.Client, c, level); err != nil {
 		log.FromContext(ctx).Error(err, "failed to persist FailureReport", "preview", c.Name)
 	}
 }
