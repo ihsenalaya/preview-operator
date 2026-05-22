@@ -56,9 +56,9 @@ readonly SCENARIOS_FILE="${SCRIPT_DIR}/scenarios.yaml"
 readonly RESULTS_TEMPLATE="${SCRIPT_DIR}/results-template.csv"
 readonly INJECTOR="${SCRIPT_DIR}/injectors/inject-fault.sh"
 readonly COLLECTOR="${SCRIPT_DIR}/collect-results.sh"
-# Manifest filter that enables the database migration Job (see the script's
-# own header). The generator never emits spec.database.migration.
-readonly MIGRATION_FILTER="${SCRIPT_DIR}/injectors/enable-db-migration.py"
+# Manifest filter that makes a generated manifest experiment-ready: enables the
+# database migration Job and the AI-enrichment seed (see the script's header).
+readonly MANIFEST_FILTER="${SCRIPT_DIR}/injectors/prepare-experiment-manifest.py"
 # Previews created by this script carry this label; cleanup only ever touches it.
 readonly EXPERIMENT_LABEL="failure-provenance.experiment/owned=true"
 
@@ -231,7 +231,7 @@ cluster_run() {
     else
       plan "# non-code fault: reuse baseline image ${BASELINE_IMAGE}"
     fi
-    plan "(cd ${checkout} && python3 scripts/generate_preview_manifest.py --pr-number ${pr_number} ...) | python3 ${MIGRATION_FILTER} | kubectl apply -f -"
+    plan "(cd ${checkout} && python3 scripts/generate_preview_manifest.py --pr-number ${pr_number} ...) | python3 ${MANIFEST_FILTER} | kubectl apply -f -"
     plan "kubectl label preview ${preview} ${EXPERIMENT_LABEL}"
     [[ "${scenario}" == "F7" ]] && \
       plan "${INJECTOR} --scenario F7 --namespace <preview-ns> --service backend --apply"
@@ -278,7 +278,7 @@ cluster_run() {
     --base-sha "${base_sha}" --head-sha "${head_sha}" \
     --repo ihsenalaya/idp-preview --repo-owner ihsenalaya --repo-name idp-preview \
     --deployment-id "${pr_number}" ) \
-    | python3 "${MIGRATION_FILTER}" \
+    | python3 "${MANIFEST_FILTER}" \
     | kubectl apply -f - >/dev/null
   kubectl label preview "${preview}" "${EXPERIMENT_LABEL}" --overwrite >/dev/null
 
