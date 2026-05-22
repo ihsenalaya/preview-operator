@@ -6,7 +6,7 @@ active). Each commit on `article/failure-provenance` is a checkpoint.
 
 - **Branch:** `article/failure-provenance` (pushed to GitHub)
 - **Base commit (Phases 1–4):** `8cc635a`
-- **Last updated:** 2026-05-22 17:55 UTC
+- **Last updated:** 2026-05-22 19:10 UTC
 - **Currently working on:** Lot 6. Baseline run 2 exposed a 7th defect (AI
   enrichment was GitHub-bound and hard-failed on synthetic PRs → no seed →
   noisy baseline). Fixed (`d91607d`); operator rebuilding as `:fp-aifix2`.

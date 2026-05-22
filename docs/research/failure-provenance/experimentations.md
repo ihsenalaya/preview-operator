@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 18:40 UTC
+- **Last updated:** 2026-05-22 19:10 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -87,11 +87,14 @@ Operator startup line confirms instrumentation each redeploy:
 | ~18:1x | **Baseline run 4** (`pr-9600`, fresh number) | ~9 min | **Core-clean**: smoke ✓, regression ✓ 9/0. Still failing: contract (microcks 500), e2e (5 timeouts), ai-tests job. AI **seed succeeded** ✓ |
 | ~18:2x | **F1 smoke test 3** | ~8 min | F1 migration fault fires, but `FailureReport` premature — captured on a transient conflict while migration still running (defect #8) |
 | ~18:4x | Conflict-guard fix (`a274294`); operator build `:fp-conflictfix` | ~3.5 min | — |
-| — | **F1 smoke test 4** — pending redeploy | — | (pending) |
+| ~18:0x | **F1 smoke test 4** (`:fp-conflictfix`) | ~8 min | F1 captures a proper `FailureReport`: 7 items incl. `JobLog`; LLM diagnoses correctly. `JobLog` slice wrong (defect #9) |
+| ~18:1x | **Matrix attempt 2** launched | stopped at run ~2 | Head-biased log capture would degrade every run — stopped to fix defect #9 |
+| ~19:0x | Log-capture + matcher fix (`7ab0020`); operator build `:fp-logfix` | ~3.5 min | — |
+| — | **Matrix attempt 3** — pending redeploy | — | (pending) |
 
 ---
 
-## 4. Defects found (the matrix exposed 8)
+## 4. Defects found (the matrix exposed 9)
 
 Each was invisible to `go build` / `inject-fault.sh --list` and surfaced only by
 running the harness end-to-end on the cluster.
@@ -106,6 +109,7 @@ running the harness end-to-end on the cluster.
 | 6 | AI client no retry | AI enrichment fails under load | Operator `internal/ai/client.go` had no 429 retry | Backoff + `Retry-After` on the operator AI client | `a1206dd` |
 | 7 | AI enrichment GitHub-bound | `AIEnrichmentReady=False — GitHub diff fetch error 404`; empty catalogue → baseline noise | Enrichment fetched the PR diff from GitHub; synthetic experiment PRs do not exist there, and the 404 hard-failed enrichment. AI seed was also gated off (`aiSeedEnabled` heuristic). | Use the embedded `changeContext.diffPatch`; GitHub fetch non-fatal; manifest filter enables `aiEnrichment.seed` | `d91607d` |
 | 8 | Premature capture on conflict | F1 `FailureReport` sparse (4 items, no `JobLog`/`TestResult`); diagnosis "insufficient evidence" | The `reconcileDatabase` caller marked the Preview Failed on any error, including a transient 409 conflict ("Operation cannot be fulfilled"), capturing a `FailureReport` while the migration Job was still `JobRunning`. The deployment/service/exposure callers already guarded `IsConflict`; the database one did not. | Conflict → requeue, not fail. `wait_for_report` waits for `phase=Captured`. | `a274294` |
+| 9 | Head-biased log capture | F1 `JobLog` was 314 B — the *middle* of a Python traceback; rule diagnoser "insufficient evidence" | `selectSignificantLines` filled its 6-line budget from the TOP of the log and returned early, dropping the conclusive error line (`psycopg2 ... syntax error`) at the end. Also `componentMatch` concatenated tokens, missing "database migration" vs "migration-job". | Keep the LAST `limit` significant lines; token-aware `componentMatch`. | `7ab0020` |
 
 **Process root cause:** Lots 2 & 5 were marked "done" without an end-to-end
 cluster run. Strong candidate for the article's *Lessons Learned*.
