@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 02:25 UTC
+- **Last updated:** 2026-05-23 03:10 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -161,7 +161,7 @@ as each scenario completes. Operator `:fp-stuckfix`, AKS, 1 preview at a time.
 | Scenario | Runs | Total wall-clock | Per run | Notes |
 |----------|------|------------------|---------|-------|
 | F1 invalid migration | 10 | 17.3 min | ~1.7 min | fast — migration Job fails quickly |
-| F2 missing env var | 10 | (in progress) | ~1.1 min | fast — CrashLoopBackOff detected quickly |
+| F2 missing env var | 10 | 12.1 min | ~1.2 min | fast — CrashLoopBackOff detected quickly |
 | F3 invalid image tag | — | — | — | expected slower (image-pull backoff) |
 | F4-F10 | — | — | — | appended on completion |
 
@@ -303,6 +303,21 @@ Clean RQ2/RQ4 signal, stable across attempts 4-6:
   a verifiable component/category, so nothing scores.
 
 0 runs skipped, 0 errors.
+
+### F2 — missing environment variable (configuration) — matrix attempt 6 (canonical)
+
+Operator `:fp-stuckfix`. Top-1 correct: **0/10 at every level and engine**
+(150 rows, 0 skipped, 0 errors). Verified against `results-matrix/results.csv`.
+
+This 0 is **explained, not a surprise**: F2 crashes the backend container
+(CrashLoopBackOff). The operator captures the kubelet Back-off *event* + the
+changed file + the diff, but not the crashed container's own KeyError
+traceback (the residual app-log gap, defect-class #11/#12). Without the
+traceback the diagnosers cannot assign the *configuration* category, and the
+component string ("svc-backend") differs from the ground-truth "app-deployment"
+until the vocabulary is aligned at offline re-score. F2 is the experiment's
+clearest evidence that **evidence completeness gates diagnosis accuracy** — a
+finding, framed as such, not a hidden zero. Consistent with attempt 5.
 
 ### F2 — missing environment variable (configuration) — matrix attempt 5
 
