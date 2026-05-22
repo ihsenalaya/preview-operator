@@ -7,11 +7,12 @@ active). Each commit on `article/failure-provenance` is a checkpoint.
 - **Branch:** `article/failure-provenance` (pushed to GitHub)
 - **Base commit (Phases 1–4):** `8cc635a`
 - **Last updated:** 2026-05-22 19:10 UTC
-- **Currently working on:** Lot 6. Baseline run 2 exposed a 7th defect (AI
-  enrichment was GitHub-bound and hard-failed on synthetic PRs → no seed →
-  noisy baseline). Fixed (`d91607d`); operator rebuilding as `:fp-aifix2`.
-  Next: redeploy, baseline run 3. Full defect log in `experimentations.md`.
-  Running autonomously.
+- **Currently working on:** Lot 6. **9 defects** found and fixed end-to-end
+  (full detail + run log in `experimentations.md`). Core pipeline validated:
+  F1 smoke test 4 captured a proper `FailureReport` (JobLog, correct LLM
+  diagnosis). Operator rebuilding as `:fp-logfix` with the last fix (#9,
+  head-biased log capture). Next: redeploy → launch the 10×10 matrix →
+  monitor → aggregate. Running autonomously.
 
 ---
 
