@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 20:05 UTC
+- **Last updated:** 2026-05-22 20:25 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -95,7 +95,7 @@ Operator startup line confirms instrumentation each redeploy:
 
 ---
 
-## 4. Defects found (the matrix exposed 9)
+## 4. Defects found (the matrix exposed 10)
 
 Each was invisible to `go build` / `inject-fault.sh --list` and surfaced only by
 running the harness end-to-end on the cluster.
@@ -111,6 +111,7 @@ running the harness end-to-end on the cluster.
 | 7 | AI enrichment GitHub-bound | `AIEnrichmentReady=False — GitHub diff fetch error 404`; empty catalogue → baseline noise | Enrichment fetched the PR diff from GitHub; synthetic experiment PRs do not exist there, and the 404 hard-failed enrichment. AI seed was also gated off (`aiSeedEnabled` heuristic). | Use the embedded `changeContext.diffPatch`; GitHub fetch non-fatal; manifest filter enables `aiEnrichment.seed` | `d91607d` |
 | 8 | Premature capture on conflict | F1 `FailureReport` sparse (4 items, no `JobLog`/`TestResult`); diagnosis "insufficient evidence" | The `reconcileDatabase` caller marked the Preview Failed on any error, including a transient 409 conflict ("Operation cannot be fulfilled"), capturing a `FailureReport` while the migration Job was still `JobRunning`. The deployment/service/exposure callers already guarded `IsConflict`; the database one did not. | Conflict → requeue, not fail. `wait_for_report` waits for `phase=Captured`. | `a274294` |
 | 9 | Head-biased log capture | F1 `JobLog` was 314 B — the *middle* of a Python traceback; rule diagnoser "insufficient evidence" | `selectSignificantLines` filled its 6-line budget from the TOP of the log and returned early, dropping the conclusive error line (`psycopg2 ... syntax error`) at the end. Also `componentMatch` concatenated tokens, missing "database migration" vs "migration-job". | Keep the LAST `limit` significant lines; token-aware `componentMatch`. | `7ab0020` |
+| 10 | Rule diagnoser over-matches | F2 (missing env var) misdiagnosed as `migration-job / database` | `ruleInvalidMigration` keys off the keyword "alembic", which appears in **every** migration log — including a *successful* one (`INFO [alembic.runtime.migration]`). It fires regardless of whether the migration failed, and being first in the ordered rules it shadows the correct rule. | OFFLINE fix pending in `internal/diagnosis/rules.go`: require an error-specific keyword, not bare "alembic". Re-scorable from report.json — no cluster re-run. | (pending) |
 
 **Process root cause:** Lots 2 & 5 were marked "done" without an end-to-end
 cluster run. Strong candidate for the article's *Lessons Learned*.
@@ -201,6 +202,8 @@ baseline noise and must be reported with that caveat (or re-scored once those
 subsystems are fixed). Spending the remaining time budget on microcks/checkpoint
 debugging risks ending with no matrix data at all; running now produces a
 re-scorable dataset.
+
+Note (F2, run 1): evidence is captured correctly — migration succeeded, backend CrashLoopBackOff event present — but the rule diagnoser (defect #10) and the component vocabulary need offline fixes before the final re-score. The crashing app pod's own log is not always in the bundle (CrashLoopBackOff pods); the K8s event carries the signal. To assess per-scenario.
 
 → **For the article's Threats to Validity:** contract/e2e baseline noise;
 F4/F5/F10 confounded; microcks + e2e-checkpoint subsystems unverified.
