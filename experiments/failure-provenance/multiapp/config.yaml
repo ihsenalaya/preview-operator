@@ -1,0 +1,34 @@
+# Multi-app failure-provenance harness configuration.
+#
+# All subject images are imported into the cluster-attached ACR
+# (testagentdevops) so the AKS cluster pulls them with no imagePullSecret —
+# see `az acr import` step in PROGRESS.md / multi-app-plan.md. The originals
+# live in ghcr.io/ihsenalaya (private) from the preview-experiments repo.
+
+subjects:
+  probe_image: testagentdevops.azurecr.io/harness-probe:cached
+  enabled:
+    - s1-flask-catalog
+    - s2-listmonk
+    - s3-healthchecks
+    - s4-umami
+    - s5-petclinic
+  images:
+    s1-flask-catalog: testagentdevops.azurecr.io/idp-preview:exp-20260514-e2efix-2089
+    s2-listmonk:       testagentdevops.azurecr.io/s2-listmonk-adapter:v2.5.1-fix2
+    s3-healthchecks:   testagentdevops.azurecr.io/s3-healthchecks-adapter:v3.6-fix
+    s4-umami:          testagentdevops.azurecr.io/s4-umami-adapter:v2.15.1-fix2
+    s5-petclinic:      testagentdevops.azurecr.io/s5-petclinic-adapter:v3.4.0-fix7
+
+registry: testagentdevops          # ACR for fault-image builds (code faults)
+ai_api_url: https://preview-openai-idp.openai.azure.com/openai/deployments/gpt-4o-mini
+
+# Fault scope per subject (see multi-app-plan.md §3b).
+# S1 is built from source → full F1-F10. S2-S5 wrap pre-built upstream
+# images → only the manifest/infra-injectable subset.
+faults:
+  s1-flask-catalog: [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  s2-listmonk:       [F1, F2, F3, F6, F7]
+  s3-healthchecks:   [F1, F2, F3, F6, F7]
+  s4-umami:          [F1, F2, F3, F6, F7]
+  s5-petclinic:      [F1, F2, F3, F6, F7]
