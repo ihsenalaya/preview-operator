@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 17:55 UTC
+- **Last updated:** 2026-05-22 18:20 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -82,8 +82,10 @@ Operator startup line confirms instrumentation each redeploy:
 | ~17:06 | Operator AI-client retry fix (`a1206dd`); operator build `ca9` | 3 m 22 s | — |
 | 17:10:14 | Operator redeployed `:fp-aifix` | rollout ~30 s | Healthy |
 | ~17:12 | **Baseline run 2** (`pr-9500`), migration enabled | ~8 min | Migration ran ✓ (`MigrationReady=JobAlreadySucceeded`); **still noisy** — `AIEnrichmentFailed: GitHub diff fetch error 404` (defect #7) |
-| 17:5x | AI-enrichment fix (`d91607d`); operator build `:fp-aifix2` | ~3.5 min | — |
-| — | **Baseline run 3** — pending operator redeploy | — | (pending) |
+| 17:5x | AI-enrichment fix (`d91607d`); operator build `:fp-aifix2` (ACR `caa`) | 3 m 27 s | — |
+| ~18:0x | **Baseline run 3** (`pr-9500`) | aborted | `QuotaFailed` — namespace from run 2 still terminating (PR-number reuse race; harmless, matrix uses unique numbers) |
+| ~18:1x | **Baseline run 4** (`pr-9600`, fresh number) | ~9 min | **Core-clean**: smoke ✓, regression ✓ 9/0. Still failing: contract (microcks 500), e2e (5 timeouts), ai-tests job. AI **seed succeeded** ✓ |
+| ~18:2x | **F1 smoke test 3** (fully-fixed harness) | in progress | (pending) |
 
 ---
 
@@ -155,14 +157,45 @@ scoring pipeline, NOT for the Evaluation section.
 
 ## 7. Open items / risks / threats to validity
 
-- **Baseline cleanliness — unconfirmed.** Baseline run 2 confirmed the
-  migration now runs but the suite is still noisy (defect #7). Baseline run 3,
-  after the AI-enrichment fix `d91607d`, will show whether a seeded catalogue
-  finally yields a clean un-faulted preview. Result pending.
-- **Baseline run 2 test suite** (no fault, AI seed still failing): smoke
-  Succeeded 2/0, contract Failed 0/1, regression Failed 7/2, e2e Failed 1/5 —
-  identical to the F1 smoke tests, confirming the failures are seed-noise, not
-  fault signal.
+### Baseline cleanliness — partially clean (confirmed, baseline run 4)
+
+A no-fault preview (`pr-9600`, all 7 fixes) reaches `Ready` and:
+
+| Suite | Baseline run 2 (no seed) | Baseline run 4 (seeded) |
+|-------|--------------------------|--------------------------|
+| smoke | Succeeded 2/0 | Succeeded 2/0 |
+| regression | **Failed 7/2** | **Succeeded 9/0** ✓ |
+| contract | Failed 0/1 | Failed 0/1 |
+| e2e | Failed 1/5 | Failed 1/5 |
+
+The seed fix (`d91607d`) cleaned the regression suite — the core REST API
+surface is now noise-free. Two suites remain noisy at baseline:
+
+- **contract** — `microcks-contract-tests` job fails: the microcks server
+  returns `HTTP 500` on `POST /api/tests`. A microcks-server / spec-import /
+  Keycloak issue, not an app fault. Affects **F4** (broken contract endpoint).
+- **e2e** — `e2e-tests` job: 5/6 Playwright tests time out waiting for catalogue
+  DOM elements (`preview_badge_shown` passes, so the page itself loads).
+  Suspected: the `after-seed` DB checkpoint that e2e restores between tests is
+  empty/missing. Affects **F5** (frontend) and **F10** (flaky e2e).
+- **ai-tests** — the AI-generated test job errors (`tests=Failed` in
+  `AIEnrichmentReady`); independent of the four suites.
+
+### Decision: proceed to the matrix with a documented caveat
+
+The **core experiment pipeline works**: previews deploy, migration + AI seed
+run, the operator captures `FailureReport`s with full evidence, and smoke +
+regression are noise-free. The contract/e2e noise is **consistent and
+characterised** (not silent corruption) and is re-scorable offline. Scenarios
+whose fault yields a distinct infrastructure/job signal — **F1, F2, F3, F6, F7,
+F8, F9** — are unaffected. **F4, F5, F10** are confounded by the contract/e2e
+baseline noise and must be reported with that caveat (or re-scored once those
+subsystems are fixed). Spending the remaining time budget on microcks/checkpoint
+debugging risks ending with no matrix data at all; running now produces a
+re-scorable dataset.
+
+→ **For the article's Threats to Validity:** contract/e2e baseline noise;
+F4/F5/F10 confounded; microcks + e2e-checkpoint subsystems unverified.
 - **e2e checkpoint subsystem.** `tests/e2e.py` restores a DB checkpoint
   `after-seed` between tests (graceful-degrades if absent). Not yet verified.
 - **Contract testing (microcks).** `tests/microcks.py` needs microcks +
