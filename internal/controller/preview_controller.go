@@ -180,10 +180,24 @@ func (r *PreviewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return r.reconcileProvisioning(ctx, req.NamespacedName, preview, nsName)
 }
 
+// provisioningDeadline bounds how long a Preview may stay in Provisioning. A
+// fault that leaves a pod permanently un-pullable or a dependency that never
+// becomes ready would otherwise keep the Preview reconciling forever and no
+// FailureReport would ever be produced. Past the deadline the Preview is failed.
+const provisioningDeadline = 15 * time.Minute
+
 // reconcileProvisioning handles child resource reconciliation once the Preview is approved and ready.
 // Extracted from Reconcile to keep cyclomatic complexity manageable.
 func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types.NamespacedName, preview *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	// Provisioning deadline backstop — fail a Preview stuck in Provisioning
+	// rather than reconcile it indefinitely (so a FailureReport is captured).
+	if preview.Status.Phase == platformv1alpha1.PhaseProvisioning &&
+		time.Since(preview.CreationTimestamp.Time) > provisioningDeadline {
+		return r.setFailedStatus(ctx, preview, "ProvisioningTimeout",
+			fmt.Errorf("preview did not become ready within %s", provisioningDeadline))
+	}
 
 	if err := r.reconcileNamespace(ctx, preview, nsName); err != nil {
 		return r.setFailedStatus(ctx, preview, "NamespaceFailed", err)
@@ -1572,8 +1586,44 @@ func (r *PreviewReconciler) reconcileDatabaseTask(ctx context.Context, c *platfo
 		}
 	}
 
+	// A Job whose pod cannot pull its image (or has a bad image/config) never
+	// reaches JobFailed — the pod sits Waiting forever. Detect that and fail
+	// the task so the Preview does not hang in Provisioning.
+	if reason := r.jobPodImageError(ctx, nsName, jobName); reason != "" {
+		r.setDatabaseTaskStatus(c, taskName, phaseFailed)
+		return false, fmt.Errorf("database %s job %s/%s cannot start: %s", taskName, nsName, jobName, reason)
+	}
+
 	r.markDatabaseTaskRunning(c, taskName, conditionType, jobName)
 	return false, nil
+}
+
+// imagePullWaitReasons are container "waiting" reasons that do not recover on
+// their own; a Job whose pod is in one of them never reaches JobFailed.
+var imagePullWaitReasons = map[string]bool{
+	"ImagePullBackOff":           true,
+	"InvalidImageName":           true,
+	"CreateContainerConfigError": true,
+}
+
+// jobPodImageError returns a description when the Job's pod is stuck in an
+// unrecoverable image/config waiting state, or "" otherwise.
+func (r *PreviewReconciler) jobPodImageError(ctx context.Context, nsName, jobName string) string {
+	pods := &corev1.PodList{}
+	if err := r.List(ctx, pods, client.InNamespace(nsName),
+		client.MatchingLabels{"job-name": jobName}); err != nil {
+		return ""
+	}
+	for i := range pods.Items {
+		st := pods.Items[i].Status
+		statuses := append(append([]corev1.ContainerStatus{}, st.InitContainerStatuses...), st.ContainerStatuses...)
+		for _, cs := range statuses {
+			if w := cs.State.Waiting; w != nil && imagePullWaitReasons[w.Reason] {
+				return w.Reason + ": " + w.Message
+			}
+		}
+	}
+	return ""
 }
 
 func (r *PreviewReconciler) databaseTaskJob(c *platformv1alpha1.Preview, nsName, taskName, jobName string, task *platformv1alpha1.DatabaseTaskSpec) *batchv1.Job {
