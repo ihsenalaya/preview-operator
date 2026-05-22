@@ -226,3 +226,27 @@ func containsNote(sc *Scorecard, substr string) bool {
 	}
 	return false
 }
+
+// TestComponentMatchSharedWord covers the token-aware fallback: an LLM's
+// free-form "database migration" must match the ground truth "migration-job"
+// (they share the distinctive word "migration"), while unrelated components
+// must not match.
+func TestComponentMatchSharedWord(t *testing.T) {
+	cases := []struct {
+		diag, truth string
+		want        bool
+	}{
+		{"database migration", "migration-job", true},
+		{"migration job", "migration-job", true},
+		{"app-deployment", "deployment", true},
+		{"seed data", "seed-job", true},
+		{"backend", "frontend", false},
+		{"app-deployment", "migration-job", false},
+		{"", "migration-job", false},
+	}
+	for _, c := range cases {
+		if got := componentMatch(c.diag, c.truth); got != c.want {
+			t.Errorf("componentMatch(%q,%q) = %v, want %v", c.diag, c.truth, got, c.want)
+		}
+	}
+}

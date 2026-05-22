@@ -198,6 +198,28 @@ var _ = Describe("Preview Controller", func() {
 			Expect(significant).To(ContainElement("SyntaxError: invalid syntax"))
 		})
 
+		It("should keep the trailing error line when the log exceeds the limit", func() {
+			// A long traceback whose conclusive error is the LAST line. The
+			// limit must not be filled by earlier stack frames.
+			lines := []string{
+				"Traceback (most recent call last):",
+				"  File \"/app/migrations/env.py\", line 32, in <module>",
+				"    run_migrations_online()",
+				"  File \"/app/migrations/env.py\", line 29, in run_migrations_online",
+				"    context.run_migrations()",
+				"  File \"alembic/runtime/migration.py\", line 1, in run_migrations",
+				"  File \"/app/migrations/versions/002_fault.py\", line 20, in upgrade",
+				"    op.execute(\"CREATE INDX ...\")",
+				"psycopg2.errors.SyntaxError: syntax error at or near \"INDX\"",
+			}
+
+			significant := selectSignificantLines(lines, 4)
+
+			Expect(len(significant)).To(BeNumerically("<=", 4))
+			Expect(significant).To(ContainElement(ContainSubstring("syntax error at or near")))
+			Expect(significant).NotTo(ContainElement("Traceback (most recent call last):"))
+		})
+
 		It("should infer syntax errors as a high-confidence app failure", func() {
 			diag := &platformv1alpha1.DiagnosticsStatus{
 				Component: componentApp,

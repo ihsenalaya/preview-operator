@@ -325,15 +325,43 @@ func bundleSize(report *platformv1alpha1.FailureReport) int64 {
 }
 
 // componentMatch reports whether a diagnosed component matches the ground-truth
-// component. Both are normalised to lowercase alphanumerics; a match is exact
-// equality or one being a substring of the other, which tolerates wording like
-// "migration job" vs "migration-job" or "deployment" vs "app-deployment".
+// component. A match is exact equality of the normalised tokens, one being a
+// substring of the other ("migration job" vs "migration-job"), or the two
+// sharing a distinctive word ("database migration" vs "migration-job"). The
+// last case tolerates the free-form wording an LLM produces; the category gate
+// in scoreRCA keeps it from being too loose.
 func componentMatch(diag, truth string) bool {
 	d, t := normToken(diag), normToken(truth)
 	if d == "" || t == "" {
 		return false
 	}
-	return d == t || strings.Contains(d, t) || strings.Contains(t, d)
+	if d == t || strings.Contains(d, t) || strings.Contains(t, d) {
+		return true
+	}
+	truthTokens := significantWords(truth)
+	for w := range significantWords(diag) {
+		if truthTokens[w] {
+			return true
+		}
+	}
+	return false
+}
+
+// significantWords splits s into lowercase alphanumeric words and keeps the
+// distinctive ones — length >= 4 and not a generic structural word. So
+// "migration-job" yields {migration} and "database migration" yields
+// {database, migration}; their intersection {migration} signals a match.
+func significantWords(s string) map[string]bool {
+	generic := map[string]bool{"task": true, "node": true, "pods": true}
+	out := map[string]bool{}
+	for _, w := range strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'))
+	}) {
+		if len(w) >= 4 && !generic[w] {
+			out[w] = true
+		}
+	}
+	return out
 }
 
 // normToken keeps only lowercase alphanumeric characters of s.

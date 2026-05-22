@@ -322,13 +322,19 @@ func selectSignificantLines(lines []string, limit int) []string {
 					}
 					selected = append(selected, trimmed)
 					seen[trimmed] = struct{}{}
-					if len(selected) == limit {
-						return selected
-					}
 				}
 				break
 			}
 		}
+	}
+	// A failure log's conclusive line — the final traceback exception, the
+	// PostgreSQL "syntax error", the panic message — is at the END. When more
+	// significant lines were found than the limit, keep the LAST `limit` so the
+	// actual error is never dropped in favour of earlier stack frames. (The
+	// previous head-biased truncation captured only the middle of tracebacks,
+	// leaving the rule diagnoser without the keywords it needs.)
+	if len(selected) > limit {
+		selected = selected[len(selected)-limit:]
 	}
 	return selected
 }
