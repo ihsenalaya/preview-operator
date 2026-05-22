@@ -82,6 +82,7 @@ rules:
 - apiGroups:
   - platform.company.io
   resources:
+  - failurereports
   - previews
   - testplans
   - testruns
@@ -96,18 +97,19 @@ rules:
 - apiGroups:
   - platform.company.io
   resources:
-  - previews/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - platform.company.io
-  resources:
+  - failurereports/status
   - previews/status
   - testplans/status
   - testruns/status
   verbs:
   - get
   - patch
+  - update
+- apiGroups:
+  - platform.company.io
+  resources:
+  - previews/finalizers
+  verbs:
   - update
 - apiGroups:
   - platform.company.io

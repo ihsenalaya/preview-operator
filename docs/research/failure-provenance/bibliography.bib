@@ -1,0 +1,278 @@
+% Bibliography for:
+% "Operator-Captured Failure Provenance for Ephemeral Kubernetes Preview Environments"
+%
+% RULES (do not violate):
+%  - Every field marked TODO_VERIFY must be checked against a primary source before
+%    submission. Do NOT invent authors, venues, years, or DOIs.
+%  - Web resources (docs, specs) are cited as @misc with an explicit `urldate`.
+%  - If an entry (e.g. synergyrca_2025) cannot be confirmed to exist, REMOVE it rather
+%    than ship an unverified citation.
+%
+% Verification status legend:
+%   [STABLE]      well-known resource; only the access date needs confirming.
+%   [TODO_VERIFY] metadata not verified while drafting; must be checked.
+
+% ---------------------------------------------------------------------------
+% B. Kubernetes operators and Custom Resources
+% ---------------------------------------------------------------------------
+
+% [STABLE] Kubernetes official documentation.
+@misc{kubernetes_custom_resources,
+  author       = {{The Kubernetes Authors}},
+  title        = {Custom Resources},
+  howpublished = {Kubernetes Documentation},
+  year         = {2026},
+  url          = {https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/},
+  urldate      = {2026-05-22},
+  note         = {Concepts: Custom Resource Definitions (CRDs). URL verified reachable 2026-05-22; page title "Custom Resources" confirmed. Living document; year set to access year.}
+}
+
+% [STABLE] Kubernetes official documentation.
+@misc{kubernetes_operator_pattern,
+  author       = {{The Kubernetes Authors}},
+  title        = {Operator pattern},
+  howpublished = {Kubernetes Documentation},
+  year         = {2026},
+  url          = {https://kubernetes.io/docs/concepts/extend-kubernetes/operator/},
+  urldate      = {2026-05-22},
+  note         = {URL verified reachable 2026-05-22; page title "Operator pattern" confirmed. Living document; year set to access year.}
+}
+
+% [STABLE] Kubernetes official documentation.
+@misc{kubernetes_controller_concepts,
+  author       = {{The Kubernetes Authors}},
+  title        = {Controllers},
+  howpublished = {Kubernetes Documentation},
+  year         = {2026},
+  url          = {https://kubernetes.io/docs/concepts/architecture/controller/},
+  urldate      = {2026-05-22},
+  note         = {Reconciliation / control loop concept. URL verified reachable 2026-05-22; page title "Controllers" confirmed. Living document; year set to access year.}
+}
+
+% [STABLE] Kubernetes official documentation.
+@misc{kubernetes_finalizers,
+  author       = {{The Kubernetes Authors}},
+  title        = {Finalizers},
+  howpublished = {Kubernetes Documentation},
+  year         = {2026},
+  url          = {https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/},
+  urldate      = {2026-05-22},
+  note         = {Pre-deletion cleanup hook used to sequence evidence persistence. URL verified reachable 2026-05-22; page title "Finalizers" confirmed. Living document; year set to access year.}
+}
+
+% ---------------------------------------------------------------------------
+% A. Kubernetes preview environments
+% ---------------------------------------------------------------------------
+
+% [TODO_VERIFY] Argo CD ApplicationSet — Pull Request generator.
+@misc{argocd_pr_generator,
+  author       = {{Argo Project}},
+  title        = {ApplicationSet --- Pull Request Generator},
+  howpublished = {Argo CD Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Pull-Request/},
+  urldate      = {TODO_VERIFY}
+}
+
+% [TODO_VERIFY] Confirm product terminology and isolation mechanism.
+@misc{signadot_preview_envs,
+  author       = {{Signadot}},
+  title        = {Preview Environments / Sandboxes},
+  howpublished = {Signadot Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://www.signadot.com/},
+  urldate      = {TODO_VERIFY},
+  note         = {TODO_VERIFY: request-scoped sandbox mechanism and current naming.}
+}
+
+% [TODO_VERIFY] Confirm current feature naming.
+@misc{okteto_preview_envs,
+  author       = {{Okteto}},
+  title        = {Preview Environments},
+  howpublished = {Okteto Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://www.okteto.com/docs/},
+  urldate      = {TODO_VERIFY}
+}
+
+% [TODO_VERIFY] Confirm relevance / maintenance status before keeping this entry.
+@misc{jenkinsx_preview_envs,
+  author       = {{Jenkins X Project}},
+  title        = {Preview Environments},
+  howpublished = {Jenkins X Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://jenkins-x.io/},
+  urldate      = {TODO_VERIFY},
+  note         = {TODO_VERIFY: keep only if still relevant to the related-work section.}
+}
+
+% ---------------------------------------------------------------------------
+% C. Kubernetes-native test orchestration (Testkube)
+% ---------------------------------------------------------------------------
+
+% [TODO_VERIFY]
+@misc{testkube_workflows,
+  author       = {{Testkube}},
+  title        = {Test Workflows},
+  howpublished = {Testkube Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://docs.testkube.io/},
+  urldate      = {TODO_VERIFY}
+}
+
+% [TODO_VERIFY]
+@misc{testkube_crds,
+  author       = {{Testkube}},
+  title        = {Testkube Custom Resources},
+  howpublished = {Testkube Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://docs.testkube.io/},
+  urldate      = {TODO_VERIFY}
+}
+
+% [TODO_VERIFY] Confirm the exact AI capability and its name before citing.
+@misc{testkube_ai_agents,
+  author       = {{Testkube}},
+  title        = {AI-assisted test analysis},
+  howpublished = {Testkube Documentation},
+  year         = {TODO_VERIFY},
+  url          = {https://docs.testkube.io/},
+  urldate      = {TODO_VERIFY},
+  note         = {TODO_VERIFY: confirm capability name; remove if not confirmable.}
+}
+
+% ---------------------------------------------------------------------------
+% E. Observability — OpenTelemetry
+% ---------------------------------------------------------------------------
+
+% [STABLE] OpenTelemetry official documentation.
+@misc{opentelemetry_docs,
+  author       = {{OpenTelemetry Authors / CNCF}},
+  title        = {OpenTelemetry Documentation},
+  howpublished = {opentelemetry.io},
+  year         = {TODO_VERIFY},
+  url          = {https://opentelemetry.io/docs/},
+  urldate      = {TODO_VERIFY},
+  note         = {Logs, metrics, traces; semantic conventions.}
+}
+
+% [STABLE] OpenTelemetry Operator.
+@misc{opentelemetry_operator,
+  author       = {{OpenTelemetry Authors / CNCF}},
+  title        = {OpenTelemetry Operator for Kubernetes},
+  howpublished = {GitHub: open-telemetry/opentelemetry-operator},
+  year         = {TODO_VERIFY},
+  url          = {https://github.com/open-telemetry/opentelemetry-operator},
+  urldate      = {TODO_VERIFY},
+  note         = {Auto-instrumentation via the Instrumentation custom resource.}
+}
+
+% ---------------------------------------------------------------------------
+% F. Provenance — W3C PROV
+% ---------------------------------------------------------------------------
+
+% [STABLE] W3C PROV family overview document. Confirm exact title/date.
+@misc{w3c_prov_overview,
+  author       = {{W3C Provenance Working Group}},
+  title        = {PROV-Overview: An Overview of the PROV Family of Documents},
+  howpublished = {W3C Working Group Note},
+  year         = {2013},
+  url          = {https://www.w3.org/TR/prov-overview/},
+  urldate      = {TODO_VERIFY},
+  note         = {TODO_VERIFY exact publication date and document status.}
+}
+
+% [STABLE] W3C PROV Data Model. Confirm exact title/date.
+@misc{w3c_prov_dm,
+  author       = {Moreau, Luc and Missier, Paolo and others},
+  title        = {{PROV-DM}: The {PROV} Data Model},
+  howpublished = {W3C Recommendation},
+  year         = {2013},
+  url          = {https://www.w3.org/TR/prov-dm/},
+  urldate      = {TODO_VERIFY},
+  note         = {TODO_VERIFY full editor list and exact date (W3C Recommendation, 2013).}
+}
+
+% ---------------------------------------------------------------------------
+% D. Kubernetes RCA and LLM-based RCA
+% ---------------------------------------------------------------------------
+
+% [TODO_VERIFY] OpenRCA benchmark. Verify venue, year, authors against the primary paper.
+@inproceedings{openrca_2025,
+  author       = {TODO_VERIFY},
+  title        = {{OpenRCA}: Can Large Language Models Locate the Root Cause of Software Failures?},
+  booktitle    = {TODO_VERIFY},
+  year         = {TODO_VERIFY},
+  note         = {TODO_VERIFY: confirm exact title, authors, venue (reported as ICLR 2025), and year. Remove if not confirmable.}
+}
+
+% [TODO_VERIFY] SynergyRCA. This entry MUST be confirmed from a primary source or removed.
+@misc{synergyrca_2025,
+  author       = {TODO_VERIFY},
+  title        = {{SynergyRCA}},
+  year         = {TODO_VERIFY},
+  note         = {TODO_VERIFY: existence and all metadata unverified. Confirm or DELETE this entry — do not ship as-is.}
+}
+
+% [TODO_VERIFY] Graph-augmented LLM RCA. Find a specific citable paper or reframe.
+@misc{graph_llm_rca,
+  author       = {TODO_VERIFY},
+  title        = {Graph-augmented {LLM}-based Root Cause Analysis},
+  year         = {TODO_VERIFY},
+  note         = {TODO_VERIFY: replace with a concrete citation, or present as a research direction without a single cite.}
+}
+
+% [TODO_VERIFY] Survey of LLMs for software testing / failure diagnosis.
+@misc{llm_rca_survey,
+  author       = {TODO_VERIFY},
+  title        = {A Survey of Large Language Models for Software Testing and Failure Diagnosis},
+  year         = {TODO_VERIFY},
+  note         = {TODO_VERIFY: identify a concrete, citable survey (e.g. an LLM-for-software-testing survey).}
+}
+
+% ---------------------------------------------------------------------------
+% Artifact
+% ---------------------------------------------------------------------------
+
+% [STABLE] The operator this article studies.
+@misc{preview_operator,
+  author       = {Alaya, Ihsen},
+  title        = {preview-operator: A Kubernetes Operator for Ephemeral Pull-Request Preview Environments},
+  howpublished = {GitHub repository},
+  year         = {TODO_VERIFY},
+  url          = {https://github.com/ihsenalaya/preview-operator},
+  urldate      = {TODO_VERIFY},
+  note         = {Reproducible artifact for this article. TODO_VERIFY author name spelling and the released version/tag to cite.}
+}
+
+% [TODO_VERIFY] Companion article (same author, same operator) on PostgreSQL
+% inter-suite isolation overhead and AI seed-data quality. Cited so that those
+% results are NOT duplicated in the failure-provenance article.
+@misc{postgres_isolation_companion,
+  author       = {Alaya, Ihsen},
+  title        = {TODO_VERIFY --- Companion article: PostgreSQL inter-suite isolation overhead and AI seed-data quality for ephemeral Kubernetes preview environments},
+  year         = {TODO_VERIFY},
+  note         = {TODO_VERIFY: fill in the exact title, venue, year, and publication status of the already-prepared companion article. Author name spelling TODO_VERIFY.}
+}
+
+% ---------------------------------------------------------------------------
+% Verification checklist (mirror of state-of-the-art.md):
+%   [x] kubernetes.io URLs (custom_resources, operator_pattern, controller,
+%       finalizers) reachable; titles confirmed; urldate set to 2026-05-22.
+%   [ ] opentelemetry.io URLs (opentelemetry_docs, opentelemetry_operator) —
+%       NOT verified: WebSearch/WebFetch access denied during this pass.
+%   [ ] w3c_prov_overview, w3c_prov_dm — NOT verified: web access denied.
+%   [ ] openrca_2025 — NOT verified: web access denied.
+%   [ ] synergyrca_2025 — NOT verified: web access denied; existence unconfirmed.
+%   [ ] graph_llm_rca, llm_rca_survey — NOT verified: web access denied.
+%   [ ] argocd_pr_generator, signadot, okteto, jenkinsx, testkube_* —
+%       NOT verified: web access denied.
+%   [ ] preview_operator — NOT verified: web access denied.
+%   [ ] postgres_isolation_companion — NOT verified: companion article metadata
+%       must be supplied by the author.
+%
+% NOTE (2026-05-22 verification pass): only the four kubernetes.io entries could
+% be verified — WebFetch/WebSearch access to all other domains was denied during
+% this pass, so the remaining entries retain their TODO_VERIFY placeholders and
+% must be re-checked once web access is available.
+% ---------------------------------------------------------------------------

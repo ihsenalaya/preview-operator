@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	smokeJobName       = "smoke-tests"
-	microcksImportJob  = "microcks-import"
-	microcksJobName    = "microcks-contract-tests"
-	regressionJobName  = "regression-tests"
-	e2eJobName         = "e2e-tests"
+	smokeJobName               = "smoke-tests"
+	microcksImportJob          = "microcks-import"
+	microcksJobName            = "microcks-contract-tests"
+	regressionJobName          = "regression-tests"
+	e2eJobName                 = "e2e-tests"
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
 	suiteStepMigration         = "migration"
@@ -376,6 +376,11 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 	if err := r.Status().Update(ctx, c); err != nil {
 		return ctrl.Result{}, err
 	}
+	if anyFailed {
+		// Preserve the failure evidence as a cluster-scoped FailureReport before
+		// the preview namespace is eventually torn down (best-effort).
+		r.captureFailureReport(ctx, c)
+	}
 	r.postTestResultsComment(ctx, c)
 	r.triggerKagentAnalysis(ctx, c)
 	return ctrl.Result{}, nil
@@ -722,7 +727,7 @@ func (r *PreviewReconciler) e2eTestJob(c *platformv1alpha1.Preview, nsName, prev
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": e2eJobName,
 					},
 				},
@@ -778,7 +783,7 @@ func (r *PreviewReconciler) testJob(c *platformv1alpha1.Preview, nsName, jobName
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -833,7 +838,7 @@ func (r *PreviewReconciler) testJobNoMount(c *platformv1alpha1.Preview, nsName, 
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -866,7 +871,7 @@ func testJobResources() corev1.ResourceRequirements {
 func testJobLabels(c *platformv1alpha1.Preview, jobName string) map[string]string {
 	return map[string]string{
 		labelManagedBy:                "preview-operator",
-		labelPreviewName:             c.Name,
+		labelPreviewName:              c.Name,
 		"app.kubernetes.io/component": "test-suite",
 		"platform.company.io/task":    jobName,
 	}

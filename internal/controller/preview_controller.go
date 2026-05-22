@@ -31,9 +31,9 @@ import (
 )
 
 const (
-	previewFinalizer  = "platform.company.io/finalizer"
+	previewFinalizer   = "platform.company.io/finalizer"
 	labelManagedBy     = "platform.company.io/managed-by"
-	labelPreviewName  = "platform.company.io/preview-name"
+	labelPreviewName   = "platform.company.io/preview-name"
 	postgresSecretName = "postgres-credentials"
 	postgresHost       = "postgres"
 	migrationJobName   = "postgres-migrate"
@@ -944,7 +944,7 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 			return err
 		}
 		deploy.Labels = map[string]string{
-			labelManagedBy:    "preview-operator",
+			labelManagedBy:   "preview-operator",
 			labelPreviewName: c.Name,
 		}
 		progressDeadlineSeconds := int32(60)
@@ -1004,7 +1004,6 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 	})
 	return err
 }
-
 
 // reconcileServiceDeployments creates/updates one Deployment per entry in spec.services.
 func (r *PreviewReconciler) reconcileServiceDeployments(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
@@ -1161,8 +1160,6 @@ func (r *PreviewReconciler) reconcileMultiServices(ctx context.Context, c *platf
 	return nil
 }
 
-
-
 func (r *PreviewReconciler) handleAppAvailability(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, ctrl.Result, error) {
 	deployNames := []string{"app"}
 	if multiServiceEnabled(c) {
@@ -1308,7 +1305,6 @@ func (r *PreviewReconciler) reconcileService(ctx context.Context, c *platformv1a
 	return err
 }
 
-
 // reconcilePostgresSecret creates a Secret with unique credentials the first time only.
 // If the Secret already exists its data is never overwritten, preserving credentials across reconcile loops.
 func (r *PreviewReconciler) reconcilePostgresSecret(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
@@ -1337,7 +1333,7 @@ func (r *PreviewReconciler) reconcilePostgresSecret(ctx context.Context, c *plat
 			Name:      postgresSecretName,
 			Namespace: nsName,
 			Labels: map[string]string{
-				labelManagedBy:    "preview-operator",
+				labelManagedBy:   "preview-operator",
 				labelPreviewName: c.Name,
 			},
 			Annotations: map[string]string{
@@ -1381,7 +1377,7 @@ func (r *PreviewReconciler) reconcilePostgresDeployment(ctx context.Context, c *
 		}
 		deploy.Labels = map[string]string{
 			labelManagedBy:                "preview-operator",
-			labelPreviewName:             c.Name,
+			labelPreviewName:              c.Name,
 			"app.kubernetes.io/component": "database",
 		}
 		deploy.Spec = appsv1.DeploymentSpec{
@@ -1395,7 +1391,7 @@ func (r *PreviewReconciler) reconcilePostgresDeployment(ctx context.Context, c *
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app":                         "postgres",
-						labelPreviewName:             c.Name,
+						labelPreviewName:              c.Name,
 						labelManagedBy:                "preview-operator",
 						"app.kubernetes.io/component": "database",
 					},
@@ -1576,7 +1572,7 @@ func (r *PreviewReconciler) databaseTaskJob(c *platformv1alpha1.Preview, nsName,
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "database-task",
 				"platform.company.io/task":    taskName,
 			},
@@ -1588,7 +1584,7 @@ func (r *PreviewReconciler) databaseTaskJob(c *platformv1alpha1.Preview, nsName,
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": taskName,
 					},
 				},
@@ -1704,6 +1700,7 @@ func (r *PreviewReconciler) setFailedStatus(ctx context.Context, c *platformv1al
 		LastTransitionTime: metav1.Now(),
 	})
 	_ = r.Status().Update(ctx, c)
+	r.captureFailureReport(ctx, c)
 	syncGitHubAfterStatus(ctx, r, c, c.Status.URL)
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 }

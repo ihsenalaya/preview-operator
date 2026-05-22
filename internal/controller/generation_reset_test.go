@@ -30,7 +30,7 @@ func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 		},
 	}
 	job := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: "preview-pr-34"}}
-	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testSuiteConfigMap, Namespace: "preview-pr-34"}}
+	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testScriptsConfigMap, Namespace: "preview-pr-34"}}
 
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -58,7 +58,7 @@ func TestResetDerivedStateSkipsTransientDatabaseRequests(t *testing.T) {
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: smokeJobName, Namespace: "preview-pr-34"}, &batchv1.Job{}); err != nil {
 		t.Fatalf("expected smoke job to remain present: %v", err)
 	}
-	if err := cl.Get(context.Background(), types.NamespacedName{Name: testSuiteConfigMap, Namespace: "preview-pr-34"}, &corev1.ConfigMap{}); err != nil {
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: testScriptsConfigMap, Namespace: "preview-pr-34"}, &corev1.ConfigMap{}); err != nil {
 		t.Fatalf("expected test suite configmap to remain present: %v", err)
 	}
 }
@@ -84,7 +84,7 @@ func TestResetDerivedStateSkipsTransientAIRerunRequests(t *testing.T) {
 		},
 	}
 	job := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: smokeJobName, Namespace: "preview-pr-34"}}
-	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testSuiteConfigMap, Namespace: "preview-pr-34"}}
+	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: testScriptsConfigMap, Namespace: "preview-pr-34"}}
 
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -112,7 +112,7 @@ func TestResetDerivedStateSkipsTransientAIRerunRequests(t *testing.T) {
 	if err := cl.Get(context.Background(), types.NamespacedName{Name: smokeJobName, Namespace: "preview-pr-34"}, &batchv1.Job{}); err != nil {
 		t.Fatalf("expected smoke job to remain present: %v", err)
 	}
-	if err := cl.Get(context.Background(), types.NamespacedName{Name: testSuiteConfigMap, Namespace: "preview-pr-34"}, &corev1.ConfigMap{}); err != nil {
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: testScriptsConfigMap, Namespace: "preview-pr-34"}, &corev1.ConfigMap{}); err != nil {
 		t.Fatalf("expected test suite configmap to remain present: %v", err)
 	}
 }
