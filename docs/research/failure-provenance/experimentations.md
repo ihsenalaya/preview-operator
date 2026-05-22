@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 03:55 UTC
+- **Last updated:** 2026-05-23 04:35 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -163,7 +163,8 @@ as each scenario completes. Operator `:fp-stuckfix`, AKS, 1 preview at a time.
 | F1 invalid migration | 10 | 17.3 min | ~1.7 min | fast — migration Job fails quickly |
 | F2 missing env var | 10 | 12.1 min | ~1.2 min | fast — CrashLoopBackOff detected quickly |
 | F3 invalid image tag | 10 | 18.2 min | ~1.8 min | operator fails it on ImagePullBackOff (defect #14 fix) |
-| F4-F10 | — | — | — | appended on completion |
+| F4 broken endpoint | 8/10 | 63.9 min | ~8.0 min | 2 transient stalls (r6, r10) — preview Running, no test verdict in 20 min |
+| F5-F10 | — | — | — | appended on completion |
 
 Build cost is separate: with the Docker-Hub cache fix (#13) an ACR image build
 is ~33 s (was ~3 min + agent queue). Code-fault scenarios (F1,F2,F4,F5,F6,F8,
@@ -339,6 +340,42 @@ Operator `:fp-stuckfix`. Top-1 correct by evidence level (150 rows, 0 skipped):
 llm-freeform 0/10 — as for F1/F2, no verifiable schema. **Defect #14 fix
 confirmed: F3 produced FailureReports for all 10 reps (in attempt 5 it hung and
 every F3 run was skipped).** Wall-clock 18.2 min.
+
+### F4 — broken backend endpoint (application) — matrix attempt 6 (canonical)
+
+Operator `:fp-stuckfix`. **8/10 valid reps** (r1-r5, r7-r9). r6 + r10 skipped:
+both reached `Running` (app deploys healthy — F4 is a logic bug) but no
+FailureReport landed within the 20-min harness timeout. r7-r9 ran clean
+between r6 and r10, so the stalls are intermittent, **not systematic
+breakage** — a ~20 % stall rate in the test-phase reconciliation path.
+Surfaced honestly; evidence was torn down before per-skip diagnosis.
+
+Top-1 by evidence level (over the 8 valid reps):
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/8 | 0/8 | 0/8 |
+| C2 | 0/8 | 0/8 | 0/8 |
+| C3 | 8/8 | 0/8 | 0/8 |
+| C4 | 8/8 | 0/8 | 0/8 |
+| C5 | 8/8 | 0/8 | 0/8 |
+
+**Verified, two findings — neither a surprise:**
+
+1. **rule-grounded jumps 0→8 at the C2→C3 boundary.** F4 is a logic bug: the
+   app deploys fine, only the contract test exposes it. C1 (logs) and C2
+   (+events) have no useful signal — the failure surfaces in the *test result*,
+   which arrives at C3. From C3 onward the rule fires perfectly (8/8). A clean
+   RQ1 evidence-progression result: **application faults need the test
+   results level**, two levels later than infra faults (F3 fired at C2).
+2. **llm-grounded 0/8 is the same component-vocabulary artifact as F3.**
+   Inspected reps r1/r3/r5/r7/r9 at C5: the LLM consistently labels
+   `category=application` (correct, 10/10 of inspected reps) but names the
+   component "application" / "API" rather than the ground-truth string
+   "backend". Re-scorable offline with the aligned component vocabulary.
+
+llm-freeform 0/8 — same as F1/F2/F3, no verifiable schema. Wall-clock 63.9 min
+for the 8 valid runs; the 2 stalls each held the slot for the full 20 min.
 
 ### F2 — missing environment variable (configuration) — matrix attempt 6 (canonical)
 
