@@ -88,11 +88,13 @@ class ImageCache:
 # --------------------------------------------------------------------------
 # one (subject, fault, rep) unit
 # --------------------------------------------------------------------------
-def run_unit(subject: dict, fault: str, rep: int, cfg: dict,
+def run_unit(subject: dict, subject_idx: int, fault: str, rep: int, cfg: dict,
              cache: ImageCache, out_dir: pathlib.Path, execute: bool) -> dict:
     """Execute one cluster run and return a results row dict."""
     sid = subject["id"]
-    pr_number = 9000 + abs(hash(sid)) % 900 * 1000 + _fault_idx(fault) * 100 + rep
+    # Deterministic, collision-free PR number: 90000 + subject(0-4)*1000 +
+    # fault(1-10)*100 + rep. Disjoint from the S1 run-kind matrix (pr-9xxx).
+    pr_number = 90000 + subject_idx * 1000 + _fault_idx(fault) * 100 + rep
     name = f"pr-{pr_number}"
     run_dir = out_dir / sid / fault / f"r{rep}"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -126,11 +128,11 @@ def run_unit(subject: dict, fault: str, rep: int, cfg: dict,
         pf.delete(name, pf.runtime_namespace(pr_number), wait=False)
         return row
 
-    _kubectl("get", "failurereport", f"{name}-failure", "-o", "json",
-             stdout=(run_dir / "report.json").open("w"))
+    with (run_dir / "report.json").open("w") as fh:
+        _kubectl("get", "failurereport", f"{name}-failure", "-o", "json", stdout=fh)
     row["status"] = "captured"
 
-    # 4. teardown
+    # 5. teardown
     pf.delete(name, pf.runtime_namespace(pr_number), wait=False)
     return row
 
@@ -191,8 +193,8 @@ def main() -> int:
     out_dir = pathlib.Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    units = [(s, f, r)
-             for s in subjects
+    units = [(s, si, f, r)
+             for si, s in enumerate(subjects)
              for f in cfg["faults"].get(s["id"], [])
              for r in range(1, args.reps + 1)]
     print(f"subjects   : {[s['id'] for s in subjects]}")
@@ -204,8 +206,8 @@ def main() -> int:
     cache = ImageCache(cfg["registry"], args.execute)
     rows: list[dict] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        futs = {pool.submit(run_unit, s, f, r, cfg, cache, out_dir, True): (s["id"], f, r)
-                for (s, f, r) in units}
+        futs = {pool.submit(run_unit, s, si, f, r, cfg, cache, out_dir, True): (s["id"], f, r)
+                for (s, si, f, r) in units}
         for fut in concurrent.futures.as_completed(futs):
             sid, f, r = futs[fut]
             try:
