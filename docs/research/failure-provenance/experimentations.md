@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 19:10 UTC
+- **Last updated:** 2026-05-22 19:30 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -90,7 +90,8 @@ Operator startup line confirms instrumentation each redeploy:
 | ~18:0x | **F1 smoke test 4** (`:fp-conflictfix`) | ~8 min | F1 captures a proper `FailureReport`: 7 items incl. `JobLog`; LLM diagnoses correctly. `JobLog` slice wrong (defect #9) |
 | ~18:1x | **Matrix attempt 2** launched | stopped at run ~2 | Head-biased log capture would degrade every run — stopped to fix defect #9 |
 | ~19:0x | Log-capture + matcher fix (`7ab0020`); operator build `:fp-logfix` | ~3.5 min | — |
-| — | **Matrix attempt 3** — pending redeploy | — | (pending) |
+| ~19:1x | Operator redeployed `:fp-logfix` (all 9 fixes) | rollout ~30 s | Healthy |
+| ~19:2x | **Matrix attempt 3** launched (100 runs, rule+llm) | running ~12-20 h | F1 run 1 verified: JobLog complete (psycopg2 syntax error captured); rule + llm-grounded both Top-1=1 ✓ |
 
 ---
 
