@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 03:10 UTC
+- **Last updated:** 2026-05-23 03:55 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -162,7 +162,7 @@ as each scenario completes. Operator `:fp-stuckfix`, AKS, 1 preview at a time.
 |----------|------|------------------|---------|-------|
 | F1 invalid migration | 10 | 17.3 min | ~1.7 min | fast — migration Job fails quickly |
 | F2 missing env var | 10 | 12.1 min | ~1.2 min | fast — CrashLoopBackOff detected quickly |
-| F3 invalid image tag | — | — | — | expected slower (image-pull backoff) |
+| F3 invalid image tag | 10 | 18.2 min | ~1.8 min | operator fails it on ImagePullBackOff (defect #14 fix) |
 | F4-F10 | — | — | — | appended on completion |
 
 Build cost is separate: with the Docker-Hub cache fix (#13) an ACR image build
@@ -303,6 +303,42 @@ Clean RQ2/RQ4 signal, stable across attempts 4-6:
   a verifiable component/category, so nothing scores.
 
 0 runs skipped, 0 errors.
+
+### F3 — invalid container image tag (infrastructure) — matrix attempt 6 (canonical)
+
+Operator `:fp-stuckfix`. Top-1 correct by evidence level (150 rows, 0 skipped):
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 10/10 | 0/10 | 0/10 |
+| C3 | 10/10 | 0/10 | 0/10 |
+| C4 | 10/10 | 0/10 | 0/10 |
+| C5 | 10/10 | 0/10 | 0/10 |
+
+**Verified, two findings — neither a surprise:**
+
+1. **rule-grounded 0→10 at the C1→C2 boundary is a real RQ1 result.** F3 is an
+   ImagePullBackOff: the container never starts, so there are *no application
+   logs*. C1 (logs only) has nothing to diagnose. C2 adds Kubernetes events —
+   the "Failed to pull image" event — and the rule fires perfectly (10/10).
+   Infrastructure faults are diagnosable only once evidence includes events.
+
+2. **llm-grounded 0/10 is a component-vocabulary artifact, NOT an LLM failure.**
+   Inspected all 10 reps' C5 diagnoses: the LLM's `probableCause` is accurate
+   every time ("inability to pull the required Docker image … the image does
+   not exist"), `category` is correct ("infrastructure") in 10/10. It only
+   labels `component` as "image registry" / "container registry" instead of the
+   ground-truth "app-deployment" — arguably *more* precise, since the fault is
+   at the image/registry layer. The rigid component-string match scores this 0.
+   **Re-scorable offline**: with an aligned component vocabulary (registry ≈
+   app-deployment for an image-pull fault) F3 llm-grounded is expected ~10/10 at
+   C2-C5. This is a methodological point for the article — component-name
+   matching is brittle; semantic alignment at re-score is the correct treatment.
+
+llm-freeform 0/10 — as for F1/F2, no verifiable schema. **Defect #14 fix
+confirmed: F3 produced FailureReports for all 10 reps (in attempt 5 it hung and
+every F3 run was skipped).** Wall-clock 18.2 min.
 
 ### F2 — missing environment variable (configuration) — matrix attempt 6 (canonical)
 
