@@ -73,6 +73,17 @@ func TestEnsureFailureReportCreatesReport(t *testing.T) {
 	if stored.Status.Phase != platformv1alpha1.FailureReportPhaseCaptured {
 		t.Errorf("persisted FailureReport phase = %q, want Captured", stored.Status.Phase)
 	}
+	// The status subresource must survive the create path: the API server
+	// ignores status on create, so EnsureFailureReport restores the assembled
+	// status before Status().Update. A persisted status of {} means that
+	// restore was lost.
+	if len(stored.Status.EvidenceItems) == 0 {
+		t.Error("persisted FailureReport has no evidence items — status lost across Create")
+	}
+	if stored.Status.EvidenceLevel != string(evidence.DefaultLevel) {
+		t.Errorf("persisted FailureReport evidence level = %q, want %q",
+			stored.Status.EvidenceLevel, evidence.DefaultLevel)
+	}
 }
 
 func TestEnsureFailureReportIsIdempotent(t *testing.T) {

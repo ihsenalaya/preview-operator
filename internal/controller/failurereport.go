@@ -48,9 +48,16 @@ func EnsureFailureReport(ctx context.Context, c client.Client, preview *platform
 	err := c.Get(ctx, types.NamespacedName{Name: desired.Name}, existing)
 	switch {
 	case apierrors.IsNotFound(err):
+		// Create persists the spec only: the API server ignores the status
+		// subresource on create and decodes the resulting (empty) status back
+		// into desired. Keep the assembled status across the call so the
+		// following Status().Update writes the real evidence bundle — without
+		// this restore the FailureReport lands with status: {}.
+		assembled := desired.Status
 		if err := c.Create(ctx, desired); err != nil {
 			return nil, err
 		}
+		desired.Status = assembled
 		if err := c.Status().Update(ctx, desired); err != nil {
 			return desired, err
 		}
