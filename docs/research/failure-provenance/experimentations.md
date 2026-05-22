@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 21:35 UTC
+- **Last updated:** 2026-05-22 22:10 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -250,14 +250,14 @@ lot-by-lot status and the defect decision-gate history.*
 Top-1 correct, count out of 10 repetitions, per evidence level × engine-mode.
 Raw data: `results-matrix/results.csv`.
 
-### F1 — invalid SQL migration (database)
+### F1 — invalid SQL migration (database) — matrix attempt 4
 
 | Level | rule-grounded | llm-grounded | llm-freeform |
 |-------|---------------|--------------|--------------|
 | C1 | 10/10 | 0/10 | 0/10 |
 | C2 | 10/10 | 0/10 | 0/10 |
 | C3 | 10/10 | 0/10 | 0/10 |
-| C4 | 10/10 | 8/10 | 0/10 |
+| C4 | 10/10 | 9/10 | 0/10 |
 | C5 | 10/10 | 10/10 | 0/10 |
 
 Observations: the rule engine diagnoses F1 at every evidence level (it keys off
