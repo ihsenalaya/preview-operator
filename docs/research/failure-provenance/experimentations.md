@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 17:30 UTC
+- **Last updated:** 2026-05-22 17:55 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -81,11 +81,13 @@ Operator startup line confirms instrumentation each redeploy:
 | ~16:48 | Baseline image build `ca8` | 0 m 34 s | `idp-preview:baseline` published |
 | ~17:06 | Operator AI-client retry fix (`a1206dd`); operator build `ca9` | 3 m 22 s | — |
 | 17:10:14 | Operator redeployed `:fp-aifix` | rollout ~30 s | Healthy |
-| ~17:1x | **Baseline run 2** (`pr-9500`) launched, migration enabled | in progress | (pending — see §7) |
+| ~17:12 | **Baseline run 2** (`pr-9500`), migration enabled | ~8 min | Migration ran ✓ (`MigrationReady=JobAlreadySucceeded`); **still noisy** — `AIEnrichmentFailed: GitHub diff fetch error 404` (defect #7) |
+| 17:5x | AI-enrichment fix (`d91607d`); operator build `:fp-aifix2` | ~3.5 min | — |
+| — | **Baseline run 3** — pending operator redeploy | — | (pending) |
 
 ---
 
-## 4. Defects found (the matrix exposed 6)
+## 4. Defects found (the matrix exposed 7)
 
 Each was invisible to `go build` / `inject-fault.sh --list` and surfaced only by
 running the harness end-to-end on the cluster.
@@ -97,7 +99,8 @@ running the harness end-to-end on the cluster.
 | 3 | changeContext CWD | `top-1/top-3` = 0; no `ChangedFile`/`GitDiff` | Generator runs `git diff` in CWD; harness invoked it from the wrong repo | Run generator inside the checkout | `cfc9a41` |
 | 4 | Baseline image | Non-code faults `ErrImagePull` | `--baseline-image` default `ghcr.io/.../idp-preview:latest` not pullable | Build `:baseline` into ACR; change default | `b1bb928` |
 | 5 | Migration never run | F1 fault inert; `MigrationReady=TaskDisabled` | Generator omits `spec.database.migration`; operator runs the Job only when set | Fail-loud manifest filter injects the block | `a1206dd` |
-| 6 | AI enrichment fails | `AIEnrichmentReady=False`; empty catalogue → baseline noise | Operator `internal/ai/client.go` had no 429 retry; AI enrichment IS the catalogue seed | Backoff + `Retry-After` on the operator AI client | `a1206dd` |
+| 6 | AI client no retry | AI enrichment fails under load | Operator `internal/ai/client.go` had no 429 retry | Backoff + `Retry-After` on the operator AI client | `a1206dd` |
+| 7 | AI enrichment GitHub-bound | `AIEnrichmentReady=False — GitHub diff fetch error 404`; empty catalogue → baseline noise | Enrichment fetched the PR diff from GitHub; synthetic experiment PRs do not exist there, and the 404 hard-failed enrichment. AI seed was also gated off (`aiSeedEnabled` heuristic). | Use the embedded `changeContext.diffPatch`; GitHub fetch non-fatal; manifest filter enables `aiEnrichment.seed` | `d91607d` |
 
 **Process root cause:** Lots 2 & 5 were marked "done" without an end-to-end
 cluster run. Strong candidate for the article's *Lessons Learned*.
@@ -152,9 +155,14 @@ scoring pipeline, NOT for the Evaluation section.
 
 ## 7. Open items / risks / threats to validity
 
-- **Baseline cleanliness — unconfirmed.** Baseline run 2 (migration enabled,
-  AI-client retry in place) is in progress. Whether an un-faulted preview now
-  passes its test suite determines if the experiment is valid. Result pending.
+- **Baseline cleanliness — unconfirmed.** Baseline run 2 confirmed the
+  migration now runs but the suite is still noisy (defect #7). Baseline run 3,
+  after the AI-enrichment fix `d91607d`, will show whether a seeded catalogue
+  finally yields a clean un-faulted preview. Result pending.
+- **Baseline run 2 test suite** (no fault, AI seed still failing): smoke
+  Succeeded 2/0, contract Failed 0/1, regression Failed 7/2, e2e Failed 1/5 —
+  identical to the F1 smoke tests, confirming the failures are seed-noise, not
+  fault signal.
 - **e2e checkpoint subsystem.** `tests/e2e.py` restores a DB checkpoint
   `after-seed` between tests (graceful-degrades if absent). Not yet verified.
 - **Contract testing (microcks).** `tests/microcks.py` needs microcks +

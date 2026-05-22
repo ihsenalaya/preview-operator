@@ -6,10 +6,11 @@ active). Each commit on `article/failure-provenance` is a checkpoint.
 
 - **Branch:** `article/failure-provenance` (pushed to GitHub)
 - **Base commit (Phases 1–4):** `8cc635a`
-- **Last updated:** 2026-05-22 17:25 UTC
-- **Currently working on:** Lot 6. All six harness-fidelity defects (§6) are
-  fixed and committed. Operator rebuilt with the AI-client retry fix; next:
-  redeploy, verify a clean baseline, run smoke tests, then launch the matrix.
+- **Last updated:** 2026-05-22 17:55 UTC
+- **Currently working on:** Lot 6. Baseline run 2 exposed a 7th defect (AI
+  enrichment was GitHub-bound and hard-failed on synthetic PRs → no seed →
+  noisy baseline). Fixed (`d91607d`); operator rebuilding as `:fp-aifix2`.
+  Next: redeploy, baseline run 3. Full defect log in `experimentations.md`.
   Running autonomously.
 
 ---
@@ -94,6 +95,13 @@ Legend: ✅ done · 🔄 in progress · ⚠️ defects found · ⏳ pending
 
 ## 3. Update log
 
+- **2026-05-22 17:55 UTC** — Baseline run 2: migration now runs, but the suite
+  is still noisy — AI enrichment (the catalogue seed) hard-failed with
+  `GitHub diff fetch error 404` because synthetic experiment PRs do not exist
+  on GitHub (defect #7). Fixed `d91607d`: the operator now prefers the embedded
+  `changeContext.diffPatch` and treats a GitHub fetch failure as non-fatal; the
+  manifest filter (renamed `prepare-experiment-manifest.py`) also enables the
+  AI seed. Operator rebuilding as `:fp-aifix2`. See `experimentations.md` §4.
 - **2026-05-22 17:25 UTC** — Reviewer chose "fix the pipeline". Defects 4–6
   resolved: baseline image built + harness default changed (`b1bb928`); migration
   enabled via a manifest filter, and the operator AI client given 429 retry
