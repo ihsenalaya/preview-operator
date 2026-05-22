@@ -125,6 +125,29 @@ func BundleFromReport(r *platformv1alpha1.FailureReport) *Bundle {
 	return b
 }
 
+// BundleFromReportAtLevel reconstructs a Bundle from a persisted FailureReport
+// and down-samples it to the given evidence level (C1..C5), keeping only the
+// evidence types that level admits (EvidenceTypesForLevel). The bundle's Level
+// is set so the diagnosis records which configuration produced it.
+//
+// This is how the C1..C5 comparison (RQ2) runs from a single operator capture:
+// the operator captures the full C5 bundle once, and the diagnostic harness
+// replays it at each lower level by discarding the types that level excludes.
+func BundleFromReportAtLevel(r *platformv1alpha1.FailureReport, level Level) *Bundle {
+	b := BundleFromReport(r)
+	b.Level = level
+	allowed := EvidenceTypesForLevel(level)
+	if allowed == nil { // C4/C5: keep everything.
+		return b
+	}
+	for id, it := range b.items {
+		if !allowed[it.Type] {
+			delete(b.items, id)
+		}
+	}
+	return b
+}
+
 // bundleSizeBytes returns the JSON-serialised size of the evidence items — the
 // storage footprint measured by RQ5. A marshalling error (which the typed items
 // cannot realistically produce) yields 0 rather than failing report generation.

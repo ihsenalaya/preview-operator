@@ -52,6 +52,7 @@ func run() error {
 	model := flag.String("model", envOr("FP_DIAGNOSE_MODEL", "gpt-4o-mini"), "LLM model id (llm engine)")
 	aiBaseURL := flag.String("ai-base-url", os.Getenv("AI_API_URL"), "OpenAI-compatible API base URL (llm engine)")
 	aiAPIKey := flag.String("ai-api-key", firstEnv("AI_API_KEY", "OPENAI_API_KEY"), "API key (llm engine)")
+	levelFlag := flag.String("level", "", "evidence level to diagnose at: C1..C5 (default: the report's own level)")
 	outPath := flag.String("out", "-", "path to write the Result JSON, or - for stdout")
 	flag.Parse()
 
@@ -68,9 +69,23 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	bundle := evidence.BundleFromReport(report)
 
-	diagnoser, err := buildDiagnoser(engine, mode, *model, *aiBaseURL, *aiAPIKey, report)
+	// Resolve the evidence level. An explicit --level down-samples the captured
+	// bundle (the C1..C5 comparison runs from one operator capture); an empty
+	// flag keeps the report's own level.
+	level, err := evidence.ParseLevel(*levelFlag)
+	if err != nil {
+		return err
+	}
+	var bundle *evidence.Bundle
+	if *levelFlag == "" {
+		bundle = evidence.BundleFromReport(report)
+		level, _ = evidence.ParseLevel(report.Status.EvidenceLevel)
+	} else {
+		bundle = evidence.BundleFromReportAtLevel(report, level)
+	}
+
+	diagnoser, err := buildDiagnoser(engine, mode, *model, *aiBaseURL, *aiAPIKey, report, level)
 	if err != nil {
 		return err
 	}
@@ -83,11 +98,11 @@ func run() error {
 	return writeJSON(*outPath, result)
 }
 
-// buildDiagnoser constructs the requested engine. For the LLM engine at C5 the
-// report's provenance graph is passed through so the prompt distinguishes C5
-// from C4.
+// buildDiagnoser constructs the requested engine. The report's provenance graph
+// is passed to the LLM engine only at level C5, so the prompt distinguishes C5
+// (provenance graph + full bundle) from C4 (full bundle only).
 func buildDiagnoser(engine diagnosis.Engine, mode diagnosis.Mode, model, baseURL, apiKey string,
-	report *platformv1alpha1.FailureReport) (diagnosis.Diagnoser, error) {
+	report *platformv1alpha1.FailureReport, level evidence.Level) (diagnosis.Diagnoser, error) {
 
 	if engine == diagnosis.EngineRule {
 		// The rule engine is deterministic and grounded by construction; mode
@@ -103,7 +118,9 @@ func buildDiagnoser(engine diagnosis.Engine, mode diagnosis.Mode, model, baseURL
 		return nil, fmt.Errorf("llm engine requires --ai-api-key, $AI_API_KEY or $OPENAI_API_KEY")
 	}
 	d := diagnosis.NewLLMDiagnoser(diagnosis.NewOpenAIClient(baseURL, apiKey, model), mode)
-	d.Provenance = report.Status.ProvenanceGraph
+	if level.IncludesProvenanceGraph() {
+		d.Provenance = report.Status.ProvenanceGraph
+	}
 	return d, nil
 }
 

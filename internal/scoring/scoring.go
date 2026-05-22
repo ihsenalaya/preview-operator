@@ -84,6 +84,15 @@ func Score(result *diagnosis.Result, report *platformv1alpha1.FailureReport, sce
 		sc.Configuration = report.Status.EvidenceLevel
 	}
 
+	// Record the engine/mode/model first in notes: the results CSV has no
+	// dedicated column for them, and scoring-rubric.md §6 requires the LLM model
+	// and version to be recorded on every LLM-in-the-loop row.
+	desc := fmt.Sprintf("engine=%s mode=%s", sc.Engine, sc.Mode)
+	if sc.Model != "" {
+		desc += " model=" + sc.Model
+	}
+	sc.Notes = append(sc.Notes, desc)
+
 	evidenceIDs := evidenceIDSet(report)
 	capturedTypes := capturedEvidenceTypes(report)
 	sc.CapturedEvidenceTypes = capturedTypes
@@ -231,14 +240,28 @@ func scoreTiming(sc *Scorecard, report *platformv1alpha1.FailureReport) {
 	}
 }
 
+// RunFacts carries the per-run facts the scorer cannot derive from the
+// FailureReport or the diagnosis Result — they are known only to the
+// orchestration layer (run identity, and whether the artifact survived
+// namespace teardown).
+type RunFacts struct {
+	RunID       string
+	ClusterType string
+	// NamespaceDeleted and EvidenceSurvived are "true"/"false", or "" when the
+	// orchestration did not reach the teardown / survival-check step.
+	NamespaceDeleted string
+	EvidenceSurvived string
+}
+
 // CSVRecord renders the scorecard as one results-CSV row, in CSVHeader order.
-// run_id and cluster_type come from the caller; columns the scorer cannot
-// measure are emitted empty so a human or the orchestration layer fills them.
-func (sc *Scorecard) CSVRecord(runID, clusterType string) []string {
+// Run identity and the teardown/survival facts come from RunFacts; columns the
+// scorer cannot measure (evidence precision, recommendation score, CPU/memory
+// overhead) are emitted empty so a human fills them — never fabricated.
+func (sc *Scorecard) CSVRecord(f RunFacts) []string {
 	return []string{
 		sc.ScenarioID,
-		runID,
-		clusterType,
+		f.RunID,
+		f.ClusterType,
 		sc.Configuration,
 		sc.FailureDetectedAt,
 		sc.DiagnosisAvailableAt,
@@ -253,8 +276,8 @@ func (sc *Scorecard) CSVRecord(runID, clusterType string) []string {
 		"", // cpu_overhead — cluster measurement (RQ5)
 		"", // memory_overhead — cluster measurement (RQ5)
 		strconv.FormatInt(sc.BundleSizeBytes, 10), // storage_overhead = persisted artifact size
-		"", // namespace_deleted — set by the orchestration layer
-		"", // evidence_survived — set by the orchestration layer
+		f.NamespaceDeleted,
+		f.EvidenceSurvived,
 		strings.Join(sc.Notes, "; "),
 	}
 }

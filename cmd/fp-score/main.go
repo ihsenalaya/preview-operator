@@ -46,6 +46,8 @@ func run() error {
 	scenarioID := flag.String("scenario", "", "scenario id (F1..F10)")
 	runID := flag.String("run-id", "", "run identifier for the CSV row")
 	clusterType := flag.String("cluster-type", "", "cluster type for the CSV row (e.g. kind, aks)")
+	namespaceDeleted := flag.String("namespace-deleted", "", "namespace_deleted column: true | false")
+	evidenceSurvived := flag.String("evidence-survived", "", "evidence_survived column: true | false")
 	format := flag.String("format", "csv", "output format: csv | json")
 	outPath := flag.String("out", "-", "output path, or - for stdout")
 	csvHeader := flag.Bool("csv-header", false, "print the results CSV header and exit")
@@ -86,7 +88,12 @@ func run() error {
 		}
 		return writeRaw(*outPath, append(data, '\n'))
 	}
-	return writeCSVRow(*outPath, card.CSVRecord(*runID, *clusterType))
+	return writeCSVRow(*outPath, card.CSVRecord(scoring.RunFacts{
+		RunID:            *runID,
+		ClusterType:      *clusterType,
+		NamespaceDeleted: *namespaceDeleted,
+		EvidenceSurvived: *evidenceSurvived,
+	}))
 }
 
 // readReport decodes a FailureReport, accepting a single object or a List (first

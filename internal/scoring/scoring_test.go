@@ -195,7 +195,7 @@ func TestCSVRecordShapeAndEmptyCells(t *testing.T) {
 			EvidenceRefs: []string{"joblog-1"},
 		},
 	}
-	rec := Score(result, report, f1).CSVRecord("F1-C4-001", "kind")
+	rec := Score(result, report, f1).CSVRecord(RunFacts{RunID: "F1-C4-001", ClusterType: "kind"})
 	if len(rec) != len(CSVHeader) {
 		t.Fatalf("CSV record has %d fields, header has %d", len(rec), len(CSVHeader))
 	}

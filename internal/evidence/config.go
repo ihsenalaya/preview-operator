@@ -3,6 +3,8 @@ package evidence
 import (
 	"fmt"
 	"strings"
+
+	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 )
 
 // Level selects how much failure evidence the operator collects and structures.
@@ -73,6 +75,34 @@ func (l Level) Description() string {
 // IncludesProvenanceGraph reports whether the level materialises the failure
 // provenance graph. Only C5 does.
 func (l Level) IncludesProvenanceGraph() bool { return l == LevelC5 }
+
+// EvidenceTypesForLevel returns the set of evidence types a level admits, or nil
+// when the level admits every type (C4, C5, and any unset value).
+//
+// It is the diagnosis-time counterpart of CollectorsForLevel. The operator
+// captures the full bundle once at C5; the experiment harness then down-samples
+// that single capture to a lower level by keeping only these types — see
+// BundleFromReportAtLevel. This is what lets the C1..C5 comparison for RQ2 run
+// from one operator capture instead of five operator restarts.
+func EvidenceTypesForLevel(l Level) map[platformv1alpha1.EvidenceType]bool {
+	logs := map[platformv1alpha1.EvidenceType]bool{
+		platformv1alpha1.EvidenceTypePodLog: true,
+		platformv1alpha1.EvidenceTypeJobLog: true,
+	}
+	switch l {
+	case LevelC1:
+		return logs
+	case LevelC2:
+		logs[platformv1alpha1.EvidenceTypeKubernetesEvent] = true
+		return logs
+	case LevelC3:
+		logs[platformv1alpha1.EvidenceTypeKubernetesEvent] = true
+		logs[platformv1alpha1.EvidenceTypeTestResult] = true
+		return logs
+	default: // C4, C5, and any unset value: every type.
+		return nil
+	}
+}
 
 // CollectorsForLevel returns the collector subset that a level enables. The
 // subsets are nested: each level adds collectors to the one below it. An unset

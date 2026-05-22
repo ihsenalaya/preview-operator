@@ -70,6 +70,47 @@ func TestCollectorsForLevelAreNested(t *testing.T) {
 	}
 }
 
+func TestBundleFromReportAtLevelDownsamples(t *testing.T) {
+	// A full C5-style capture with one item of each level-relevant type.
+	report := &platformv1alpha1.FailureReport{
+		Status: platformv1alpha1.FailureReportStatus{
+			EvidenceLevel: "C5",
+			EvidenceItems: []platformv1alpha1.FailureEvidenceItem{
+				{ID: "podlog-1", Type: platformv1alpha1.EvidenceTypePodLog},
+				{ID: "joblog-1", Type: platformv1alpha1.EvidenceTypeJobLog},
+				{ID: "event-1", Type: platformv1alpha1.EvidenceTypeKubernetesEvent},
+				{ID: "test-1", Type: platformv1alpha1.EvidenceTypeTestResult},
+				{ID: "file-1", Type: platformv1alpha1.EvidenceTypeChangedFile},
+			},
+		},
+	}
+	cases := []struct {
+		level Level
+		want  int
+	}{
+		{LevelC1, 2}, // logs only
+		{LevelC2, 3}, // + events
+		{LevelC3, 4}, // + test results
+		{LevelC4, 5}, // everything
+		{LevelC5, 5}, // everything
+	}
+	for _, tc := range cases {
+		b := BundleFromReportAtLevel(report, tc.level)
+		if b.Len() != tc.want {
+			t.Errorf("level %s: kept %d items, want %d", tc.level, b.Len(), tc.want)
+		}
+		if b.Level != tc.level {
+			t.Errorf("level %s: bundle.Level = %q", tc.level, b.Level)
+		}
+	}
+
+	// C1 must never carry an event or a changed file.
+	c1 := BundleFromReportAtLevel(report, LevelC1)
+	if c1.Has("event-1") || c1.Has("file-1") {
+		t.Error("C1 down-sample leaked a non-log evidence item")
+	}
+}
+
 func TestAssembleBundleForLevelRecordsLevel(t *testing.T) {
 	for _, l := range []Level{LevelC1, LevelC2, LevelC3, LevelC4, LevelC5} {
 		b := AssembleBundleForLevel(failedPreview(), l)

@@ -1,0 +1,760 @@
+You are working on the GitHub repository:
+
+https://github.com/ihsenalaya/preview-operator
+
+Your mission is to prepare everything needed for a research/technical article titled:
+
+"Operator-Captured Failure Provenance for Ephemeral Kubernetes Preview Environments"
+
+The article is based on this Kubernetes operator. The operator creates ephemeral preview environments for pull requests, reconciles Preview custom resources, provisions Kubernetes resources, runs tests, integrates PostgreSQL, migrations, GitHub comments, OpenTelemetry, kagent/AI diagnostics, and stores diagnostic information in Preview status.
+
+The objective of the article is NOT to claim that Kubernetes RCA or AI-assisted RCA is new. Existing work already covers Kubernetes RCA, LLM-based RCA, graph-based RCA, preview environments, Testkube, OpenTelemetry, and observability. The originality must be positioned precisely as:
+
+"A Kubernetes operator captures, structures, and preserves failure evidence for ephemeral pull-request preview environments before namespace teardown, linking PR diff, Kubernetes resources, test failures, logs, events, traces, and AI-assisted diagnostic hypotheses into an auditable provenance artifact."
+
+Do the work carefully and systematically.
+
+IMPORTANT RULES:
+1. First inspect the repository structure before making changes.
+2. Do not remove existing functionality.
+3. Do not invent unsupported claims.
+4. If a reference cannot be verified locally, mark it as TODO_VERIFY instead of fabricating details.
+5. Keep the implementation Kubernetes-native and consistent with the existing code style.
+6. Prefer small, clean, reviewable changes.
+7. Add documentation, diagrams, methodology, tests, and implementation scaffolding where appropriate.
+8. Run formatting and tests when possible.
+9. At the end, produce a clear summary of modified files, what was added, what remains TODO, and exact commands to validate.
+
+====================================================
+PART 1 — REPOSITORY ANALYSIS
+====================================================
+
+Start by analyzing the repository:
+
+- Read README.md
+- Inspect api/ or config/ or charts/ CRD definitions
+- Inspect internal/controller
+- Inspect existing Preview CRD schema
+- Inspect existing status.diagnostics fields
+- Inspect kagent integration
+- Inspect GitHub integration
+- Inspect test orchestration code
+- Inspect OpenTelemetry-related code
+- Inspect Makefile and test commands
+- Inspect Helm chart structure
+- Inspect existing unit/e2e tests
+
+Then produce a short internal implementation plan before editing files.
+
+====================================================
+PART 2 — ARTICLE MATERIAL TO CREATE
+====================================================
+
+Create a new documentation directory:
+
+docs/research/failure-provenance/
+
+Inside it, create the following files:
+
+1. article-outline.md
+2. state-of-the-art.md
+3. research-questions.md
+4. methodology.md
+5. experiments.md
+6. metrics.md
+7. contributions.md
+8. threats-to-validity.md
+9. bibliography.bib
+10. README.md
+11. architecture.md
+12. failure-evidence-model.md
+
+The content must be directly usable for a research article.
+
+----------------------------------------------------
+2.1 article-outline.md
+----------------------------------------------------
+
+Create a complete article structure with these sections:
+
+1. Abstract
+2. Introduction
+3. Background
+   - Kubernetes Operators
+   - Preview environments
+   - Test orchestration in Kubernetes
+   - Observability and OpenTelemetry
+   - AI-assisted Root Cause Analysis
+   - Provenance models
+4. Motivation
+5. Problem Statement
+6. Proposed Approach
+7. Failure Evidence Bundle
+8. Failure Provenance Graph
+9. Operator Implementation
+10. Experimental Methodology
+11. Evaluation
+12. Discussion
+13. Threats to Validity
+14. Conclusion
+15. References
+
+Include a proposed abstract in English.
+
+The abstract must mention three contributions:
+- a Kubernetes-native failure evidence model for ephemeral preview environments
+- a failure provenance graph linking PR change context, Kubernetes resources, test failures and observable evidence
+- a controlled evaluation using fault injection scenarios measuring RCA accuracy, evidence completeness, hallucination rate, time to diagnosis and overhead
+
+----------------------------------------------------
+2.2 state-of-the-art.md
+----------------------------------------------------
+
+Write a full state of the art in English.
+
+It must cover:
+
+A. Kubernetes preview environments
+- Signadot
+- Okteto
+- Argo CD ApplicationSet Pull Request Generator
+- Jenkins X preview environments if relevant
+- Review App Operator if relevant
+
+B. Kubernetes Operators and CRDs
+- Kubernetes Custom Resources
+- Kubernetes Operator Pattern
+- controller reconciliation loop
+
+C. Kubernetes-native test orchestration
+- Testkube Test Workflows
+- Testkube CRDs
+- Testkube AI Agents if relevant
+
+D. Kubernetes RCA and LLM-based RCA
+- SynergyRCA
+- OpenRCA
+- Graph-augmented RCA
+- LLM-based software failure diagnosis
+
+E. Observability
+- OpenTelemetry
+- OpenTelemetry Operator
+- logs, metrics and traces
+
+F. Provenance
+- W3C PROV
+- PROV-DM
+- provenance graph concepts
+
+G. Gap analysis
+
+The gap must be formulated as:
+
+"Existing work addresses Kubernetes root cause analysis using LLMs, telemetry, and graph-based reasoning, while industrial platforms provide pull-request preview environments and Kubernetes-native test orchestration. However, these capabilities are rarely studied together in the context of ephemeral, change-scoped preview environments, where failure evidence may disappear when the namespace is deleted. This work studies how a Kubernetes operator can capture, structure, and preserve failure evidence during reconciliation and expose it as a provenance artifact for reliable AI-assisted root cause analysis."
+
+Add citations using BibTeX keys from bibliography.bib.
+
+Do not invent unsupported details. If unsure, write TODO_VERIFY.
+
+----------------------------------------------------
+2.3 research-questions.md
+----------------------------------------------------
+
+Create clear research questions:
+
+RQ1 — Evidence Preservation
+"To what extent can a Kubernetes operator preserve failure evidence from an ephemeral preview environment before namespace teardown?"
+
+RQ2 — RCA Accuracy
+"Does structured failure evidence improve root cause diagnosis accuracy compared with logs-only analysis?"
+
+RQ3 — Time to Diagnosis
+"Does failure provenance reduce the time required to identify the probable root cause?"
+
+RQ4 — Hallucination Control
+"Does requiring each AI-generated diagnosis to reference observable evidence reduce unsupported or hallucinated explanations?"
+
+RQ5 — Runtime Overhead
+"What is the additional runtime, CPU, memory and storage overhead introduced by failure evidence collection?"
+
+For each RQ, include:
+- motivation
+- hypothesis
+- measurement method
+- expected result
+- risk or limitation
+
+----------------------------------------------------
+2.4 methodology.md
+----------------------------------------------------
+
+Create a rigorous methodology.
+
+Include:
+
+Experimental environments:
+- Kind local cluster for reproducibility
+- Optional AKS cluster for cloud validation
+
+Core components:
+- preview-operator
+- Preview CRD
+- ephemeral namespace
+- PostgreSQL ephemeral database
+- migration job
+- seed job if present
+- smoke tests
+- contract tests
+- regression tests
+- E2E tests
+- OpenTelemetry
+- kagent or AI diagnostic module
+- GitHub Actions PR workflow
+
+Experimental flow:
+1. Create synthetic PR
+2. Inject controlled fault
+3. CI creates Preview CR
+4. Operator reconciles environment
+5. Tests execute
+6. Failure occurs
+7. Operator captures Failure Evidence Bundle
+8. Operator creates or updates FailureReport / Preview status
+9. AI diagnostic is produced from structured evidence
+10. Namespace is deleted
+11. Verify evidence survives deletion
+12. Compare diagnosis with known ground truth
+
+Include ground truth design:
+- Each injected failure has a known root cause
+- Diagnosis is correct only if it identifies component, failure category, and at least one valid evidence item
+
+Include comparison configurations:
+C1 logs only
+C2 logs + Kubernetes events
+C3 logs + events + test results
+C4 full evidence bundle
+C5 provenance graph + full evidence bundle
+
+----------------------------------------------------
+2.5 experiments.md
+----------------------------------------------------
+
+Create a fault injection experiment matrix.
+
+Include at least these scenarios:
+
+F1 Invalid SQL migration
+- root cause: migration syntax or semantic error
+- expected evidence: migration Job failed, SQL error log, changed migration file
+
+F2 Missing environment variable
+- root cause: ConfigMap/Secret/env var removed or renamed
+- expected evidence: CrashLoopBackOff, pod logs, deployment env diff
+
+F3 Invalid container image tag
+- root cause: non-existing image
+- expected evidence: ImagePullBackOff, Kubernetes event, image field
+
+F4 Removed or broken API endpoint
+- root cause: backend incompatible API change
+- expected evidence: contract test failure, changed backend route/controller file
+
+F5 Frontend breaking change
+- root cause: UI selector or route changed
+- expected evidence: E2E test failure, frontend diff, browser test log
+
+F6 Database readiness timeout
+- root cause: app starts before DB ready or readiness too slow
+- expected evidence: readiness/liveness events, app timeout logs, DB pod status
+
+F7 Broken Service selector
+- root cause: Service selector does not match pods
+- expected evidence: Service has no endpoints, E2E timeout, service manifest diff
+
+F8 Artificial latency / timeout
+- root cause: slow backend or network delay
+- expected evidence: long OTel trace span, timeout log, failed E2E test
+
+F9 Incorrect seed data
+- root cause: required test data missing or malformed
+- expected evidence: seed job logs, regression failure, missing DB record
+
+F10 Flaky test
+- root cause: non-deterministic test behavior
+- expected evidence: intermittent failure pattern, no stable infrastructure cause
+
+For each scenario include:
+- injected change
+- expected failed test suite
+- expected Kubernetes signal
+- expected log evidence
+- expected trace evidence if applicable
+- expected diagnosis
+- ground truth
+- success criterion
+
+Also define repetitions:
+- Run each scenario at least 10 times
+- Run parallel previews with 1, 5 and 10 concurrent PRs if feasible
+- Compare Kind vs AKS if AKS is available
+
+----------------------------------------------------
+2.6 metrics.md
+----------------------------------------------------
+
+Define metrics precisely:
+
+1. Evidence Preservation Rate
+Formula:
+preserved_evidence_items / expected_evidence_items
+
+2. Snapshot Survival Rate
+Formula:
+available_evidence_after_namespace_deletion / captured_evidence_before_deletion
+
+3. Top-1 RCA Accuracy
+Formula:
+correct_first_diagnosis / total_failures
+
+4. Top-3 RCA Accuracy
+Formula:
+root_cause_in_top_3_hypotheses / total_failures
+
+5. Mean Time To Diagnosis
+Formula:
+diagnosis_available_timestamp - failure_detected_timestamp
+
+6. Evidence Precision
+Formula:
+relevant_evidence_items / total_evidence_items_returned
+
+7. Evidence Recall
+Formula:
+relevant_evidence_items_captured / relevant_evidence_items_expected
+
+8. Hallucination Rate
+Formula:
+unsupported_diagnostic_claims / total_diagnostic_claims
+
+9. Recommendation Usefulness
+Use a 0/1 or 1-5 scale:
+- 0 means not actionable
+- 1 means actionable and directly linked to evidence
+or
+- 1 to 5 Likert scale
+
+10. Collection Overhead
+Measure:
+- additional seconds
+- CPU
+- memory
+- storage size
+- number of Kubernetes API calls if possible
+
+11. Reconcile Idempotency
+Measure:
+- duplicate reports
+- duplicate evidence items
+- status stability after repeated reconcile
+
+----------------------------------------------------
+2.7 contributions.md
+----------------------------------------------------
+
+Write the contributions clearly.
+
+Include:
+
+Contribution 1 — Failure Evidence Bundle
+A structured artifact that captures PR context, Kubernetes state, test results, logs, events, telemetry and diagnostic output before namespace teardown.
+
+Contribution 2 — Failure Provenance Graph
+A graph that links:
+PR -> commit -> changed files -> Preview CR -> namespace -> resources -> test suite -> failed test -> observable evidence -> probable cause -> recommendation.
+
+Contribution 3 — Operator-Controlled RCA
+An AI-assisted RCA workflow where the operator controls evidence capture and the AI agent must ground each hypothesis in collected evidence.
+
+Contribution 4 — Controlled Evaluation
+Fault injection experiments across Kubernetes, database, application, configuration, test and observability failure modes.
+
+Contribution 5 — Reproducible Artifact
+Implementation and documentation in the preview-operator repository.
+
+----------------------------------------------------
+2.8 threats-to-validity.md
+----------------------------------------------------
+
+Include:
+
+Internal validity:
+- injected failures may not represent all real failures
+- diagnostic scoring may be subjective
+- traces may not always be available
+
+External validity:
+- demo app may be simpler than production systems
+- results from Kind may differ from managed Kubernetes
+- one operator implementation may not generalize to all platforms
+
+Construct validity:
+- RCA accuracy is difficult to measure
+- hallucination rate requires careful annotation
+- evidence relevance may be subjective
+
+Conclusion validity:
+- number of runs may be small
+- flaky tests may affect results
+- LLM behavior may change depending on model/version
+
+Mitigations:
+- deterministic fault injection
+- known ground truth
+- repeated runs
+- independent scoring rubric
+- report confidence intervals where possible
+- separate Kind and AKS results
+
+----------------------------------------------------
+2.9 bibliography.bib
+----------------------------------------------------
+
+Create a BibTeX bibliography.
+
+Include entries for these topics:
+
+- Kubernetes Custom Resources
+- Kubernetes Operator Pattern
+- Argo CD ApplicationSet Pull Request Generator
+- Signadot preview environments
+- Okteto preview environments
+- Testkube Test Workflows
+- Testkube CRDs
+- Testkube AI Agents
+- OpenTelemetry
+- OpenTelemetry Operator
+- W3C PROV Overview
+- W3C PROV-DM
+- SynergyRCA
+- OpenRCA
+- Graph-augmented LLM RCA if verified
+- LLM software testing or LLM RCA survey if verified
+- preview-operator repository
+
+Use stable citation keys, for example:
+
+kubernetes_custom_resources
+kubernetes_operator_pattern
+argocd_pr_generator
+signadot_preview_envs
+okteto_preview_envs
+testkube_workflows
+testkube_crds
+testkube_ai_agents
+opentelemetry_docs
+opentelemetry_operator
+w3c_prov_overview
+w3c_prov_dm
+synergyrca_2025
+openrca_2025
+preview_operator
+
+If you cannot verify metadata such as author, venue, year or DOI, put TODO_VERIFY in the BibTeX entry rather than inventing details.
+
+----------------------------------------------------
+2.10 architecture.md
+----------------------------------------------------
+
+Create architecture documentation with Mermaid diagrams.
+
+Include at least:
+
+Diagram 1 — End-to-end flow:
+GitHub PR -> GitHub Actions -> Preview CR -> Preview Operator -> Namespace -> Services/PostgreSQL/Tests -> Failure Evidence Bundle -> FailureReport -> GitHub Comment
+
+Diagram 2 — Failure Evidence Bundle:
+PR context, Kubernetes state, test results, logs, events, traces, diagnostics
+
+Diagram 3 — Failure Provenance Graph:
+PR -> diff -> resource -> test failure -> evidence -> diagnosis -> recommendation
+
+Diagram 4 — Evidence persistence before namespace deletion:
+failure detected -> collect evidence -> persist report -> finalizer allows deletion
+
+----------------------------------------------------
+2.11 failure-evidence-model.md
+----------------------------------------------------
+
+Define the model in detail.
+
+Include:
+
+Entities:
+- PullRequest
+- Commit
+- ChangedFile
+- Preview
+- Namespace
+- Deployment
+- Pod
+- Job
+- Service
+- TestSuite
+- TestCase
+- LogEntry
+- KubernetesEvent
+- TraceSpan
+- MetricSample
+- Diagnosis
+- Recommendation
+
+Activities:
+- Reconciliation
+- Deployment
+- Migration
+- TestExecution
+- EvidenceCollection
+- DiagnosisGeneration
+- NamespaceTeardown
+
+Agents:
+- Developer
+- CI Pipeline
+- Preview Operator
+- Kubernetes API Server
+- kagent / AI Agent
+
+Relations:
+- wasDerivedFrom
+- wasGeneratedBy
+- wasAssociatedWith
+- used
+- caused
+- observedIn
+- supports
+
+Map this model to W3C PROV concepts.
+
+====================================================
+PART 3 — IMPLEMENTATION SCAFFOLDING
+====================================================
+
+After documentation is created, inspect whether the repository already contains diagnostic structures.
+
+If appropriate and consistent with the current project, add implementation scaffolding for failure evidence preservation.
+
+Do NOT over-engineer. Add minimal, clean structures.
+
+Target design:
+
+A. FailureEvidenceBundle Go type
+B. FailureEvidenceItem Go type
+C. FailureDiagnosis Go type
+D. Evidence reference IDs
+E. Evidence collector interface
+F. Basic collectors:
+   - Kubernetes events collector
+   - pod logs collector
+   - test result collector if existing test result data is available
+   - Preview status collector
+   - changeContext collector from Preview spec
+G. Redaction utility for secrets/tokens/passwords
+H. Idempotent report generation
+
+Suggested Go model:
+
+type FailureEvidenceBundle struct {
+    PreviewName string
+    Namespace string
+    PRNumber string
+    CommitSHA string
+    FailedSuite string
+    FailedTest string
+    FailureDetectedAt metav1.Time
+    ChangeContext ChangeContextEvidence
+    Kubernetes KubernetesEvidence
+    TestResults []TestEvidence
+    Telemetry TelemetryEvidence
+    Diagnosis *FailureDiagnosis
+}
+
+type FailureEvidenceItem struct {
+    ID string
+    Type string
+    Source string
+    Resource string
+    Message string
+    Timestamp metav1.Time
+    Relevance string
+    Redacted bool
+}
+
+type FailureDiagnosis struct {
+    ProbableCause string
+    Component string
+    Category string
+    Confidence float64
+    EvidenceRefs []string
+    Recommendations []string
+}
+
+Evidence types should include:
+- GitDiff
+- ChangedFile
+- KubernetesEvent
+- PodLog
+- JobLog
+- TestResult
+- TraceSpan
+- Metric
+- PreviewCondition
+- ReconcileEvent
+
+Add unit tests for:
+- evidence item ID generation
+- redaction of secrets
+- bundle construction from Preview object
+- no duplicate evidence items on repeated reconcile
+- diagnosis must reference existing evidence IDs
+
+If a FailureReport CRD is easy to add consistently, add it. Otherwise, create documentation and a TODO implementation plan.
+
+====================================================
+PART 4 — OPTIONAL FAILUREREPORT CRD
+====================================================
+
+If the repository structure supports adding a new CRD cleanly, create a new API kind:
+
+apiVersion: platform.company.io/v1alpha1
+kind: FailureReport
+
+Spec:
+- previewRef
+- namespace
+- prNumber
+- commitSHA
+- failedSuite
+- failedTest
+
+Status:
+- phase
+- failureDetectedAt
+- evidenceSummary
+- evidenceItems
+- probableCause
+- component
+- category
+- confidence
+- recommendations
+- preservedAfterTeardown
+- storageRef
+
+Requirements:
+- Add Go API types if this is a Kubebuilder project
+- Add CRD YAML or Helm CRD template if the project uses Helm CRDs
+- Add RBAC permissions for the operator
+- Add tests if possible
+
+If adding a CRD is too invasive, do NOT break the repo. Instead create:
+docs/research/failure-provenance/failurereport-crd-proposal.yaml
+
+====================================================
+PART 5 — EXPERIMENT SCRIPTS
+====================================================
+
+Create an experiments directory if appropriate:
+
+experiments/failure-provenance/
+
+Add:
+
+1. README.md
+2. scenarios.yaml
+3. run-kind-experiments.sh
+4. collect-results.sh
+5. scoring-rubric.md
+6. results-template.csv
+
+scenarios.yaml must define F1 to F10 scenarios.
+
+run-kind-experiments.sh should be safe:
+- bash strict mode
+- checks dependencies
+- does not delete unrelated resources
+- clearly prints what it is doing
+- supports dry-run mode if possible
+
+collect-results.sh should collect:
+- Preview status
+- FailureReport if present
+- Kubernetes events
+- pod statuses
+- job statuses
+- logs
+- test result artifacts if available
+
+scoring-rubric.md must explain how to score:
+- RCA correctness
+- evidence precision
+- evidence recall
+- hallucination rate
+- recommendation usefulness
+
+results-template.csv columns:
+scenario_id,run_id,cluster_type,configuration,failure_detected_at,diagnosis_available_at,mt td_seconds,top1_correct,top3_correct,evidence_precision,evidence_recall,hallucination_rate,recommendation_score,bundle_size_bytes,cpu_overhead,memory_overhead,storage_overhead,namespace_deleted,evidence_survived,notes
+
+Use "mttd_seconds" not "mt td_seconds" in the actual CSV header.
+
+====================================================
+PART 6 — VALIDATION
+====================================================
+
+After changes:
+
+1. Run gofmt on Go files
+2. Run make manifests if applicable
+3. Run make generate if applicable
+4. Run make test if available
+5. Run make lint if available
+6. If tests cannot run, explain why
+
+Do not hide failures. Report them clearly.
+
+====================================================
+PART 7 — FINAL OUTPUT
+====================================================
+
+At the end, provide:
+
+1. Summary of repository analysis
+2. List of created files
+3. List of modified files
+4. Any code added
+5. Any CRD added or proposed
+6. Test results
+7. Commands executed
+8. Remaining TODOs
+9. Exact next steps for the author to complete the article
+10. Any assumptions made
+
+The final answer must be concise but complete.
+
+Remember: the goal is to prepare a complete research package around:
+
+"Operator-Captured Failure Provenance for Ephemeral Kubernetes Preview Environments"
+
+The package must include:
+- state of the art
+- recent bibliography
+- research questions
+- methodology
+- fault injection tests
+- metrics
+- contributions
+- threats to validity
+- architecture diagrams
+- failure evidence model
+- implementation scaffolding if safe
+- experiment scripts if safe
