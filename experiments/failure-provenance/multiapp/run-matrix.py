@@ -103,17 +103,24 @@ def run_unit(subject: dict, fault: str, rep: int, cfg: dict,
         row["status"] = "dry-run"
         return row
 
-    # 1. inject + build (cached per subject+fault)
+    # 1. inject the fault — yields the (possibly mutated) deploy plan
     from injectors_multiapp import dispatch as inject_dispatch    # noqa
-    image = cache.get(sid, fault, lambda: inject_dispatch.build(subject, fault, cfg, run_dir))
+    plan = inject_dispatch.prepare(subject, fault, cfg)
+    _ = cache  # build-once cache reserved for code-fault image builds (S1)
 
     # 2. deploy the Preview via the meta.yaml-driven factory
     pf.create(name=name, cr_namespace=CR_NAMESPACE, pr_number=pr_number,
-              subject=subject, subject_image=image,
+              subject=plan.subject, subject_image=plan.image,
               probe_image=cfg["subjects"]["probe_image"])
     _kubectl("label", "preview", name, EXPERIMENT_LABEL, "--overwrite")
 
-    # 3. wait for the FailureReport (operator captures it on failure)
+    # 3. post-deploy fault step (e.g. F7 patches the Service selector)
+    if plan.post_deploy is not None:
+        ns = _wait_for_namespace(pr_number)
+        if ns:
+            plan.post_deploy(name, ns)
+
+    # 4. wait for the FailureReport (operator captures it on failure)
     if not _wait_for_report(f"{name}-failure"):
         row["status"] = "no-report"
         pf.delete(name, pf.runtime_namespace(pr_number), wait=False)
@@ -130,6 +137,19 @@ def run_unit(subject: dict, fault: str, rep: int, cfg: dict,
 
 def _fault_idx(fault: str) -> int:
     return int(fault[1:])
+
+
+def _wait_for_namespace(pr_number: int, timeout_s: int = 300) -> str:
+    """Return the preview's runtime namespace once it exists, else ''."""
+    ns = pf.runtime_namespace(pr_number)
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        out = subprocess.run(["kubectl", "get", "namespace", ns],
+                             capture_output=True, text=True)
+        if out.returncode == 0:
+            return ns
+        time.sleep(5)
+    return ""
 
 
 def _wait_for_report(report_name: str) -> bool:
