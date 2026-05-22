@@ -260,6 +260,11 @@ cluster_run() {
     image="idp-preview:fp-${scenario}-r${rep}"
     log "building image ${image}"
     if [[ "${CLUSTER_TYPE}" == "aks" ]]; then
+      # Pull the base image from ACR, not Docker Hub. Anonymous Docker Hub pulls
+      # are rate-limited per source IP; the ACR build agents share IPs and hit
+      # "toomanyrequests" partway through a 70-build matrix, failing the build.
+      # The base image is pre-imported into ACR (az acr import python:3.12-slim).
+      sed -i "s#^FROM python:3.12-slim#FROM ${REGISTRY}.azurecr.io/python:3.12-slim#" "${checkout}/Dockerfile"
       az acr build -r "${REGISTRY}" -t "${image}" "${checkout}" >/dev/null
       image="${REGISTRY}.azurecr.io/${image}"
     else
