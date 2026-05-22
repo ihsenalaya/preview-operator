@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 00:55 UTC
+- **Last updated:** 2026-05-23 01:55 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -266,6 +266,27 @@ Observations: the rule engine diagnoses F1 at every evidence level (it keys off
 the migration JobLog, present from C1). The LLM needs the fuller bundle — its
 accuracy rises 0→0→0→8→10 across C1–C5 (RQ2 signal). Free-form never earns
 Top-1: it does not ground its evidence references (RQ4 signal). 0 runs skipped.
+
+### F1 — invalid SQL migration (database) — matrix attempt 6 (canonical)
+
+Operator `:fp-stuckfix` (all 14 defects fixed). Top-1 correct by evidence level:
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 10/10 | 0/10 | 0/10 |
+| C2 | 10/10 | 0/10 | 0/10 |
+| C3 | 10/10 | 0/10 | 0/10 |
+| C4 | 10/10 | 8/10 | 0/10 |
+| C5 | 10/10 | 10/10 | 0/10 |
+
+Clean RQ2/RQ4 signal, stable across attempts 4-6:
+- **rule-grounded** robust at every evidence level (deterministic keyword match).
+- **llm-grounded** climbs with evidence — 0 at C1-C3, 8 at C4, 10 at C5: the LLM
+  needs the richer bundle (logs + diff + provenance) to localise the fault.
+- **llm-freeform** 0/10 everywhere — without the grounded schema it never emits
+  a verifiable component/category, so nothing scores.
+
+0 runs skipped, 0 errors.
 
 ### F2 — missing environment variable (configuration) — matrix attempt 5
 
