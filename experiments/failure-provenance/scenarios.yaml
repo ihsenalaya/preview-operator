@@ -21,6 +21,10 @@
 #   expected_diagnosis     human-readable probable cause
 #   ground_truth.component component at fault
 #   ground_truth.category  database|configuration|infrastructure|application|observability|test-reliability
+#   expected_evidence      evidence types (EvidenceType vocabulary) a complete
+#                          bundle should contain — the denominator of the
+#                          type-level Evidence Recall / Preservation metrics
+#                          (metrics.md §1, §7), consumed by cmd/fp-score
 #   success_criterion      when the run counts as a correct diagnosis
 
 apiVersion: failure-provenance/v1
@@ -47,6 +51,7 @@ scenarios:
     ground_truth:
       component: migration-job
       category: database
+    expected_evidence: [JobLog, TestResult, ChangedFile]
     success_criterion: >-
       Diagnosis names the migration job, category database, and references the SQL
       error log line and the changed migration file.
@@ -66,6 +71,7 @@ scenarios:
     ground_truth:
       component: app-deployment
       category: configuration
+    expected_evidence: [KubernetesEvent, PodLog, ChangedFile]
     success_criterion: >-
       Diagnosis names the app deployment, category configuration, and references
       the CrashLoopBackOff state and the missing-variable log line.
@@ -85,6 +91,7 @@ scenarios:
     ground_truth:
       component: app-deployment
       category: infrastructure
+    expected_evidence: [KubernetesEvent, ChangedFile]
     success_criterion: >-
       Diagnosis names the deployment, category infrastructure, and references the
       ImagePullBackOff event and the offending image reference.
@@ -104,6 +111,7 @@ scenarios:
     ground_truth:
       component: backend
       category: application
+    expected_evidence: [TestResult, ChangedFile]
     success_criterion: >-
       Diagnosis names the backend, category application, and references the
       contract-test failure and the changed backend route/handler.
@@ -123,6 +131,7 @@ scenarios:
     ground_truth:
       component: frontend
       category: application
+    expected_evidence: [TestResult, ChangedFile]
     success_criterion: >-
       Diagnosis names the frontend, category application, and references the E2E
       failure and the changed frontend file.
@@ -142,6 +151,7 @@ scenarios:
     ground_truth:
       component: app-deployment
       category: infrastructure
+    expected_evidence: [KubernetesEvent, PodLog]
     success_criterion: >-
       Diagnosis identifies the readiness/ordering problem, category infrastructure,
       and references the probe-failure events and the connection-timeout log.
@@ -161,6 +171,7 @@ scenarios:
     ground_truth:
       component: service
       category: infrastructure
+    expected_evidence: [KubernetesEvent, TestResult]
     success_criterion: >-
       Diagnosis names the service, category infrastructure, and references the
       empty-endpoints signal and the changed service manifest.
@@ -180,6 +191,7 @@ scenarios:
     ground_truth:
       component: backend
       category: observability
+    expected_evidence: [TraceSpan, PodLog, TestResult]
     success_criterion: >-
       Diagnosis identifies the latency/timeout, category observability, and
       references the timeout log and, where available, the long trace span.
@@ -199,6 +211,7 @@ scenarios:
     ground_truth:
       component: seed-job
       category: database
+    expected_evidence: [JobLog, TestResult]
     success_criterion: >-
       Diagnosis names the seed step, category database, and references the seed log
       / regression failure and the missing record.
@@ -218,6 +231,7 @@ scenarios:
     ground_truth:
       component: test-suite
       category: test-reliability
+    expected_evidence: [TestResult]
     success_criterion: >-
       Diagnosis identifies flakiness, category test-reliability, and does NOT
       invent an infrastructure/application cause (negative control for RQ4).
