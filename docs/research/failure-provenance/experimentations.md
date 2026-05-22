@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 22:45 UTC
+- **Last updated:** 2026-05-22 23:40 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -265,3 +265,25 @@ Observations: the rule engine diagnoses F1 at every evidence level (it keys off
 the migration JobLog, present from C1). The LLM needs the fuller bundle — its
 accuracy rises 0→0→0→8→10 across C1–C5 (RQ2 signal). Free-form never earns
 Top-1: it does not ground its evidence references (RQ4 signal). 0 runs skipped.
+
+### F2 — missing environment variable (configuration) — matrix attempt 5
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+**Not a clean "diagnosis failed" — a measurement gap.** F2's fault crashes the
+backend container (CrashLoopBackOff). The operator does not capture the
+crashed container's own log (the residual app-log issue after defects #11/#12),
+so the bundle has only the kubelet Back-off *event* + the changed file + the
+diff. The LLM still names the right component ("svc-backend") from the event,
+but (a) it cannot tell the category is *configuration* without the KeyError
+traceback, and (b) "svc-backend" ≠ the ground-truth "app-deployment" until the
+component vocabulary is aligned at offline re-score. F2 is the experiment's
+clearest evidence that **evidence completeness gates diagnosis accuracy** — a
+result in itself, to be framed as such (not hidden as a flat zero). 0 runs
+skipped, 0 errors.
