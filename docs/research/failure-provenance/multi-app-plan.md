@@ -69,6 +69,28 @@ per unit already guarantee no namespace collision.
    S3 (Django) → S5 (Spring) → S2 (Go) → S4 (Next.js).
 5. Full concurrent run S2–S5; aggregate; Evaluation §.
 
+## 3b. Constraint discovered — pre-built upstream images
+
+S2–S5 adapters wrap **pre-built upstream binaries** (`FROM listmonk/listmonk:v2.5.1`,
+the umami/petclinic release images). Their source is not built here. Therefore:
+
+- **Manifest/infra-injectable faults work on all 5** — F2 (drop a required env
+  var from the Preview spec), F3 (bad image tag), F6 (DB readiness), F7 (Service
+  selector), and F1 (corrupt the `migration_command` / its migration).
+- **Source-level faults (F4 broken endpoint, F5 frontend change, F8 injected
+  latency) are NOT feasible on S2–S5** without building each upstream project
+  (Go/Next.js/Java) from source with the fault — days of work per app, and
+  fragile. The prior article hit exactly this: its RQ4 mutations were
+  "S1 specific … non-interpretable architecturally" for S2/S3.
+
+**Revised scope (autonomous decision, recorded for the reviewer):** full F1–F10
+on **S1** (built from source); the **manifest/infra-injectable subset
+(F1, F2, F3, F6, F7)** on **S2–S5**. F4/F5/F8 on S2–S5 are marked *out of scope —
+upstream not built from source* in Threats to Validity, with the reasoning
+above. This is a feasibility limit, not a measurement we skipped; it is stated,
+not hidden. If the reviewer wants F4/F5/F8 cross-stack, that needs a separate
+decision to fork+build the 4 upstream apps.
+
 ## 4. Honest scoping
 
 - Not every fault maps to every stack (F5 on a headless API). N/A cells are
