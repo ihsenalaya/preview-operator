@@ -6,10 +6,11 @@ active). Each commit on `article/failure-provenance` is a checkpoint.
 
 - **Branch:** `article/failure-provenance` (pushed to GitHub)
 - **Base commit (Phases 1–4):** `8cc635a`
-- **Last updated:** 2026-05-22 16:55 UTC
-- **Currently working on:** Lot 6 attempted. The first matrix run exposed a
-  chain of harness-fidelity defects (see §6). Three are fixed and committed;
-  two more are being fixed now. The matrix is **not** producing valid data yet.
+- **Last updated:** 2026-05-22 17:25 UTC
+- **Currently working on:** Lot 6. All six harness-fidelity defects (§6) are
+  fixed and committed. Operator rebuilt with the AI-client retry fix; next:
+  redeploy, verify a clean baseline, run smoke tests, then launch the matrix.
+  Running autonomously.
 
 ---
 
@@ -93,6 +94,12 @@ Legend: ✅ done · 🔄 in progress · ⚠️ defects found · ⏳ pending
 
 ## 3. Update log
 
+- **2026-05-22 17:25 UTC** — Reviewer chose "fix the pipeline". Defects 4–6
+  resolved: baseline image built + harness default changed (`b1bb928`); migration
+  enabled via a manifest filter, and the operator AI client given 429 retry
+  (`a1206dd`) — the missing seed was AI enrichment failing on 429, not a
+  `seed.py`. Operator rebuilt as `:fp-aifix`. Running autonomously toward
+  redeploy → baseline verification → smoke tests → matrix.
 - **2026-05-22 16:55 UTC** — Lot 6 launched, then halted at run 1/100: empty
   `FailureReport`. Root-caused and fixed three defects (§6 #1–#3), committed
   `b808588`/`5b43311`/`cfc9a41`. Updated cluster CRD, rebuilt + redeployed the
@@ -147,46 +154,23 @@ Also done: cluster `failurereports` CRD updated to the Lot-1 schema; operator
 rebuilt (`testagentdevops.azurecr.io/preview-operator:fp-statusfix`) and
 redeployed; `EVIDENCE_COLLECTION=true`, `EVIDENCE_LEVEL=C5` confirmed.
 
-### Open defects — STOP, needs a decision
+### Defects 4–6 — resolved (decision: fix the pipeline)
 
-| # | Defect | Effect | Status |
-|---|--------|--------|--------|
-| 4 | **Baseline image unpullable.** `--baseline-image` defaults to `ghcr.io/ihsenalaya/idp-preview:latest`; the cluster gets `ErrImagePull`. | Non-code faults F3/F7/F9 cannot deploy a working app. | A working image was built: `testagentdevops.azurecr.io/idp-preview:baseline` (ACR run `ca8`). The harness default still needs changing to use it. |
-| 5 | **Migration/seed never enabled.** The generator emits `spec.database` without a `migration`/`seed` block; the operator runs those jobs only when `spec.database.migration.enabled: true`. No webhook/defaulter auto-enables them. | F1 (bad migration) and F9 (bad seed) faults are **inert**. The app also never gets its DB schema → test suite fails as **baseline noise**. | Not fixed. Needs a design choice — harness post-processes the manifest, or the generator is fixed upstream. |
-| 6 | **`seed.py` is missing.** The README's seed command is `python scripts/seed.py`, but no `seed.py` exists anywhere in `ihsenalaya/idp-preview`. | F9 (seed-data fault) **cannot run at all** — the seed job would fail to find its script regardless of any fix. | Not fixable in this repo — needs a change to `ihsenalaya/idp-preview`, or F9 dropped. |
+The reviewer chose to fix the pipeline fully. Findings and fixes:
 
-### Why work paused here
+| # | Defect | Resolution | Commit |
+|---|--------|------------|--------|
+| 4 | **Baseline image unpullable** — `ghcr.io/ihsenalaya/idp-preview:latest` gives `ErrImagePull`. | Built `testagentdevops.azurecr.io/idp-preview:baseline` into the cluster-attached ACR; changed the harness default. | `b1bb928` |
+| 5 | **Migration never enabled** — the generator omits `spec.database.migration`, so F1's fault is inert. | New fail-loud manifest filter `enable-db-migration.py`; the harness pipes the generated manifest through it. | `a1206dd` |
+| 6 | **Seeding** — investigation showed the catalogue seed is **AI enrichment**, not a `seed.py` (the F9 injector already disables AI enrichment as its fault). No `seed.py` is needed. The real defect: the operator's `internal/ai/client.go` had **no 429 retry**, so AI enrichment failed under load → empty catalogue → regression/contract failed as baseline noise. | Added exponential backoff + `Retry-After` to the operator AI client, mirroring the diagnosis client. | `a1206dd` |
 
-The first matrix launch revealed that Lots 2 and 5 were never validated
-end-to-end. Six distinct defects surfaced, each found only by running the
-harness on the cluster; three were clear-cut and are fixed, but #5 and #6 are
-not clear-cut — they need decisions that are outside a single bug fix:
+### Current state
 
-- **#5** — where the migration/seed config belongs (harness vs the idp-preview
-  generator), and whether enabling migrations for every scenario is the
-  intended experiment design.
-- **#6** — `seed.py` is missing from a *different repository*. F9 cannot be run
-  without either writing that script (a change to `ihsenalaya/idp-preview`) or
-  redefining/dropping F9.
-- **Baseline noise is still unconfirmed** — the baseline run never reached the
-  test suite (it died at #4's `ErrImagePull`). Whether an un-faulted preview is
-  clean once #4/#5 are fixed is unknown, and it determines whether *all ten*
-  scenarios are confounded or only F1/F9.
-
-Per the agreed autonomy boundary (fix clear-cut bugs; pause when a problem is
-ambiguous or needs a real decision), work stopped here for review rather than
-spending more cluster credits on a harness of unknown remaining depth.
-
-### To resume — options for the reviewer
-
-1. **Fix the harness fully** — change the baseline-image default to the ACR
-   image; have the harness inject `database.migration`/`seed`; add `seed.py`
-   to `ihsenalaya/idp-preview` (or drop F9). Then re-run baseline + F1/F3/F9
-   smoke tests before the matrix.
-2. **Reduce scope** — run the matrix with the scenarios that already work
-   (the non-DB faults), drop F1/F9, and report a 8-scenario evaluation.
-3. **Review scenario fidelity first** — confirm with a clean baseline whether
-   the demo app's test suite is stable before committing to the full matrix.
+All six defects are fixed and committed. Operator rebuilt as
+`testagentdevops.azurecr.io/preview-operator:fp-aifix` (AI-client retry).
+Remaining before the matrix: redeploy the operator, verify a clean baseline
+preview (AI enrichment must now seed the catalogue), run F1/F3 smoke tests,
+then launch the 10×10 matrix. This work is running autonomously.
 
 ### Root cause (process)
 
