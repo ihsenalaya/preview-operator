@@ -341,6 +341,14 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 func (r *PreviewReconciler) reconcileDatabaseWait(ctx context.Context, preview *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
 	ready, reason, err := r.reconcileDatabase(ctx, preview, nsName)
 	if err != nil {
+		// An optimistic-concurrency conflict is a normal, retryable controller
+		// error — not a database failure. Requeue instead of marking the
+		// Preview Failed (which would also capture a premature FailureReport
+		// while the migration Job is still running). Mirrors the guard already
+		// applied to the deployment, service and exposure reconcilers.
+		if errors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		}
 		return r.setFailedStatus(ctx, preview, reason, err)
 	}
 	if ready {

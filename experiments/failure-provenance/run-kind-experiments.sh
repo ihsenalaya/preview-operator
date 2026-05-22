@@ -330,7 +330,10 @@ wait_for_namespace() {
 wait_for_report() {
   local name="$1" deadline=$(( SECONDS + REPORT_TIMEOUT ))
   while (( SECONDS < deadline )); do
-    if kubectl get failurereport "${name}" >/dev/null 2>&1; then
+    # Wait for the report to exist AND its status to be fully populated
+    # (phase=Captured). Returning on mere existence races the operator's
+    # create-then-Status().Update and can capture a half-written report.
+    if [[ "$(kubectl get failurereport "${name}" -o jsonpath='{.status.phase}' 2>/dev/null)" == "Captured" ]]; then
       return 0
     fi
     sleep 15
