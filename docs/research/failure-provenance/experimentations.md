@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 01:55 UTC
+- **Last updated:** 2026-05-23 02:25 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -152,6 +152,22 @@ F1's fault was inert (defects #3/#5); kept only as a worked example of the
 scoring pipeline, NOT for the Evaluation section.
 
 ---
+
+## 5b. Per-scenario run durations (matrix attempt 6 — live)
+
+Wall-clock per scenario, extracted from `matrix-run.log` timestamps. Appended
+as each scenario completes. Operator `:fp-stuckfix`, AKS, 1 preview at a time.
+
+| Scenario | Runs | Total wall-clock | Per run | Notes |
+|----------|------|------------------|---------|-------|
+| F1 invalid migration | 10 | 17.3 min | ~1.7 min | fast — migration Job fails quickly |
+| F2 missing env var | 10 | (in progress) | ~1.1 min | fast — CrashLoopBackOff detected quickly |
+| F3 invalid image tag | — | — | — | expected slower (image-pull backoff) |
+| F4-F10 | — | — | — | appended on completion |
+
+Build cost is separate: with the Docker-Hub cache fix (#13) an ACR image build
+is ~33 s (was ~3 min + agent queue). Code-fault scenarios (F1,F2,F4,F5,F6,F8,
+F10) rebuild per run; non-code (F3,F7,F9) reuse the baseline image.
 
 ## 6. LLM behaviour & throttling
 
