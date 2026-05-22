@@ -1,0 +1,75 @@
+id: s5-petclinic
+name: "Spring PetClinic REST"
+description: "Java/Spring Boot veterinary clinic REST API with Flyway migrations"
+origin:
+  repo: spring-petclinic/spring-petclinic-rest
+  version: 3.4.0
+  license: Apache-2.0
+language: Java
+framework: Spring Boot 3
+database: postgresql
+
+seed_entity: pets
+seed_count: 13
+
+# Flyway runs on application startup via Spring Boot.
+# We trigger it by starting the app briefly to apply migrations + seed data,
+# then stop it. The service container will also re-run Flyway on start (idempotent).
+migration_command:
+  - sh
+  - -c
+  - |
+    export JAVA_HOME=/opt/java/openjdk
+    export PATH=/opt/java/openjdk/bin:$PATH
+    python3 << 'PYEOF'
+    import os, urllib.parse, subprocess, time, sys
+    db_url = os.environ.get('DATABASE_URL', '')
+    u = urllib.parse.urlparse(db_url)
+    jdbc = 'jdbc:postgresql://{}:{}{}'.format(u.hostname, u.port or 5432, u.path)
+    env = os.environ.copy()
+    env['SPRING_DATASOURCE_URL'] = jdbc
+    env['SPRING_DATASOURCE_USERNAME'] = u.username or 'postgres'
+    env['SPRING_DATASOURCE_PASSWORD'] = u.password or ''
+    env['SPRING_PROFILES_ACTIVE'] = 'postgres,spring-data-jpa'
+    env['SERVER_PORT'] = '19966'
+    env['JAVA_HOME'] = '/opt/java/openjdk'
+    env['PATH'] = '/opt/java/openjdk/bin:' + env.get('PATH', '')
+    proc = subprocess.Popen(
+        ['/opt/java/openjdk/bin/java', '-cp', '@/app/jib-classpath-file',
+         'org.springframework.samples.petclinic.PetClinicApplication'],
+        env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    started = False
+    deadline = time.monotonic() + 90
+    for line in proc.stdout:
+        if 'Started' in line or 'Flyway' in line or 'Exception' in line:
+            print(line.rstrip())
+        if 'Started PetClinicApplication' in line:
+            started = True
+            break
+        if time.monotonic() > deadline:
+            break
+    proc.terminate()
+    proc.wait(timeout=10)
+    if started:
+        print('PASS migration petclinic flyway: OK')
+    else:
+        print('WARN migration: app may not have fully started; Flyway runs on next boot')
+        sys.exit(0)
+    PYEOF
+
+services:
+  - name: backend
+    image_key: app
+    port: 9966
+    path_prefix: /
+  - name: probe
+    image_key: probe
+    port: 9090
+    path_prefix: /probe
+
+notes: |
+  Spring Boot app wrapped with Python proxy (wrapper.py) for /healthz.
+  Flyway seed data ships with the app (db/migration/postgresql/V*.sql).
+  seed_count=13 matches the default Flyway R__Insert_default_data.sql pet rows.
+  Tests use the petclinic REST API at /api/pets, /api/vets, /api/owners.
+  Isolation probes use PROBE_URL=http://svc-probe:9090.
