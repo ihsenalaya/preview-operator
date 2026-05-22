@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 20:25 UTC
+- **Last updated:** 2026-05-22 21:10 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -92,10 +92,13 @@ Operator startup line confirms instrumentation each redeploy:
 | ~19:0x | Log-capture + matcher fix (`7ab0020`); operator build `:fp-logfix` | ~3.5 min | — |
 | ~19:1x | Operator redeployed `:fp-logfix` (all 9 fixes) | rollout ~30 s | Healthy |
 | ~19:2x | **Matrix attempt 3** launched (100 runs, rule+llm) | running ~12-20 h | F1 run 1 verified: JobLog complete (psycopg2 syntax error captured); rule + llm-grounded both Top-1=1 ✓ |
+| ~20:3x | **Matrix attempt 3 stopped** at ~F2 run 3 | — | Found defects #11/#12: crashing app logs not captured (40% of scenarios) |
+| ~21:0x | Defects #10/#11/#12 fixed (`4404a24`,`6021b98`); operator builds `:fp-applog`,`:fp-prevlog` | ~7 min | — |
+| — | **Matrix attempt 4** — pending F2 smoke verification | — | (pending) |
 
 ---
 
-## 4. Defects found (the matrix exposed 10)
+## 4. Defects found (the matrix exposed 12)
 
 Each was invisible to `go build` / `inject-fault.sh --list` and surfaced only by
 running the harness end-to-end on the cluster.
@@ -112,6 +115,8 @@ running the harness end-to-end on the cluster.
 | 8 | Premature capture on conflict | F1 `FailureReport` sparse (4 items, no `JobLog`/`TestResult`); diagnosis "insufficient evidence" | The `reconcileDatabase` caller marked the Preview Failed on any error, including a transient 409 conflict ("Operation cannot be fulfilled"), capturing a `FailureReport` while the migration Job was still `JobRunning`. The deployment/service/exposure callers already guarded `IsConflict`; the database one did not. | Conflict → requeue, not fail. `wait_for_report` waits for `phase=Captured`. | `a274294` |
 | 9 | Head-biased log capture | F1 `JobLog` was 314 B — the *middle* of a Python traceback; rule diagnoser "insufficient evidence" | `selectSignificantLines` filled its 6-line budget from the TOP of the log and returned early, dropping the conclusive error line (`psycopg2 ... syntax error`) at the end. Also `componentMatch` concatenated tokens, missing "database migration" vs "migration-job". | Keep the LAST `limit` significant lines; token-aware `componentMatch`. | `7ab0020` |
 | 10 | Rule diagnoser over-matches | F2 (missing env var) misdiagnosed as `migration-job / database` | `ruleInvalidMigration` keys off the keyword "alembic", which appears in **every** migration log — including a *successful* one (`INFO [alembic.runtime.migration]`). It fires regardless of whether the migration failed, and being first in the ordered rules it shadows the correct rule. | OFFLINE fix pending in `internal/diagnosis/rules.go`: require an error-specific keyword, not bare "alembic". Re-scorable from report.json — no cluster re-run. | (pending) |
+| 11 | App-pod logs never captured | F2 bundle had no backend log — only a CrashLoopBackOff event; rule diagnoser "insufficient evidence" | `significantLogExcerpts` looked only for the single-service label `app=preview-preview`; the experiment's multi-service previews label pods `app=svc-backend`/`app=svc-frontend`. | Added svc-backend/svc-frontend log candidates. | `4404a24` |
+| 12 | Crashed-pod log unreachable | Even with #11, the backend crash log was missing | `fetchPodLogs` called `GetLogs` without `Previous`; a CrashLoopBackOff container's current instance is "waiting to start" so the call errors — the crash traceback is in the *previous* instance. | Fall back to previous-instance logs. | `6021b98` |
 
 **Process root cause:** Lots 2 & 5 were marked "done" without an end-to-end
 cluster run. Strong candidate for the article's *Lessons Learned*.
