@@ -95,6 +95,36 @@ func BuildFailureReport(b *Bundle) *platformv1alpha1.FailureReport {
 	}
 }
 
+// BundleFromReport reconstructs an in-memory Bundle from a persisted
+// FailureReport. It is the partial inverse of BuildFailureReport: it restores
+// the evidence items and the failure identity, which is exactly the input a
+// diagnostic step needs.
+//
+// The diagnosis and the provenance graph are deliberately NOT re-attached — a
+// diagnostic run (see internal/diagnosis) starts from the evidence alone, so
+// that a diagnosis produced from a preserved report can be compared against the
+// one captured at failure time.
+func BundleFromReport(r *platformv1alpha1.FailureReport) *Bundle {
+	b := &Bundle{items: map[string]platformv1alpha1.FailureEvidenceItem{}}
+	if r == nil {
+		return b
+	}
+	b.PreviewName = r.Spec.PreviewRef.Name
+	b.Namespace = r.Spec.Namespace
+	b.PRNumber = r.Spec.PRNumber
+	b.CommitSHA = r.Spec.CommitSHA
+	b.FailedSuite = r.Spec.FailedSuite
+	b.FailedTest = r.Spec.FailedTest
+	b.Level = Level(r.Status.EvidenceLevel)
+	if r.Status.FailureDetectedAt != nil {
+		b.FailureDetectedAt = *r.Status.FailureDetectedAt
+	}
+	for _, it := range r.Status.EvidenceItems {
+		b.Add(it)
+	}
+	return b
+}
+
 // bundleSizeBytes returns the JSON-serialised size of the evidence items — the
 // storage footprint measured by RQ5. A marshalling error (which the typed items
 // cannot realistically produce) yields 0 rather than failing report generation.
