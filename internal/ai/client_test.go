@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -162,8 +163,11 @@ func TestTruncate_withinLimit(t *testing.T) {
 }
 
 func TestGenerate_http500(t *testing.T) {
+	var calls int
 	client := NewClient("https://ai.example.test", "test-key", "")
+	client.retryBaseDelay = time.Millisecond // 500 is retried; keep the test fast
 	client.HTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls++
 		return &http.Response{
 			StatusCode: http.StatusInternalServerError,
 			Body:       io.NopCloser(strings.NewReader("internal error")),
@@ -176,6 +180,65 @@ func TestGenerate_http500(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "500") {
 		t.Errorf("error message should mention 500, got: %v", err)
+	}
+	if calls != maxAttempts {
+		t.Errorf("transient 500 should be retried %d times, got %d", maxAttempts, calls)
+	}
+}
+
+// TestGenerateRetriesOn429 checks that AI enrichment survives a throttled
+// endpoint — the failure mode that left previews with an empty catalogue.
+func TestGenerateRetriesOn429(t *testing.T) {
+	var calls int
+	client := NewClient("https://ai.example.test", "test-key", "")
+	client.retryBaseDelay = time.Millisecond
+	client.HTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		if calls <= 2 {
+			return &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Body:       io.NopCloser(strings.NewReader(`{"error":{"message":"Too Many Requests"}}`)),
+			}, nil
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body: io.NopCloser(strings.NewReader(
+				`{"choices":[{"message":{"content":"{\"seed_sql\":\"\",\"test_script\":\"print('ok')\"}"}}]}`,
+			)),
+		}, nil
+	})}
+
+	resp, err := client.Generate(context.Background(), GenerateRequest{PRNumber: 1})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if resp.TestScript != "print('ok')" {
+		t.Errorf("unexpected test script: %q", resp.TestScript)
+	}
+	if calls != 3 {
+		t.Errorf("transport called %d times, want 3 (two 429s then success)", calls)
+	}
+}
+
+// TestGenerateGivesUpAfter429s checks that sustained throttling fails after
+// exactly maxAttempts rather than looping forever.
+func TestGenerateGivesUpAfter429s(t *testing.T) {
+	var calls int
+	client := NewClient("https://ai.example.test", "test-key", "")
+	client.retryBaseDelay = time.Millisecond
+	client.HTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return &http.Response{
+			StatusCode: http.StatusTooManyRequests,
+			Body:       io.NopCloser(strings.NewReader(`{"error":{"message":"Too Many Requests"}}`)),
+		}, nil
+	})}
+
+	if _, err := client.Generate(context.Background(), GenerateRequest{PRNumber: 1}); err == nil {
+		t.Fatal("Generate should fail when every attempt is throttled")
+	}
+	if calls != maxAttempts {
+		t.Errorf("transport called %d times, want %d", calls, maxAttempts)
 	}
 }
 
