@@ -239,6 +239,13 @@ func (r *PreviewReconciler) significantLogExcerpts(ctx context.Context, nsName s
 	}{
 		{component: componentMigration, container: componentMigration, labels: client.MatchingLabels{"platform.company.io/task": componentMigration}},
 		{component: componentSeed, container: componentSeed, labels: client.MatchingLabels{"platform.company.io/task": componentSeed}},
+		// Multi-service previews (spec.services) label their pods app=svc-<name>;
+		// the single-service preview uses app=preview-preview. Cover both, so the
+		// crashing application container's own log is captured — without these
+		// two entries a CrashLoopBackOff app left only a Kubernetes event in the
+		// evidence bundle, with no traceback to diagnose.
+		{component: componentApp, container: "backend", labels: client.MatchingLabels{"app": "svc-backend"}},
+		{component: componentApp, container: "frontend", labels: client.MatchingLabels{"app": "svc-frontend"}},
 		{component: componentApp, container: componentApp, labels: client.MatchingLabels{"app": "preview-preview"}},
 		{component: componentDatabase, container: "postgres", labels: client.MatchingLabels{"app": "postgres"}},
 	}

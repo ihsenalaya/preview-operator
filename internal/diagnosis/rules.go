@@ -92,9 +92,16 @@ var orderedRules = []rule{
 // --- F1: invalid SQL migration --------------------------------------------
 
 func ruleInvalidMigration(b *evidence.Bundle) *ruleHit {
+	// Match an actual migration ERROR, not the mere presence of "alembic" — that
+	// word appears in every migration log, including a successful one
+	// ("INFO [alembic.runtime.migration] ..."). Keying off it made this rule
+	// fire for any scenario whose (successful) migration Job was captured.
 	sqlError := firstItem(b, func(it item) bool {
 		return (it.Type == platformv1alpha1.EvidenceTypeJobLog || it.Type == platformv1alpha1.EvidenceTypePodLog) &&
-			containsAny(it.Message, "syntax error", "psycopg2", "programmingerror", "operationalerror", "sqlalchemy", "alembic")
+			containsAny(it.Message,
+				"syntax error", "programmingerror", "operationalerror", "integrityerror",
+				"datatypemismatch", "sqlalchemy.exc", "psycopg2.error",
+				"traceback (most recent call last)")
 	})
 	migrationSignal := firstItem(b, func(it item) bool {
 		return (it.Type == platformv1alpha1.EvidenceTypeTestResult || it.Type == platformv1alpha1.EvidenceTypeJobLog) &&
@@ -150,7 +157,7 @@ func ruleImagePull(b *evidence.Bundle) *ruleHit {
 
 func ruleMissingConfig(b *evidence.Bundle) *ruleHit {
 	crash := firstItem(b, func(it item) bool {
-		return containsAny(it.Message, "crashloopbackoff") ||
+		return containsAny(it.Message, "crashloopbackoff", "back-off restarting") ||
 			(it.Type == platformv1alpha1.EvidenceTypePreviewCondition && containsAny(it.Message, "crashloop"))
 	})
 	missing := firstItem(b, func(it item) bool {
