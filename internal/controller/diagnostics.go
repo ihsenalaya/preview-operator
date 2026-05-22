@@ -285,10 +285,23 @@ func (r *PreviewReconciler) firstPodName(ctx context.Context, nsName string, lab
 }
 
 func (r *PreviewReconciler) fetchPodLogs(ctx context.Context, nsName, podName, container string, lines int) []string {
+	if out := r.podLogStream(ctx, nsName, podName, container, lines, false); out != nil {
+		return out
+	}
+	// A CrashLoopBackOff container has no running current instance — GetLogs
+	// errors with "is waiting to start". The crash output (e.g. the Python
+	// traceback that pinpoints the fault) is in the previous, terminated
+	// instance, so fall back to it. Without this the only evidence of an
+	// application crash is the Kubernetes Back-off event.
+	return r.podLogStream(ctx, nsName, podName, container, lines, true)
+}
+
+func (r *PreviewReconciler) podLogStream(ctx context.Context, nsName, podName, container string, lines int, previous bool) []string {
 	tailLines := int64(lines)
 	req := r.KubeClient.CoreV1().Pods(nsName).GetLogs(podName, &corev1.PodLogOptions{
 		Container: container,
 		TailLines: &tailLines,
+		Previous:  previous,
 	})
 	stream, err := req.Stream(ctx)
 	if err != nil {
