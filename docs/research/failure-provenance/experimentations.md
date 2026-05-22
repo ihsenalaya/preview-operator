@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 22:10 UTC
+- **Last updated:** 2026-05-22 22:45 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -98,7 +98,7 @@ Operator startup line confirms instrumentation each redeploy:
 
 ---
 
-## 4. Defects found (the matrix exposed 12)
+## 4. Defects found (the matrix exposed 13)
 
 Each was invisible to `go build` / `inject-fault.sh --list` and surfaced only by
 running the harness end-to-end on the cluster.
@@ -117,6 +117,7 @@ running the harness end-to-end on the cluster.
 | 10 | Rule diagnoser over-matches | F2 (missing env var) misdiagnosed as `migration-job / database` | `ruleInvalidMigration` keys off the keyword "alembic", which appears in **every** migration log — including a *successful* one (`INFO [alembic.runtime.migration]`). It fires regardless of whether the migration failed, and being first in the ordered rules it shadows the correct rule. | OFFLINE fix pending in `internal/diagnosis/rules.go`: require an error-specific keyword, not bare "alembic". Re-scorable from report.json — no cluster re-run. | (pending) |
 | 11 | App-pod logs never captured | F2 bundle had no backend log — only a CrashLoopBackOff event; rule diagnoser "insufficient evidence" | `significantLogExcerpts` looked only for the single-service label `app=preview-preview`; the experiment's multi-service previews label pods `app=svc-backend`/`app=svc-frontend`. | Added svc-backend/svc-frontend log candidates. | `4404a24` |
 | 12 | Crashed-pod log unreachable | Even with #11, the backend crash log was missing | `fetchPodLogs` called `GetLogs` without `Previous`; a CrashLoopBackOff container's current instance is "waiting to start" so the call errors — the crash traceback is in the *previous* instance. | Fall back to previous-instance logs. | `6021b98` |
+| 13 | Docker Hub rate limit | `az acr build` failed mid-matrix ("toomanyrequests"); affected runs captured an image-missing failure, not the injected fault | The idp-preview Dockerfile pulls its base image `python:3.12-slim` from Docker Hub; anonymous pulls are rate-limited per source IP, and the shared ACR build agents exhausted the limit after ~11 builds. | Pre-import the base image into ACR (`az acr import`); the harness rewrites the cloned Dockerfile FROM lines to pull from ACR. | `fb5294c` |
 
 **Process root cause:** Lots 2 & 5 were marked "done" without an end-to-end
 cluster run. Strong candidate for the article's *Lessons Learned*.
