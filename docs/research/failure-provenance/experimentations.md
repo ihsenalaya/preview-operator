@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 23:40 UTC
+- **Last updated:** 2026-05-23 00:55 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -98,7 +98,7 @@ Operator startup line confirms instrumentation each redeploy:
 
 ---
 
-## 4. Defects found (the matrix exposed 13)
+## 4. Defects found (the matrix exposed 14)
 
 Each was invisible to `go build` / `inject-fault.sh --list` and surfaced only by
 running the harness end-to-end on the cluster.
@@ -118,6 +118,7 @@ running the harness end-to-end on the cluster.
 | 11 | App-pod logs never captured | F2 bundle had no backend log — only a CrashLoopBackOff event; rule diagnoser "insufficient evidence" | `significantLogExcerpts` looked only for the single-service label `app=preview-preview`; the experiment's multi-service previews label pods `app=svc-backend`/`app=svc-frontend`. | Added svc-backend/svc-frontend log candidates. | `4404a24` |
 | 12 | Crashed-pod log unreachable | Even with #11, the backend crash log was missing | `fetchPodLogs` called `GetLogs` without `Previous`; a CrashLoopBackOff container's current instance is "waiting to start" so the call errors — the crash traceback is in the *previous* instance. | Fall back to previous-instance logs. | `6021b98` |
 | 13 | Docker Hub rate limit | `az acr build` failed mid-matrix ("toomanyrequests"); affected runs captured an image-missing failure, not the injected fault | The idp-preview Dockerfile pulls its base image `python:3.12-slim` from Docker Hub; anonymous pulls are rate-limited per source IP, and the shared ACR build agents exhausted the limit after ~11 builds. | Pre-import the base image into ACR (`az acr import`); the harness rewrites the cloned Dockerfile FROM lines to pull from ACR. | `fb5294c` |
+| 14 | Preview hangs on a stuck job | F3 (invalid image tag): the migration Job pod sat in `ImagePullBackOff`; the operator reported `MigrationReady=JobRunning` forever, never failed the Preview, no FailureReport — the run would time out and skip. | `reconcileDatabaseTask` only checked `JobFailed`, which an un-pullable Job never reaches. | `jobPodImageError` fails a task whose pod is in ImagePullBackOff/InvalidImageName/CreateContainerConfigError; plus a 15-min provisioning-deadline backstop. | `2edfd07` |
 
 **Process root cause:** Lots 2 & 5 were marked "done" without an end-to-end
 cluster run. Strong candidate for the article's *Lessons Learned*.
