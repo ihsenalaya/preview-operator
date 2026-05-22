@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 21:10 UTC
+- **Last updated:** 2026-05-22 21:35 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -94,7 +94,7 @@ Operator startup line confirms instrumentation each redeploy:
 | ~19:2x | **Matrix attempt 3** launched (100 runs, rule+llm) | running ~12-20 h | F1 run 1 verified: JobLog complete (psycopg2 syntax error captured); rule + llm-grounded both Top-1=1 ✓ |
 | ~20:3x | **Matrix attempt 3 stopped** at ~F2 run 3 | — | Found defects #11/#12: crashing app logs not captured (40% of scenarios) |
 | ~21:0x | Defects #10/#11/#12 fixed (`4404a24`,`6021b98`); operator builds `:fp-applog`,`:fp-prevlog` | ~7 min | — |
-| — | **Matrix attempt 4** — pending F2 smoke verification | — | (pending) |
+| ~21:3x | **Matrix attempt 4** launched (100 runs, rule+llm) | running ~12-16 h | Operator `:fp-prevlog`, 12 defects fixed |
 
 ---
 
@@ -209,6 +209,8 @@ debugging risks ending with no matrix data at all; running now produces a
 re-scorable dataset.
 
 Note (F2, run 1): evidence is captured correctly — migration succeeded, backend CrashLoopBackOff event present — but the rule diagnoser (defect #10) and the component vocabulary need offline fixes before the final re-score. The crashing app pod's own log is not always in the bundle (CrashLoopBackOff pods); the K8s event carries the signal. To assess per-scenario.
+
+Residual app-crash-log gap: defects #11 (svc-backend/frontend log labels) and #12 (previous-instance logs) were fixed, but an F2 smoke still showed no backend PodLog in the bundle — a 13th issue whose root cause is not yet pinned down (suspect: the operator's cached client not seeing svc-* pods). For CrashLoopBackOff scenarios (F2; F5 if the frontend crashes) the evidence is therefore event-based (the kubelet Back-off event + conditions), not the application traceback. The LLM still identifies the right component from the event; the rule engine and the fault *category* are weaker without the log. Matrix attempt 4 was launched rather than spend more rebuild cycles — the dataset is re-scorable offline and this is a bounded, documented limitation.
 
 → **For the article's Threats to Validity:** contract/e2e baseline noise;
 F4/F5/F10 confounded; microcks + e2e-checkpoint subsystems unverified.
