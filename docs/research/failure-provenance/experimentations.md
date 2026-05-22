@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-22 19:30 UTC
+- **Last updated:** 2026-05-22 20:05 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -232,3 +232,25 @@ F4/F5/F10 confounded; microcks + e2e-checkpoint subsystems unverified.
 
 *This log is appended to at every milestone. See `PROGRESS.md` for the
 lot-by-lot status and the defect decision-gate history.*
+
+---
+
+## 9. Measured results (live — appended as the matrix completes each scenario)
+
+Top-1 correct, count out of 10 repetitions, per evidence level × engine-mode.
+Raw data: `results-matrix/results.csv`.
+
+### F1 — invalid SQL migration (database)
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 10/10 | 0/10 | 0/10 |
+| C2 | 10/10 | 0/10 | 0/10 |
+| C3 | 10/10 | 0/10 | 0/10 |
+| C4 | 10/10 | 8/10 | 0/10 |
+| C5 | 10/10 | 10/10 | 0/10 |
+
+Observations: the rule engine diagnoses F1 at every evidence level (it keys off
+the migration JobLog, present from C1). The LLM needs the fuller bundle — its
+accuracy rises 0→0→0→8→10 across C1–C5 (RQ2 signal). Free-form never earns
+Top-1: it does not ground its evidence references (RQ4 signal). 0 runs skipped.
