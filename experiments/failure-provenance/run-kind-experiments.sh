@@ -228,7 +228,7 @@ cluster_run() {
     else
       plan "# non-code fault: reuse baseline image ${BASELINE_IMAGE}"
     fi
-    plan "python3 ${checkout}/scripts/generate_preview_manifest.py --pr-number ${pr_number} ... | kubectl apply -f -"
+    plan "(cd ${checkout} && python3 scripts/generate_preview_manifest.py --pr-number ${pr_number} ...) | kubectl apply -f -"
     plan "kubectl label preview ${preview} ${EXPERIMENT_LABEL}"
     [[ "${scenario}" == "F7" ]] && \
       plan "${INJECTOR} --scenario F7 --namespace <preview-ns> --service backend --apply"
@@ -266,11 +266,15 @@ cluster_run() {
   fi
 
   log "applying Preview ${preview}"
-  python3 "${checkout}/scripts/generate_preview_manifest.py" \
+  # The generator derives changeContext from `git diff base...head`, which it
+  # runs in the current directory — so it must run inside the checkout, not the
+  # experiment repo. Without the cd the diff resolves nothing and every Preview
+  # is created with an empty changeContext (no ChangedFile/GitDiff evidence).
+  ( cd "${checkout}" && python3 scripts/generate_preview_manifest.py \
     --pr-number "${pr_number}" --branch "fp/${scenario,,}" --image "${image}" \
     --base-sha "${base_sha}" --head-sha "${head_sha}" \
     --repo ihsenalaya/idp-preview --repo-owner ihsenalaya --repo-name idp-preview \
-    --deployment-id "${pr_number}" \
+    --deployment-id "${pr_number}" ) \
     | kubectl apply -f - >/dev/null
   kubectl label preview "${preview}" "${EXPERIMENT_LABEL}" --overwrite >/dev/null
 

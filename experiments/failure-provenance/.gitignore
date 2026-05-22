@@ -1,0 +1,4 @@
+# Experiment run artifacts — never committed (raw runs are large and per-run).
+results/
+results-*/
+*.log
