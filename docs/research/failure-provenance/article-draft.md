@@ -581,9 +581,17 @@ Q1-COMPLIANCE Section E.]`
 
 The bundle size is bounded (< 5 KB median) and the operator's persist
 latency is negligible relative to the test-suite runtime that precedes
-diagnosis. Paired evidence-on / evidence-off CPU + memory measurement is
-queued via the RQ5-instrumentation operator patch (`Q1-COMPLIANCE §G`,
-W7) and treated as future work in this draft.
+diagnosis. The RQ5-instrumented operator image
+`preview-operator:fp-rq5instr` has been built and rolled out (see
+[`experimentations.md §10.8`](experimentations.md) — ACR build at
+18:40 UTC, deploy at 18:45 UTC). The image emits four sub-component
+fields on `FailureReportStatus`: `CollectionDurationMicros` (no
+`omitempty`), `CollectionAllocBytes`, `CollectionAllocCount`, plus a
+new `PersistDurationMicros`. **`[TODO — a 20-rep paired
+evidence-on / evidence-off subset rerun on the instrumented image is
+needed to populate the CPU + memory + API-call columns. Depends on
+Q1-COMPLIANCE Section G work unit W7; ETA before the Phase 5b
+freeze tag.]`**
 
 **Pareto frontier (bundle size × accuracy).** The single cell on the
 frontier is **C4 / LLM-A / grounded** at bundle ≈ 1239 B and aligned
@@ -636,6 +644,23 @@ without per-rep CIs.
 A2A JSON-RPC against the deployed Kagent agent (1 call per scenario, n=10):
 F1, F2 correct (aligned), F6 also under category match. Same source.
 
+#### 5.8.3b B0 multi-app (s2–s5)
+A multi-app B0 pass produced 200 reps × 4 subjects × scenario coverage,
+yielding **43.0 % pooled aligned** ([`experimentations.md §10.7`](experimentations.md)).
+**This figure is reported as an UPPER BOUND, not a directly-comparable
+baseline.** Per the harness design used for multi-app B0, the prompt
+is given the operator's `evidenceItems[]` formatted as `kubectl`-style
+output rather than freshly-pulled live cluster artefacts (because the
+multi-app cluster captures were teardown-completed at scoring time).
+This means the multi-app B0 prompt is *closer to the operator's
+bundle* than the S1 B0 prompt is to raw `kubectl`, so the multi-app B0
+top-1 is an over-estimate of what a vanilla `kubectl`-only practitioner
+would see. The threat is recorded in `threats-to-validity.md §7.5`;
+the S1 B0 at 4.0 % aligned (§5.8.1) remains the article's primary
+external-baseline number. **`[TODO — re-run multi-app B0 with
+freshly captured per-namespace kubectl artefacts as an oracle-fair
+comparator. Depends on Q1-COMPLIANCE Section H.]`**
+
 #### 5.8.4 B1 — rule-only diagnoser
 Already reported as one of the three engines in §5.4. We highlight it
 again here: rule-only on the operator's evidence bundle pooled at
@@ -654,22 +679,64 @@ image.
 
 ### 5.9 Multi-app generalization (s2–s5)
 
+#### 5.9.1 Subjects
+Four upstream OSS projects (`EVALUATION-DRAFT.md §10`):
+listmonk (Go/Chi+PostgreSQL), healthchecks (Python/Django 5+PostgreSQL),
+umami (TypeScript/Next.js 14+PostgreSQL), petclinic (Java/Spring Boot
+3+PostgreSQL). Wide-language coverage by construction.
+
+#### 5.9.2 Capture completeness (Phase 5b)
+After an engineering fix that replaced the post-deploy F7
+Service-selector patch with a deterministic meta.yaml port-mismatch
+(`services[0].port = 19999`) and that added a proxy-based F5
+injector to the harness adapters
+(`experimentations.md §10.4`), every multi-app scenario F1–F10 is
+in scope for every subject:
+
+| Subject | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 | F10 | Total |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| s2-listmonk     | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 3   |  93 |
+| s3-healthchecks | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 0   |  90 |
+| s4-umami        | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 0   |  90 |
+| s5-petclinic    | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  | 100 |
+| **TOTAL**       | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 13  | **373 / 400** |
+
+Source: [`experimentations.md §10.5`](experimentations.md). The 27
+missing F10 captures are **legitimate negative outcomes**, not missing
+measurements: F10 is the flaky-test scenario with ~50 % flaky-fail
+probability by design, so half of the reps produce a green test suite
+that produces nothing to capture. This is methodologically valid and
+documented in `threats-to-validity.md §7.5`.
+
+#### 5.9.3 Aligned top-1, Phase 1 diagnoses (pre-F5-fix snapshot)
+
 | Engine | n | aligned top-1 | Wilson 95 % CI |
 |---|---|---|---|
 | `llm-grounded`    | 1000 | 22.4 % (224/1000) | [19.9, 25.1] |
 | `llm-b-grounded`  | 1000 | 10.4 % (104/1000) | [8.7, 12.4] |
 
-Pooled across listmonk + healthchecks + umami + petclinic, F1+F2+F3+F6+F7,
-C1–C5, 10 reps. Source:
+Pooled across the 4 subjects, F1+F2+F3+F6+F7, C1–C5, 10 reps. Source:
 [`17-multiapp-rescore/summary-pooled.md`](analysis-output/17-multiapp-rescore/summary-pooled.md).
+Per subject ranges from 17.6 % (umami) to 28.0 % (healthchecks).
 
-**Reading.** The multi-app accuracy is materially below the primary
+**Phase 2 numbers** (post-F5-fix, including the 173 newly captured
+F4/F5/F8/F9/F10 reps × LLM-A/LLM-B × C1–C5 ≈ 1730 calls) **`[TODO —
+depends on the in-flight fp-diagnose Phase 2 batch; expected ETA
+2026-05-23 22:55 UTC. Update will replace this paragraph with a
+per-subject × per-scenario top-1 table mirroring §5.4.2.]`**
+
+#### 5.9.4 Reading
+The Phase 1 multi-app accuracy is materially below the primary
 application's (s1) pooled llm-grounded 31.4 %. Two confounds explain
-most of the gap: per-app component-name vocabulary mismatch (the alias
-table is tuned for s1), and the multi-app scenarios are restricted to
-F1/F2/F3/F6/F7 (the subset where injectors generalised to listmonk /
-healthchecks / umami / petclinic in time for the deadline). We report
-this as *generalization with documented limitations* in §6.
+most of the gap: per-app component-name vocabulary mismatch (the
+alias table extends s1 with per-subject synonyms in
+[`17-multiapp-rescore`](analysis-output/17-multiapp-rescore/), but
+each subject's idioms are not fully covered), and the Phase 1 cohort
+covers only F1+F2+F3+F6+F7 — the configuration / database /
+infrastructure faults. The harder application-level faults (F4 broken
+contract, F5 frontend HTML id, F8 latency, F9 bad seed, F10 flaky)
+all moved into scope only after the F5 engineering fix and are
+diagnosed in Phase 2.
 
 ### 5.10 Evidence Precision (M6)
 [`19-evidence-precision/summary.md`](analysis-output/19-evidence-precision/summary.md).
@@ -1012,6 +1079,28 @@ This section is appended to at every hourly self-update loop pass.
   intentionally `[TODO]` with explicit data dependencies.
 - 89-entry bibliography cited inline using `[`bib_key`]` notation
   throughout.
+
+### 2026-05-23 ~23:17 Paris — Tick 4 (Phase 5b multi-app numbers landed)
+- Stale-sweep `32184df` had appended a Phase 5b update-log; this tick
+  integrates the **verified** Phase 5b numbers into the article body
+  proper rather than leaving them in the appendix.
+- §5.9 rewritten: 373/400 multi-app capture table (with the 27 F10
+  flaky-pass negative outcomes explicitly explained, not counted as
+  missing data); per-subject row; clear separation between Phase 1
+  diagnoses (already in `17-multiapp-rescore/`) and Phase 2 diagnoses
+  (in-flight, marked `[TODO depends on fp-diagnose Phase 2 ETA
+  ~22:55 UTC]`).
+- §5.8.3b added: multi-app B0 at 43.0 % pooled aligned, with an
+  honest UPPER BOUND caveat — the multi-app B0 was fed operator
+  evidenceItems formatted as kubectl rather than fresh kubectl
+  output, so it over-estimates what a vanilla practitioner would
+  see. S1 B0 at 4.0 % aligned remains the article's primary
+  external-baseline number.
+- §5.7 updated to mention the RQ5-instrumented operator image
+  `preview-operator:fp-rq5instr` is built and deployed; CPU/RAM
+  numbers remain `[TODO]` pending the 20-rep paired subset rerun.
+- No invented numbers; all new figures trace to `experimentations.md
+  §10.5 / §10.7 / §10.8`.
 
 ### 2026-05-23 ~22:17 Paris — Tick 3 (harness fix, no new data)
 - Pulled `d57da07` — F5 multi-app injector fix (`wrapper.py` proxy +
