@@ -18,10 +18,10 @@ subjects:
     # 2026-05-23 :fp-f10 (FP_F10_FLAKY hook) → :fp-f5 (also gained the
     # FP_F5_BROKEN_FRONTEND hook in wrapper.py + a _frontend_check test
     # in smoke.py). All four FP_* fault hooks now live in the same image.
-    s2-listmonk:       testagentdevops.azurecr.io/s2-listmonk-adapter:fp-f5
-    s3-healthchecks:   testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f5
-    s4-umami:          testagentdevops.azurecr.io/s4-umami-adapter:fp-f5
-    s5-petclinic:      testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f5
+    s2-listmonk:       testagentdevops.azurecr.io/s2-listmonk-adapter:fp-f10v2
+    s3-healthchecks:   testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f10v2
+    s4-umami:          testagentdevops.azurecr.io/s4-umami-adapter:fp-f10v2
+    s5-petclinic:      testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f10v2
 
 registry: testagentdevops          # ACR for fault-image builds (code faults)
 ai_api_url: https://preview-openai-idp.openai.azure.com/openai/deployments/gpt-4o-mini

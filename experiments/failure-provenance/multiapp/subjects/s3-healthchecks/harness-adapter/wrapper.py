@@ -43,6 +43,22 @@ class _ProxyHandler(BaseHTTPRequestHandler):
                                  b"injected by harness-adapter F5');</script>"
                                  b"</body></html>")
                 return
+
+        # F10 — flaky-test injector at the PROXY level. When
+        # FP_F10_FLAKY=1, with probability 0.5 per request the proxy
+        # returns 500 on any /api/* path. The smoke suite hits 5 API
+        # endpoints; at least one will fail with ~97 % probability,
+        # so the operator captures a FailureReport whose root cause
+        # is "the application is flaky / there is no real fault" —
+        # the RQ4 hallucination control.
+        if (os.environ.get("FP_F10_FLAKY") == "1"
+                and self.path.startswith("/api")
+                and __import__("random").random() < 0.5):
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":"FP_F10_FLAKY: deliberate flake"}')
+            return
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length) if length > 0 else None
         target = f"http://127.0.0.1:{APP_PORT}{self.path}"

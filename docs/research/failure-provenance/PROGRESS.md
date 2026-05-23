@@ -530,3 +530,55 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - 1 active preview (the B2 cell). Other 4 nodes idle, vmss00000a/b at 3-4 % CPU after the F5 batch unwound.
 - 373/400 multi-app captures stable. F4/F5/F8/F9 all 40/40 ✅. F10 13/40 + 27 flaky-pass.
 - Commit age 33 min. No push this tick (next at 22:55).
+
+### 2026-05-23 20:53 UTC (22:53 Paris) — tick 24 — both Phase-2 lanes 80%+
+- fp-diagnose Phase 2: **3155/3730** (85 %), 19:40 elapsed. ~14 pool workers active. ETA ~5 min.
+- B2 multi-app: 8:30 elapsed, on s2 F4 (cell 4 of 8 subset). K8sGPT 3 outputs, Kagent 3 outputs.
+- **Parser inspection** of the first 3 B2 outputs (s2 F1/F2/F3):
+  - K8sGPT: correct deep diagnosis (e.g. F3 → "Kubernetes couldn't pull the image…") but `k8sgpt_to_component` returns raw kind+name → matcher misses. Needs richer extraction: look at `results[0].details` and map keywords (migration, image, network, etc.) to the role vocabulary.
+  - Kagent: returns a JSON-RPC envelope `{result:{artifacts:[{parts:[{text:"```json\n{component:...}\n```"}]}]}}`. The script's `kagent_to_component` looks at the top-level text but doesn't drill into `result.artifacts[].parts[].text`. Returns the envelope's id field as 'component' → matcher misses.
+- Both raw .json files are on disk and correct — only the scoring parser needs improvement. Strategy: let B2 batch finish (8 cells, ~5 more min), then post-process with a richer parser that re-emits results-b2-multiapp.csv from the existing JSON files. NO no-report cells; this is a scoring-pipeline fix, not a measurement fix.
+- 373/400 captures stable. F4/F5/F8/F9 ✅. 1 active preview (B2's current cell).
+- 1 min since last commit. No push.
+
+### 2026-05-23 21:03 UTC (23:03 Paris) — tick 25 — B2 subset done + rescore validates parser
+- B2 multi-app subset (8 cells s2+s3 × F1-F4) COMPLETE. 14c-b2-multiapp-rescore.py re-parses the raw .json with correct logic (k8sgpt: details + error[].Text keyword fingerprint; kagent: drill into result.artifacts[].parts[]). Aligned 2/8 each (25 %) — both tools got F1 migration-job right, missed F2/F3/F4 (symptom-vs-cause: migration job is first to fail on image-pull / DB rename).
+- fp-diagnose Phase 2: 3477/3730 (93 %). ~3 min.
+- 0 active previews. Cluster idle.
+- LAUNCHING NEXT: B2 full extension (32 remaining cells = s2/s3 F5-F10 + all of s4/s5).
+
+### 2026-05-23 21:13 UTC (23:13 Paris) — tick 26 — final stretch
+- fp-diagnose Phase 2: 3677/3730 (98.6 %). ~1 min remaining.
+- B2 multi-app extension: 18/40 cells done. 3 processes (337461/62/63) alive 8m30s. ~10 more min for the remaining 22 cells.
+- 3 active previews (B2 currently-probing cells on s2/s3, s4, s5). Cluster healthy at 18-23 % CPU.
+- 373/400 captures stable.
+- 21 min since last commit.
+
+### 2026-05-23 21:23 UTC (23:23 Paris) — tick 27 — last 9 B2 cells
+- fp-diagnose ✅ 3730/3730 (the stray s2 F5 r2 LLM-B re-ran successfully). All multi-app diagnoses on disk.
+- B2 multi-app: 31/40 cells done. 2 processes still alive: s2+s3 extension (337461) and s5 (337463). s4 process exited.
+- 2 active previews. Cluster idle otherwise.
+- 31 min since last commit. Next push at 60 min OR when B2 finishes.
+
+### 2026-05-23 21:33 UTC (23:33 Paris) — tick 28 — B2 38/40, 2 cells left
+- Only 1 B2 process alive: 337463 (s5-petclinic, 28m). 1 active preview.
+- 373 captures, 3730 diags, 38 B2 cells. fp-diagnose Phase 2 ✅ complete.
+- 41 min since commit. Next commit triggered when B2 hits 40 (~2 min).
+
+### 2026-05-23 21:43 UTC (23:43 Paris) — tick 29 — F10 re-run in flight with proxy injection v2
+- Found that the original F10 mechanism (FP_F10_FLAKY env on services[]) was not propagated by the operator to test pods → F10 multi-app captures were either 0 (s3/s4) or false positives (s5's 10/10 were petclinic startup-slowness captures, not flaky tests).
+- Fixed: wrapper.py × 4 patched with FP_F10_FLAKY proxy injection (50 % per /api/* request returns 500). Smoke calls 5 endpoints, P(at least one fails) ≈ 97 % → deterministic F10 capture rate.
+- Adapter images rebuilt as :fp-f10v2 (4 parallel ACR builds, ~25 s each). config.yaml updated.
+- 13 stale F10 captures deleted (s2 3 + s5 10) + corresponding FailureReport CRs cleaned.
+- F10 re-run launched: 4 parallel run-matrix.py processes (345931-345934), F10 only.
+- B2 multi-app: 36/40 — lost 4 (the s5 F10 k8sgpt/kagent outputs that got deleted with the F10 dir cleanup; will reproduce from the new F10 captures).
+- 15 active previews. 51 min since commit (push at 60).
+
+### 2026-05-23 21:53 UTC (23:53 Paris) — tick 30 — 🎯 MATRIX 400/400 COMPLETE 🎯
+- **F10 multi-app: 40/40** ✅✅✅ après le fix wrapper.py proxy-injection (FP_F10_FLAKY=1 → 50 % de 500 sur /api). Deterministic capture rate observed ≈100 % (above the 97 % predicted from P(at-least-one-fails) with 5 endpoints).
+- **TOTAL CAPTURES MATRIX: 400/400 = 100 %** (S1 100/100 + multi-app 400/400 = 500/500).
+- F4/F5/F8/F9/F10 multi-app **all 40/40** ✅. No no-reports, no stale captures. 13 stale F10 from the env-var-only mechanism invalidated and re-collected with the proxy mechanism.
+- diags 3600/3730 because the F10 dirs deletion took out 130 diag files for the old F10 reps. Will re-run fp-diagnose phase 3 for the 400 new F10 diags now.
+- B2 multi-app: 36/40 — lost 4 s5/F10 outputs in the cleanup; will re-run via 14b script just for s5/F10 (~2 min).
+- 0 active previews. Cluster idle.
+- 61 min since last commit — **PUSHING NOW**.
