@@ -52,18 +52,71 @@ its limitations honestly.
 
 ---
 
-## 3. The two selected LLMs
+## 3. The three selected LLMs (as actually run on 2026-05-23)
 
-| Aspect | LLM-A (primary, retained) | LLM-B (added) |
+The originally pre-registered pair was `gpt-4o-mini` (LLM-A) and
+`Llama-3.3-70B-Instruct` (LLM-B). At execution time two upstream constraints
+forced substitutions: Together.ai was inaccessible (no API key available on
+the experiment subscription), and Azure Foundry's hosted Llama-3.3-70B
+endpoint went out of regional capacity mid-run (HTTP 404 `no_callers`,
+2026-05-23 14:08 UTC, persistent through 16:00 UTC). The substitution chain
+is fully documented in §3.1 below and in `LOCKED-PLAN.md §3.2`. The final
+triplet was:
+
+| Aspect | **LLM-A** (primary) | **LLM-B** (sensitivity) | **Judge** (RQ4) |
+|---|---|---|---|
+| Model identifier | `gpt-4o-mini-2024-07-18` | `cohere-command-a` v1 | `Mistral-Large-3` v1 |
+| Provider / family | **OpenAI** | **Cohere** | **Mistral AI** |
+| Source type | closed-source | closed-source | closed-source |
+| Capability tier | mid-tier frontier-adjacent | frontier (lifecycle ≥ 2099) | frontier reasoning |
+| Hosting | Azure OpenAI `preview-openai-idp` (GlobalStandard 9 000 K TPM) | Azure AI Foundry `fp-foundry-133641` (GlobalStandard 20 K TPM) | Azure AI Foundry `fp-foundry-133641` (GlobalStandard 20 K TPM) |
+| API surface | OpenAI Chat Completions | OpenAI-compatible shim on Foundry | OpenAI-compatible shim on Foundry |
+| Temperature pinned | `0` | `0` | `0` |
+| Pricing (May 2026) | $0.15 / $0.60 per 1M tok | $2.50 / $10.00 per 1M tok | $2.00 / $6.00 per 1M tok |
+| Context window | 128 K | 128 K | 200 K |
+
+### 3.1 The pre-registration → execution substitution chain
+
+1. **LLM-B = Llama-3.3-70B-Instruct-Turbo via Together.ai** (pre-registered).
+   Aborted at run time: no Together.ai API key available on the experiment
+   subscription. No purchase path within the experiment window.
+2. **LLM-B = Llama-3.3-70B-Instruct via Azure AI Foundry serverless**
+   (same Meta checkpoint, Azure-hosted). Deployed on `fp-foundry-133641`,
+   DataZoneStandard 100 K TPM then GlobalStandard 20 K TPM. **472 / 1000
+   cells captured** before Azure returned HTTP 404 `no_callers satisfying
+   location tag 'us'` on all subsequent requests. The 404 persisted across
+   SKU switches and across both deployments. Microsoft-side regional
+   capacity issue, not a quota or auth problem. The 472 partial cells are
+   archived under `results-matrix/F*/r*/diag-*-llmb-llama.json` as a
+   *partial-LLM-C sensitivity slice* for future replication.
+3. **LLM-B = `cohere-command-a` v1 on Azure AI Foundry** (Cohere family,
+   different from OpenAI). Deployed on the same Foundry resource; first
+   probe HTTP 200 at 14:43 UTC, full replay launched 14:44 UTC. This is
+   what the article's primary LLM-B numbers refer to.
+4. **Judge = `Mistral-Large-3` v1 on Azure AI Foundry** (substitution for
+   Claude Sonnet 4.5, which the locked plan named but which is *not*
+   available on the experiment Azure subscription — Anthropic is not in
+   the supported model-format list per `az cognitiveservices account
+   list-models`, verified 2026-05-23 13:30 UTC).
+
+Each substitution preserved the methodological *floor*: LLM-A, LLM-B and
+the judge come from **three disjoint provider families** (OpenAI, Cohere,
+Mistral). The article reports both the executed triplet and the original
+pre-registration, with the substitution rationale (this §3.1) traceable
+to the raw outage timestamps.
+
+### 3.2 Original two-LLM table (kept for traceability)
+
+The pre-registration described only a primary + sensitivity pair, before
+the judge was made cross-family:
+
+| Aspect | LLM-A (planned) | LLM-B (planned) |
 |---|---|---|
-| Model identifier | `gpt-4o-mini-2024-07-18` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
-| Provider | OpenAI | Meta (open weights), served via Together.ai (alternative: Groq) |
-| Source type | **Closed-source / proprietary** | **Open-source (weights public)** |
-| Context window | 128k tokens | 128k tokens |
-| Capability tier | mid-tier frontier-adjacent | mid-tier frontier (open) |
-| Temperature pinned | `0` | `0` |
-| Reproducibility | conditional on OpenAI not deprecating the version | weights public; identical model can be self-hosted |
-| Cost (May 2026) | ≈ $0.15 / 1M input tokens, $0.60 / 1M output | ≈ $0.88 / 1M tokens (Together.ai, May 2026) |
+| Model | `gpt-4o-mini-2024-07-18` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| Provider | OpenAI | Meta via Together.ai |
+| Source type | closed | open |
+| Context | 128 K | 128 K |
+| Cost / 1M tok | $0.15 / $0.60 | ≈ $0.88 |
 
 This pair satisfies all seven criteria:
 

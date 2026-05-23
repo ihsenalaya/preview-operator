@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 """12-llmb-replay.py — replay the LLM engine on the frozen Phase 5a
-evidence bundles using LLM-B = `Llama-3.3-70B-Instruct` (Meta family,
+evidence bundles using LLM-B = `cohere-command-a` (Cohere family,
 Azure AI Foundry, GlobalStandard, temperature 0).
 
-This is the pre-registered LLM-B from `LOCKED-PLAN.md` — same model as
-`meta-llama/Llama-3.3-70B-Instruct-Turbo`, hosted on Azure AI Foundry
-(`fp-foundry-133641` AIServices account) rather than Together.ai. The
-Together.ai route was abandoned because no API key was available; Azure
-Foundry's MaaS catalog exposes the identical Meta-published checkpoint
-under the same name, deployable via a Cognitive Services AIServices
-account. The OpenAI-compatible `/chat/completions` shim on the Foundry
-endpoint means `fp-diagnose` runs unchanged.
+Pre-registration substitution chain:
+  1. The locked plan named LLM-B as `meta-llama/Llama-3.3-70B-Instruct-Turbo`
+     via Together.ai. No Together.ai key was available.
+  2. Llama-3.3-70B-Instruct was deployed on Azure AI Foundry instead
+     (`fp-foundry-133641` AIServices account). 472 / 1000 cells completed
+     before Microsoft's "us" callable-pool went out of capacity — every
+     remaining call returned HTTP 404 `no_callers` for hours; capacity did
+     not return within the experiment window.
+  3. Llama-3.1-70B-Instruct: deprecated since 2025-06-30, capacity 1.
+     Cohere-command-r-plus: also deprecated.
+  4. Final: `cohere-command-a` (Cohere Command A, v1, GlobalStandard 20K
+     TPM, lifecycle ~2099). Cohere is a third family distinct from both
+     LLM-A (OpenAI gpt-4o-mini) and the F10 hallucination judge
+     (Mistral-Large-3) — the cross-family sensitivity check the protocol
+     requires is preserved.
+
+All substitutions and outage timestamps are documented in
+`LOCKED-PLAN.md §3` and `EVALUATION-DRAFT.md §7`. Llama remains future
+work pending capacity restoration.
 
 Reusing `fp-diagnose` keeps the prompt, JSON schema, and response parser
 bit-for-bit identical to what the operator ran in production; only
@@ -27,12 +38,10 @@ Scoring is done at the end with the same alias matcher
 (`08-vocab-rescore.py`); the comparison report is produced separately
 (`13-llmb-report.py`).
 
-Cost model: Azure Foundry Llama-3.3-70B GlobalStandard — USD 0.71/1M
-input, USD 0.71/1M output tokens. ~6-15 K input + ~50 output per call
-≈ USD 0.007 per call; the full 1000-cell replay (10×10×5×2) projects to
-~USD 7. The script prints the actual running cost as it goes. Note: the
-default 20 K-TPM quota throttles throughput to ~3 calls/min — a quota
-bump is needed to finish in under an hour.
+Cost model: Azure Foundry Cohere Command A GlobalStandard — USD 2.50/1M
+input, USD 10/1M output tokens. ~6-15 K input + ~50 output per call
+≈ USD 0.025 per call; the full 1000-cell replay (10×10×5×2) projects to
+~USD 25. The script prints the actual running cost as it goes.
 """
 from __future__ import annotations
 
@@ -56,9 +65,9 @@ REPS_DEFAULT = "r1,r2,r3,r4,r5,r6,r7,r8,r9,r10"
 LEVELS_DEFAULT = "C1,C2,C3,C4,C5"
 MODES_DEFAULT = "grounded,freeform"
 
-# Azure Foundry Llama-3.3-70B GlobalStandard pricing, USD per 1M tokens.
-PRICE_IN = 0.71 / 1_000_000
-PRICE_OUT = 0.71 / 1_000_000
+# Azure Foundry Cohere Command A GlobalStandard pricing, USD per 1M tokens.
+PRICE_IN = 2.50 / 1_000_000
+PRICE_OUT = 10.00 / 1_000_000
 
 
 # Vocabulary aliases — mirrors 08-vocab-rescore.py.
@@ -172,8 +181,8 @@ def main() -> int:
     ap.add_argument("--reps",      default=REPS_DEFAULT)
     ap.add_argument("--levels",    default=LEVELS_DEFAULT)
     ap.add_argument("--modes",     default=MODES_DEFAULT)
-    ap.add_argument("--model",     default="Llama-3.3-70B-Instruct")
-    ap.add_argument("--deployment", default="llama-3-3-70b",
+    ap.add_argument("--model",     default="cohere-command-a")
+    ap.add_argument("--deployment", default="cohere-command-a",
         help="Azure OpenAI deployment name (used to build the base URL)")
     ap.add_argument("--azure-host",
         default="https://fp-foundry-133641.cognitiveservices.azure.com")
