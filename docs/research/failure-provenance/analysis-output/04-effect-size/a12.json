@@ -1,0 +1,962 @@
+[
+  {
+    "scenario": "F1",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F1",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.55,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.3,
+    "magnitude": "medium",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.4,
+    "magnitude": "small",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.2,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.3,
+    "magnitude": "medium",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.55,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F2",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.3,
+    "magnitude": "medium",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F3",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F3",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F3",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F3",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F4",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F4",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.1,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.05,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.3,
+    "magnitude": "medium",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.1,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.6000000000000001,
+    "magnitude": "small",
+    "interpretation": "X tends to be larger than Y"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.2,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F4",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.15,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F5",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F5",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F6",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.05,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F6",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F6",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.05,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F6",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.1,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.05,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.55,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.25,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.2,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F6",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.4,
+    "magnitude": "small",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F7",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.05,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F7",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.05,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F7",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F7",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F8",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F8",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F8",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F8",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.0,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.15,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.55,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.2,
+    "magnitude": "large",
+    "interpretation": "Y tends to be larger than X"
+  },
+  {
+    "scenario": "F8",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.45,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F9",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "rule-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "rule-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "rule-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-grounded",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-grounded",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-grounded",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-freeform",
+    "pair": "C4_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-freeform",
+    "pair": "C1_vs_C5",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  },
+  {
+    "scenario": "F10",
+    "engine": "llm-freeform",
+    "pair": "C3_vs_C4",
+    "a12": 0.5,
+    "magnitude": "negligible",
+    "interpretation": "no practical difference"
+  }
+]
