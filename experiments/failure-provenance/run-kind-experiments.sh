@@ -287,10 +287,16 @@ cluster_run() {
     | kubectl apply -f - >/dev/null
   kubectl label preview "${preview}" "${EXPERIMENT_LABEL}" --overwrite >/dev/null
 
-  # F7 is a cluster-side fault: patch the Service once the namespace exists.
+  # F7 is a cluster-side fault: patch the Service once both the namespace AND
+  # the backend Service exist. wait_for_namespace alone is too early — the
+  # operator creates the namespace first, then provisions postgres, then runs
+  # the migration job, then deploys the backend (with its Service). Patching
+  # before the Service exists makes inject-fault.sh's `kubectl patch service
+  # backend` fail with NotFound, leaving the experiment with no fault injected.
   if [[ "${scenario}" == "F7" ]]; then
     local ns
     ns="$(wait_for_namespace "${preview}")" || { log "F7: preview namespace never appeared"; return 1; }
+    wait_for_service "${ns}" backend || { log "F7: backend Service never appeared in ${ns}"; return 1; }
     "${INJECTOR}" --scenario F7 --namespace "${ns}" --service backend --apply || true
   fi
 
@@ -325,6 +331,20 @@ wait_for_namespace() {
     ns="$(kubectl get preview "${preview}" -o jsonpath='{.status.namespaceName}' 2>/dev/null || true)"
     if [[ -n "${ns}" ]] && kubectl get ns "${ns}" >/dev/null 2>&1; then
       echo "${ns}"; return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# wait_for_service NAMESPACE NAME — poll until the Service is created.
+# Used by F7 (cluster-side fault) to inject only after the operator has finished
+# provisioning the backend. Returns 1 if the Service never appears within 600s.
+wait_for_service() {
+  local ns="$1" svc="$2" deadline=$(( SECONDS + 600 ))
+  while (( SECONDS < deadline )); do
+    if kubectl get service -n "${ns}" "${svc}" >/dev/null 2>&1; then
+      return 0
     fi
     sleep 5
   done

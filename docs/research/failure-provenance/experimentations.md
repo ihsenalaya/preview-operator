@@ -607,3 +607,51 @@ rather than its intended database-readiness path**. Two takeaways:
 0 runs skipped, 0 errors. F6 r5 ACR build failed transiently (network
 blip on the `python:3.12-slim` mirror pull); the orchestrator re-used the
 deterministic cached image from an earlier attempt, so the rep is valid.
+
+### F8 — artificial latency / timeout (observability) — matrix attempt 7-bis
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+10/10 captured (no missed FailureReports), 150 result rows, top-1 0/150 on
+every engine and level. The fault injects correctly: F8 adds a 10-second
+artificial delay to the backend's HTTP handlers, the e2e suite's Playwright
+locators all time out (`FAIL e2e catalog_page_loads: timeout`, etc.), and
+the operator captures the bundle.
+
+The diagnoser-side miss is the same combination already documented for F5
+and F6: contract HTTP 500 on `/api/tests` (test-infrastructure artefact)
+dominates the diagnosis ranking, the diagnoser attributes root cause to
+backend/API rather than to the latency/observability injection, and the
+ground-truth label "observability" never appears in the diagnosis text so
+the strict matcher returns 0.
+
+0 runs skipped, 0 errors. F8 ran as an orphaned process (PID 160376) after
+the original wrapper was killed to apply the F7 wait-for-service fix.
+
+### F7 — broken Service selector (infrastructure) — matrix attempt 7-bis
+
+**Orchestrator bug fix applied before this run.** F7 is a cluster-side fault:
+after the operator creates the preview namespace and Service, the orchestrator
+patches the backend Service's selector to a non-existent label
+(`app: fp-nonexistent-selector`), so the Service has no endpoints and the
+backend becomes unreachable. The previous orchestrator (commit `9447a77` and
+earlier) called the injector right after `wait_for_namespace`, but at that
+moment the operator has only created the namespace — the backend Service
+does not yet exist (it is provisioned after postgres + migration). The
+`kubectl patch service backend` therefore failed with `NotFound`, the
+injection was a silent no-op (the orchestrator wraps the call in `|| true`),
+the preview came up healthy, and the F7 fault never reached the cluster. The
+first F7 attempt produced 0 FailureReports across all 10 reps.
+
+Fix (committed alongside this section): a new `wait_for_service NAMESPACE NAME`
+helper polls until the Service exists (600s deadline), and the F7 branch in
+`reconcile_one` calls it between `wait_for_namespace` and the F7 injector
+invocation.
+
+[F7 results table will be filled in once the re-run completes.]
