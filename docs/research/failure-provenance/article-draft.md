@@ -170,23 +170,79 @@ activities, agents, and their relations.
 
 ## 3. Motivation — a walk-through failure
 
-We walk through a concrete failing PR using **F1 — invalid SQL migration**
-(see [`s1-flask-catalog-F1.md`](analysis-output/26-qualitative/s1-flask-catalog-F1.md)
-for the recorded case-study card). A developer adds a migration whose
-`upgrade()` runs invalid SQL. The preview deploys, the migration Job
-reaches `Failed (BackoffLimitExceeded)`, the test suite fails because the
-schema is broken, and the namespace TTL begins to expire.
+We walk through a concrete failing PR using **F1 — invalid SQL migration**,
+recorded as case-study card
+[`s1-flask-catalog-F1.md`](analysis-output/26-qualitative/s1-flask-catalog-F1.md).
+The walk-through is real: it is one of the 100 reps captured during the
+matrix run, not a hypothetical example.
 
-| What survives today | What is otherwise lost |
+### 3.1 The failure
+A developer adds a database migration whose `upgrade()` runs invalid SQL —
+`CREATE INDX` instead of `CREATE INDEX`. The PR opens, Argo CD's
+`ApplicationSet` pull-request generator [`argocd_pr_generator`] provisions
+a new preview namespace (`preview-pr-9101`), and the `preview-operator`
+reconciler begins to drive the preview to ready. The migration Job
+`postgres-migrate` fails on first attempt, the `BackoffLimit` is reached,
+the operator records a `MigrationReady=False` condition with
+`reason=JobRunning` then `reason=DatabaseMigrationFailed`, and the
+preview's `Ready` condition flips to `False reason=DatabaseMigrationFailed`.
+The downstream test suite never runs. Total time from PR open to
+detected failure: under five minutes on the studied cluster.
+
+### 3.2 What the operator captures, with timestamps
+By design, the operator's evidence collector fires on
+`failureDetected` *before* the cluster begins teardown. At
+`2026-05-23T05:31:56Z` it persists a `FailureReport` cluster-scoped
+resource (bundle size 2 558 bytes, evidence level C5) containing the
+following typed items, each with a deterministic SHA-256 identifier:
+
+| Type | Resource | Content (representative excerpt) |
+|---|---|---|
+| `ChangedFile` | `migrations/versions/002_fault.py` | `type=database-migration` |
+| `GitDiff` | `ihsenalaya/idp-preview` | stored in `ConfigMap preview-diff-pr-9101 / diff.patch` |
+| `JobLog` | `pod/postgres-migrate-tr5xq container/migration` | `File "/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line …` (followed by the psycopg2 syntax error on `INDX`) |
+| `KubernetesEvent` | `Job/postgres-migrate` | `Job has reached the specified backoff limit` |
+| `PodLog` | `pod/postgres-d599444bf-h8k7m container/postgres` | the database is up — the upstream check that absent the migration Job, the failure would be silent |
+| `PreviewCondition` | `Ready` | `status=False reason=DatabaseMigrationFailed` |
+| `PreviewCondition` | `MigrationReady` | `status=False reason=JobRunning` |
+
+The provenance graph links these as:
+`ChangedFile(002_fault.py) → wasDerivedFrom → JobLog(postgres-migrate)
+→ wasInformedBy → MigrationReady → FailureDiagnosis`.
+
+### 3.3 What is otherwise lost
+The preview namespace `preview-pr-9101` is deleted shortly after the
+PR is updated or closed. Without the operator's capture, the following
+disappear from the cluster:
+
+| What survives today (without our work) | What is otherwise lost |
 |---|---|
-| Cluster-scoped `Preview.status.diagnostics` (unstructured, overwritten on every reconcile) | Pod logs (`psycopg2.errors.SyntaxError: syntax error at or near "INDX"`) |
-| The Git diff of the PR (in the source repository, not linked to the failure) | Kubernetes events (`BackOffJobReason`) |
-| The TestRun result in the test-orchestration CRD | Transient pod state, restart counts |
-| Container image build logs (in ACR / CI build artifacts) | Job conditions, retry history |
+| Cluster-scoped `Preview.status.diagnostics` — unstructured, overwritten on every reconcile | All pod logs (`psycopg2 syntax error`) |
+| The Git diff in the source repository — not linked to the failure | All Kubernetes events (`BackOffJobReason`) |
+| The TestRun result in the test-orchestration CRD — generic pass/fail | Transient pod state, container restart counts |
+| Container image build logs in the registry / CI artefacts | Job conditions, retry history, pod previous-instance logs |
 
-The surviving snapshot is insufficient: it is unstructured, ungrounded in
-identifiable evidence items, and does not link the PR diff to the SQL error
-in the upstream pod's log.
+The surviving snapshot is insufficient on three counts: *unstructured*
+(no typed schema, the LLM has to re-parse free text), *ungrounded* (no
+identifiable evidence IDs the diagnoser can cite), and *unlinked*
+(the diff lives in Git, the symptoms in the cluster, no edge between
+them).
+
+### 3.4 What our captured artefact lets the diagnoser do
+
+The two LLMs we evaluate, given the captured bundle at evidence level C5,
+both name the right *category* (`database`) and identify the right
+*activity* (a database migration failed due to a syntax error in the
+SQL statement, citing `INDX` instead of `INDEX`). The strict matcher
+returns 0 because they output the synonym `database migration` rather
+than the rubric's literal `migration-job`, but the aligned matcher
+credits both at 100 % (10/10 reps). This single scenario foreshadows
+the broader RQ2 finding (§5.4): when the evidence is complete and
+the LLM's vocabulary matches the rubric, the operator unlocks a
+diagnosis that a vanilla LLM with raw `kubectl` output cannot
+produce — across our 99 B0 reps on this scenario, none correctly
+identifies the migration as the root cause, instead naming `postgres`
+or the test pod (§5.8.1).
 
 ---
 
@@ -408,12 +464,67 @@ Figures: [`24-cd-diagrams/cd_llm_a.png`](analysis-output/24-cd-diagrams/cd_llm_a
 Method: [`demsar_2006`].
 
 #### 5.4.6 The remaining zero-cells (F5, F9, F10 across engines)
-These are not vocabulary issues — the aligned matcher does not help. They
-are real semantic misclassifications: F5 contract-test failure shadows the
-frontend break; F9/F10 diagnosers name `test`/`regression` where the
-rubric requires `seed-job`/`test-suite`. Per-scenario qualitative cards:
-[`26-qualitative/`](analysis-output/26-qualitative/). This is reported as
-the **future-work catalogue** (§7), not as a defect of the approach.
+These cells stay at 0.0 % even with the aligned matcher. They are *real
+semantic misclassifications*, not vocabulary issues, and they each fall
+into one of three families with distinct diagnostic signatures
+documented in the case-study cards
+([`26-qualitative/`](analysis-output/26-qualitative/)):
+
+**Family C-a — contract-test shadowing (F5).** The injected fault changes
+the frontend's HTML element ID, breaking the e2e Playwright test. But
+the contract test against the backend API fails simultaneously with
+HTTP 500 (because the test runs `/api/submit` which catches the
+frontend regression downstream). Both LLMs name the *API* as the
+component at fault — see
+[`s1-flask-catalog-F5.md`](analysis-output/26-qualitative/s1-flask-catalog-F5.md):
+LLM-A returns `component=API category=application`, LLM-B
+`component=API endpoint category=application`. Right family, wrong
+specificity. The rule diagnoser falls into the same trap because
+`ruleContractBreak` fires before `ruleFrontendBreak` when contract
+suites co-fail (we documented and fixed this in the offline v2 rule
+sensitivity check, §5.8.5; the operator-side fix is queued as future
+work).
+
+**Family C-b — test-suite vocabulary mismatch (F10).** The injected
+fault adds a `time.sleep(60)` to one e2e test, exceeding its 30s
+timeout — a classic flaky-test pattern (F10 is our negative-control
+scenario). LLM-A names `component=backend category=application`
+(blames the symptom-bearing test pod). LLM-B does substantially
+better: `component=e2e test suite category=test-reliability`
+([`s1-flask-catalog-F10.md`](analysis-output/26-qualitative/s1-flask-catalog-F10.md)) —
+right category, vocabulary close to but not equal to the rubric's
+`test-suite`. The aligned matcher does not credit `e2e test suite`
+because the alias table was tuned conservatively to avoid
+over-crediting (promoting `regression` → `seed-job` would inflate
+F9). This is therefore a **calibration issue of the matcher**, not
+a diagnostic failure on LLM-B's part: a venue-specific argument
+would re-extend the matcher with `e2e test suite → test-suite`,
+recover this cell, and report both before-and-after numbers.
+
+**Family C-c — symptom-blaming on multi-failure scenarios (F9).** The
+injected fault corrupts the seed data file
+(`scripts/generate_preview_manifest.py`), which makes contract and
+e2e tests both fail downstream. LLM-A names
+`component=application category=application` — fully symptom-blaming.
+LLM-B names `component=scripts/generate_preview_manifest.py
+category=configuration` — correctly identifies the *changed file*
+(provenance graph correctly tracked the `ChangedFile` evidence
+item) but assigns it the *wrong category*: `configuration` instead
+of `database` (the rubric tags F9 as `database` because the
+corrupted seed produces an inconsistent database state).
+([`s1-flask-catalog-F9.md`](analysis-output/26-qualitative/s1-flask-catalog-F9.md))
+This is a **taxonomy edge case**: the LLM's `configuration` reading
+is defensible from the evidence alone, and adjudicating against the
+rubric requires venue-specific category definitions.
+
+These three families are the **future-work catalogue** of the article
+(§7). None is a defect of the operator's evidence capture: in F5 the
+contract-test log and the frontend ChangedFile are both present in
+the bundle; in F10 the e2e-test diff and the test-suite condition
+are both captured; in F9 the seed-script ChangedFile, the contract
+failure, and the e2e timeout are all present. The gap is downstream
+of capture — in either *diagnoser ranking* (C-a), *matcher
+calibration* (C-b), or *taxonomy specification* (C-c).
 
 ### 5.5 RQ3 — Time to diagnosis
 
@@ -901,6 +1012,25 @@ This section is appended to at every hourly self-update loop pass.
   intentionally `[TODO]` with explicit data dependencies.
 - 89-entry bibliography cited inline using `[`bib_key`]` notation
   throughout.
+
+### 2026-05-23 ~22:17 Paris — Tick 3 (harness fix, no new data)
+- Pulled `d57da07` — F5 multi-app injector fix (`wrapper.py` proxy +
+  `_frontend_check` in `smoke.py` × 4 subjects). Code change, no new
+  numbers in `analysis-output/`. F5 multi-app cells will need re-collection
+  before they enter §5.9.
+- §3 Motivation completely rewritten: real F1 walk-through from the
+  captured case-study card `s1-flask-catalog-F1.md`, with the
+  per-evidence-item table (7 typed items, 2558 bytes bundle) and the
+  provenance-graph edge chain made explicit.
+- §5.4.6 The remaining zero-cells: replaced the two-sentence sketch
+  with three named failure families (C-a contract-test shadowing,
+  C-b test-suite vocabulary mismatch, C-c symptom-blaming on
+  multi-failure scenarios), each grounded in a specific qualitative
+  card with the LLM-A / LLM-B diagnoses verbatim. Argues the gap is
+  downstream of capture (ranking, matcher calibration, taxonomy)
+  rather than a capture defect.
+- No numerical changes. All new content traces to existing
+  `26-qualitative/` cards.
 
 ### 2026-05-23 ~19:17 Paris — Tick 2 (no new remote commits)
 - Pulled remote: no new commits since the previous draft pass; idle
