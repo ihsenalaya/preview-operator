@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 04:35 UTC
+- **Last updated:** 2026-05-23 01:15 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -164,7 +164,8 @@ as each scenario completes. Operator `:fp-stuckfix`, AKS, 1 preview at a time.
 | F2 missing env var | 10 | 12.1 min | ~1.2 min | fast — CrashLoopBackOff detected quickly |
 | F3 invalid image tag | 10 | 18.2 min | ~1.8 min | operator fails it on ImagePullBackOff (defect #14 fix) |
 | F4 broken endpoint | 8/10 | 63.9 min | ~8.0 min | 2 transient stalls (r6, r10) — preview Running, no test verdict in 20 min |
-| F5-F10 | — | — | — | appended on completion |
+| F5 frontend breaking change | 4/10 | ~145 min | 6 stalls × 20 min + 4 valid × ~7 min | high test-phase stall (60%); honest threat-to-validity |
+| F6-F10 | — | — | — | appended on completion |
 
 Build cost is separate: with the Docker-Hub cache fix (#13) an ACR image build
 is ~33 s (was ~3 min + agent queue). Code-fault scenarios (F1,F2,F4,F5,F6,F8,
@@ -376,6 +377,46 @@ Top-1 by evidence level (over the 8 valid reps):
 
 llm-freeform 0/8 — same as F1/F2/F3, no verifiable schema. Wall-clock 63.9 min
 for the 8 valid runs; the 2 stalls each held the slot for the full 20 min.
+
+### F5 — frontend breaking change (application) — matrix attempt 6 (canonical)
+
+Operator `:fp-stuckfix`. **4/10 valid reps** (r2, r6, r7, r10). 6 skipped (r1, r3,
+r4, r5, r8, r9) — same intermittent operator test-phase stall observed on F4
+but **much more frequent** (~60 % on F5 vs ~20 % on F4). The operator-side
+test-phase reconcile bug is the dominant threat to validity for logic faults.
+
+Top-1 by evidence level (over the 4 valid reps):
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/4 | 0/4 | 0/4 |
+| C3 | 0/4 | 0/4 | 0/4 |
+| C5 | 0/4 | 0/4 | 0/4 |
+
+**Verified, two distinct issues — neither a surprise:**
+
+1. **Data-quality**: 6/10 stalls (no FailureReport in 20-min timeout). The
+   preview reaches Running, the e2e test runs, but the operator doesn't
+   evaluate-and-fail the Preview in time. F5/F8 logic-fault scenarios depend on
+   this code path. Fix lives in the operator (out of scope for this matrix);
+   documented as a threat to validity.
+2. **Diagnostic misattribution (real finding, not a vocab artifact).** F5 is a
+   UI-selector change; the e2e times out waiting for an element that no longer
+   exists. Inspected r2 C5:
+   - rule diagnoses *"slow backend operation exceeded request timeout"* →
+     component=backend, category=observability.
+   - llm diagnoses *"e2e tests failed due to timeouts, performance issues"* →
+     component=`e2e test suite`, category=`test-reliability`.
+   - ground truth: component=frontend, category=application.
+   Both diagnosers read the observable signal (an e2e timeout) and reach a
+   defensible-but-wrong conclusion (timeout/test problem) because the evidence
+   does **not** include the test stderr / selector miss / page-state diff that
+   would point at the frontend. This is an **evidence-completeness finding**:
+   logic faults that surface only as test timeouts need richer test-failure
+   evidence than the current bundle carries (cf. F2 app-log gap, same shape).
+
+llm-freeform 0/4 — as elsewhere. Wall-clock ~145 min (6 stalls × 20-min
+timeout + 4 valid × ~7 min).
 
 ### F2 — missing environment variable (configuration) — matrix attempt 6 (canonical)
 
