@@ -42,7 +42,10 @@ from harness import config as hconfig          # noqa: E402  vendored
 from harness import preview_factory as pf      # noqa: E402  vendored
 
 CR_NAMESPACE = "default"
-REPORT_TIMEOUT_S = 1200
+REPORT_TIMEOUT_S = 360  # 2026-05-23 19:45 — was 1200; capture cycle is
+                        # 1-2 min in practice. F10 no-reports (~50 % of
+                        # the flaky-test reps by design) were waiting the
+                        # full 20 min unnecessarily. 6 min is safe.
 EXPERIMENT_LABEL = "failure-provenance.experiment/owned=true"
 
 

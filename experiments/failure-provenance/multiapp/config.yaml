@@ -15,13 +15,13 @@ subjects:
     - s5-petclinic
   images:
     s1-flask-catalog: testagentdevops.azurecr.io/idp-preview:exp-20260514-e2efix-2089
-    # 2026-05-23: adapter images rebuilt with FP_F10_FLAKY support so the
-    # operator-driven smoke suite can produce a flaky failure on demand
-    # (F10 multi-app). Previous tags retained in PROGRESS.md history.
-    s2-listmonk:       testagentdevops.azurecr.io/s2-listmonk-adapter:fp-f10
-    s3-healthchecks:   testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f10
-    s4-umami:          testagentdevops.azurecr.io/s4-umami-adapter:fp-f10
-    s5-petclinic:      testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f10
+    # 2026-05-23 :fp-f10 (FP_F10_FLAKY hook) → :fp-f5 (also gained the
+    # FP_F5_BROKEN_FRONTEND hook in wrapper.py + a _frontend_check test
+    # in smoke.py). All four FP_* fault hooks now live in the same image.
+    s2-listmonk:       testagentdevops.azurecr.io/s2-listmonk-adapter:fp-f5
+    s3-healthchecks:   testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f5
+    s4-umami:          testagentdevops.azurecr.io/s4-umami-adapter:fp-f5
+    s5-petclinic:      testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f5
 
 registry: testagentdevops          # ACR for fault-image builds (code faults)
 ai_api_url: https://preview-openai-idp.openai.azure.com/openai/deployments/gpt-4o-mini
@@ -41,14 +41,14 @@ faults:
   # break; N/A on petclinic-rest), F8 (pg_sleep trigger), F9 (post-seed
   # corruption), F10 (FP_F10_FLAKY env var read by the patched smoke
   # tests). Adapter images rebuilt with the F10 hook as :fp-f10.
-  # F5 scope re-narrowed 2026-05-23 19:15 UTC after Phase A first run.
-  # F5 is only meaningful where the test harness actually exercises the
-  # frontend code path. For the multi-app subjects, only s4-umami
-  # qualifies — Next.js consumes NEXT_PUBLIC_API_URL at startup. For
-  # s2/s3/s5 the smoke suite is backend-API-only, so F5 env-var injection
-  # yields silent no-reports (false negatives, not real measurements).
-  # Documented in threats-to-validity.md §7.6.
-  s2-listmonk:       [F1, F2, F3, F4,     F6, F7, F8, F9, F10]   # F5 N/A — backend-only smoke
-  s3-healthchecks:   [F1, F2, F3, F4,     F6, F7, F8, F9, F10]   # F5 N/A — backend-only smoke
+  # F5 fully re-enabled 2026-05-23 20:15 UTC for all 4 multi-app
+  # subjects after wrapper.py + smoke.py were patched and adapters
+  # rebuilt as :fp-f5. The proxy now serves a 500 + broken-frontend
+  # marker when FP_F5_BROKEN_FRONTEND=1; smoke.py's _frontend_check
+  # detects it. Even petclinic-rest gains a frontend GET-`/` test that
+  # the proxy can break — petclinic's wrapper.py serves Spring's
+  # actuator HTML at `/` which the test now checks.
+  s2-listmonk:       [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  s3-healthchecks:   [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
   s4-umami:          [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
-  s5-petclinic:      [F1, F2, F3, F4,     F6, F7, F8, F9, F10]   # F5 N/A — REST-only
+  s5-petclinic:      [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]

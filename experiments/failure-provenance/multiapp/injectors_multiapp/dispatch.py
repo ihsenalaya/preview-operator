@@ -116,27 +116,29 @@ def prepare(subject: dict, fault: str, cfg: dict) -> DeployPlan:
         return DeployPlan(subject=s, image=stock)
 
     if fault == "F5":
-        # F5 — frontend bug. Re-scoped 2026-05-23 19:15 UTC after the first
-        # Phase A run on s2-listmonk showed every F5 rep timing out as a
-        # no-report: the harness-adapter smoke suites for backend-only
-        # subjects (s2-listmonk, s3-healthchecks, s5-petclinic) call
-        # /api/* endpoints exclusively and never exercise the frontend
-        # asset path. Setting a frontend-URL env var therefore does not
-        # produce a smoke failure → no FailureReport → no-report. This is
-        # a methodological mismatch between fault scope and test scope,
-        # NOT a missing measurement. F5 is N/A for these subjects;
-        # s4-umami is the one exception because Next.js consumes
-        # NEXT_PUBLIC_API_URL at startup. Documented in
-        # threats-to-validity.md §7.6.
-        if sid in ("s2-listmonk", "s3-healthchecks", "s5-petclinic"):
-            raise ValueError(
-                f"F5 N/A for {sid}: smoke suite targets backend APIs only; "
-                "frontend not exercised by the harness-adapter tests")
-        # s4-umami: the env-var hack actually breaks Next.js startup.
+        # F5 — frontend bug. The first multi-app attempt re-scoped F5 as
+        # N/A for backend-only smoke subjects (s2, s3, s5) because the
+        # harness-adapter `smoke.py` only called /api/* endpoints, so an
+        # env-var-driven frontend break never surfaced. That re-scoping
+        # was rejected (memory: feedback-q1-no-engineering-excuses):
+        # since the harness is OUR code, we fix the harness, we don't
+        # accept a missing measurement.
+        #
+        # Fix shipped 2026-05-23 20:10 UTC: each subject's wrapper.py
+        # (the HTTP proxy in front of the upstream binary) now checks
+        # FP_F5_BROKEN_FRONTEND=1. When set, HTML-bound requests (path =
+        # `/`, `/admin*`, `/static*`, or Accept: text/html) get an
+        # intercepted 500 + a body containing the marker
+        # "FP_F5_BROKEN_FRONTEND" and a `throw new Error(...)` script.
+        # The new smoke.py `_frontend_check` test fetches `/` and asserts
+        # the marker is absent + status 200; it now fails under F5
+        # injection, producing a real FailureReport whose root cause is
+        # the broken frontend rendering. Adapter images rebuilt as :fp-f5
+        # and referenced in config.yaml.
         svcs = s.get("services", [])
-        name = "NEXT_PUBLIC_API_URL"
-        val = "http://fp-f5-broken-frontend.invalid:0"
-        svcs[0].setdefault("env", []).append({"name": name, "value": val})
+        for svc in svcs:
+            svc.setdefault("env", []).append(
+                {"name": "FP_F5_BROKEN_FRONTEND", "value": "1"})
         return DeployPlan(subject=s, image=stock)
 
     if fault == "F8":

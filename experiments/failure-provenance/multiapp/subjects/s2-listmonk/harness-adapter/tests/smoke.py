@@ -44,6 +44,24 @@ except Exception as e:
     failed += 1
 
 
+
+# F5 frontend health-check: request the served HTML root and confirm the
+# wrapper.py is NOT in its FP_F5_BROKEN_FRONTEND mode (status 500 + magic
+# marker). Under fault injection this test fails, producing the smoke
+# failure the operator's failure path needs to capture an F5 report.
+def _frontend_check():
+    try:
+        r = requests.get(BASE + "/", timeout=8, headers={"Accept": "text/html"})
+        if r.status_code != 200:
+            return (False, f"status={r.status_code}")
+        if "FP_F5_BROKEN_FRONTEND" in r.text:
+            return (False, "broken-frontend marker present")
+        return (True, "ok")
+    except Exception as e:
+        return (False, str(e))
+
+t("frontend_root", _frontend_check)
+
 # F10 flaky-test injector — when FP_F10_FLAKY=1 the smoke suite fails
 # with probability 0.5, mimicking a test that is flaky for no reason
 # (the RQ4 hallucination control: there is no real root cause). The

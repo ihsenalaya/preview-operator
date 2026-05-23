@@ -24,6 +24,25 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"ok")
             return
+
+        # F5 — frontend bug injector. When FP_F5_BROKEN_FRONTEND=1 is set,
+        # the wrapper intercepts HTML-bound requests (`/` or any path the
+        # client expects HTML for) and returns a 500 with a broken page,
+        # mimicking a frontend served as garbage. The operator's failure
+        # path detects the test-suite failure on the frontend root and
+        # produces a real FailureReport whose ground truth is F5
+        # (frontend / application).
+        if os.environ.get("FP_F5_BROKEN_FRONTEND") == "1":
+            accept = self.headers.get("Accept", "") or ""
+            if self.path in ("/", "") or self.path.startswith("/admin") or self.path.startswith("/static") or "text/html" in accept:
+                self.send_response(500)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<html><body><h1>FP_F5_BROKEN_FRONTEND</h1>"
+                                 b"<script>throw new Error('frontend bug "
+                                 b"injected by harness-adapter F5');</script>"
+                                 b"</body></html>")
+                return
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length) if length > 0 else None
         target = f"http://127.0.0.1:{APP_PORT}{self.path}"

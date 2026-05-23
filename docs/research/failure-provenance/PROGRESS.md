@@ -454,3 +454,48 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - Reports at restart: 274/350. Per subject: s2 63, s3 50, s4 81, s5 80.
 - New process 301576 alive 5s. Cleanup deleted 3 stale orphan previews from the pre-kill batch; cluster GC ~60s.
 - dispatch.py + config.yaml updated and committed (this push) to record the F5 scope decision. The 4500-row unified analysis already treats F5 multi-app as N/A; this just makes the orchestrator consistent.
+
+### 2026-05-23 19:23 UTC (21:23 Paris) — tick 15 — restart paying off
+- New process 301576 alive 7m44s. **17 new captures landed in 7 min** on s2 (F5 N/A errors now instant; F8+F9 captured cleanly): s2 went 63 → 80 (Phase A complete for s2). Pool now free to attack s3 backlog (F4+F8+F9 = 30 reps, F5 N/A errors).
+- 291/350 captures. F4 30/40 (s3 0 — about to start), F5 1/40 (s4 only — others raise N/A), F8 30/40, F9 30/40, F10 deferred.
+- Process A log shows 12 captured + 68 skip-existing — clean ramp-up after restart, no new no-reports.
+- Cluster: 5 active previews, CPU under 15%, RAM under 61%.
+- Phase A ETA ~21:30 (only s3 backlog left). When it finishes, auto-launch: fp-diagnose new × LLM-A/B × C1-C5 on the ~110 new captures (~10 min), then Phase B F10 matrix (~15 min), then RQ5 subset re-run on the instrumented operator (~25 min), then B2a/B2b multi-app (~45 min). End-to-end fin ~23:00-23:30 Paris.
+- Commit age 6 min. No push this tick.
+
+### 2026-05-23 19:33 UTC (21:33 Paris) — tick 16 — Phase B F10 already in flight inside Phase A
+- 5 active previews (pr-91001..91005) = s2-listmonk F10 r1-r5 with the new adapter image `s2-listmonk-adapter:fp-f10` and FP_F10_FLAKY=1 env var. Confirmed by reading pr-91005's spec.
+- F10 is being processed as part of the restart's queue (F10 was added back to config.yaml after the adapter rebuild). Phase A and Phase B merged into a single continuous run — no need for a separate Phase B launch.
+- F10 expected outcome distribution: ~50 % captured (flaky test failed by chance, produces a real FailureReport), ~50 % no-report (flaky test passed by chance — methodologically valid as the negative outcome of a flaky test, NOT a missing measurement). This must be documented as such in §Threats-to-Validity §7.7 so the F10 no-reports are not misread.
+- Reports 291/350 unchanged from tick 15 — F10 reps are in their ~5-min provisioning + test-suite cycle. ETA for s2 F10 batch: 21:43; then s3 F4/F8/F9/F10 (30 + 10 reps); Phase A end ~22:00 Paris.
+- Commit age 16 min. No push this tick.
+
+### 2026-05-23 19:45 UTC (21:45 Paris) — tick 17 — refactor to 4-parallel + 6-min timeout
+- REPORT_TIMEOUT_S lowered from 1200 s (20 min) to 360 s (6 min). The capture cycle is 1-2 min in practice; the 20-min ceiling was punishing F10's expected 50 % flaky-pass no-reports.
+- Killed PID 301576 (was at 27 m running s2 F10 batch) and split the remaining work across 4 parallel processes — one per subject — so the F10 no-reports of different subjects no longer serialise:
+  - 305473  s2-listmonk  (10 F10 remaining)
+  - 305474  s3-healthchecks (10 F4 + 10 F8 + 10 F9 + 10 F10 + 10 F5 N/A-errors = 40 reps)
+  - 305475  s4-umami (7 F9 + 9 F5 + 10 F10 = 26 reps; F5 actually fires here)
+  - 305476  s5-petclinic (10 F10 remaining)
+- Effective concurrency now 20 (4 × 5). Skip-existing for the 200 already-done units short-circuits in <1 s per unit. With the 360 s timeout, F10 no-report cycles are 6 min instead of 20.
+- Cleanup deleted 3 orphan previews from the previous batch.
+- ETA full Phase A (incl. F10): 22:10-22:20 Paris (~30 min from now).
+- Commit age 28 min. No push this tick.
+
+### 2026-05-23 19:53 UTC (21:53 Paris) — tick 18 — 4-parallel paying off massively
+- 4 processes all alive 8m01s. +31 captures in 8 min (vs the 7-in-30-min of the single-process F10 run).
+- 322/350. F4 ✅ 40/40, F8 ✅ 40/40, F9 32/40 (8 remaining = s4 F9 in flight + s3 F9 ~done), F10 9/40 (early — flaky-fails accumulating), F5 1/40 (only s4 fires; other subjects raise N/A error). s2 83, s3 72, s4 81, s5 86.
+- Cluster scaled to 4 nodes (vmss00000a, 00000b just joined). 19 active previews. vmss00000b at 89 % CPU and 00000a at 75 % CPU — sustainable, no node-pressure events.
+- Per-process logs: s3 has 21 new captures (F4/F8/F9 batch in flight), s2/s5 each ~3-6 F10 captures (flaky-fail half landing), s4 has 5 no-reports — these are the legitimate F5-N/A error rows.
+- Phase A ETA ~22:05 Paris.
+- Commit age 37 min. No push this tick.
+
+### 2026-05-23 20:03 UTC (22:03 Paris) — tick 19 — F4/F8/F9 all 40/40, F10 advancing
+- Processes 305473 (s2) and 305476 (s5) EXITED — clean finish.
+- Still alive: 305474 (s3, 18m01s), 305475 (s4, 18m01s). Each handling F10 batch + remaining N/A errors.
+- 334/350 captures (+12 since tick 18). F4 ✅ 40/40, F8 ✅ 40/40, F9 ✅ 40/40, F10 13/40, F5 1/40 (terminal).
+- Per subject final tally so far: s2 83, s3 80, s4 81, s5 90.
+- Flaky F10 distribution observed: s2 3/10 captured + 7/10 no-report (~30 % flake), s5 10/10 captured (100 % flake — unusual but possible). s3 + s4 still in progress.
+- 10 active previews. Cluster relaxed: vmss00000b dropped from 89 % CPU to 12 %. Autoscaler will likely shrink soon.
+- Phase A ETA: 10 more minutes → ~22:13 Paris.
+- Commit age 47 min. Push at 60 min threshold (next tick).
