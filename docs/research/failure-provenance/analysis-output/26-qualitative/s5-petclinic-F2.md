@@ -27,9 +27,9 @@
 
 ### LLM-B
 
-- component: `—`  
-- category:  `—`  
-- cause:     —
+- component: `svc-backend pod`  
+- category:  `infrastructure`  
+- cause:     Insufficient CPU resources are preventing the svc-backend pod from becoming ready, leading to the deployment timeout.
 
 ## Commentary
 

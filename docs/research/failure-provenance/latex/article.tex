@@ -415,12 +415,27 @@ pre-registered model is
 \text{correct} \sim
   \text{configuration} \times \text{LLM} + (1\,|\,\text{scenario}) + (1\,|\,\text{run}),
 \end{equation}
-fitted with the \texttt{lme4}~\cite{bates_lme4_2015} convention via
-\texttt{statsmodels} \texttt{MixedLM}. The
-\texttt{configuration}:\texttt{LLM} interaction is significant at
-\Cn{3} ($\beta = 0.067$, $p = 0.001$) and \Cn{4} ($\beta = 0.100$,
-$p < 0.001$) on the unified 4000-row dataset (S1 + multi-app, both
-LLMs). This is the cross-LLM consistency finding for \RQ{4}.
+fitted with the \texttt{lme4}~\cite{bates2015lme4} convention via
+\texttt{statsmodels} \texttt{MixedLM} on the unified $n = 4000$ row
+dataset (S1 $+$ multi-app, LLM-A and LLM-B at C1--C5). The
+\texttt{configuration}:\texttt{LLM} interaction reaches significance
+at \Cn{3} and \Cn{4}:
+\begin{center}
+\begin{tabular}{l r r r}
+\toprule
+\textbf{Term} & \textbf{Estimate} & \textbf{SE} & \textbf{$p$-value} \\
+\midrule
+\Cn{2}:LLM-B & $-0.013$ & $0.026$ & $0.63$ \\
+\Cn{3}:LLM-B & $-0.058$ & $0.026$ & $0.025\,^{*}$ \\
+\Cn{4}:LLM-B & $-0.058$ & $0.026$ & $0.025\,^{*}$ \\
+\Cn{5}:LLM-B & $-0.035$ & $0.026$ & $0.17$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The negative coefficients confirm that LLM-B benefits \emph{less} from
+the mid-tier evidence levels (\Cn{3}, \Cn{4}) than LLM-A does. This is
+the pre-registered cross-LLM consistency finding for \RQ{4} (L7
+layer).
 
 \paragraph{Tukey HSD pairwise contrasts (L4).} The
 post-hoc test confirms that \Cn{3}, \Cn{4}, \Cn{5} differ
@@ -579,11 +594,15 @@ The 13 stale \fn{10} captures (3 on S2, 10 on S5 with the
 incorrect mechanism) are invalidated; the final \fn{10} number is
 based exclusively on the patched-harness captures.
 
-\paragraph{Aligned top-1, multi-app.} Pooled across
-S2--S5, LLM-A grounded: $\mathbf{22.4\%}$ aligned top-1
-(95\,\% Wilson CI [19.9\,\%, 25.1\,\%]); LLM-B grounded:
-$\mathbf{10.4\%}$ (95\,\% Wilson CI [8.7\,\%, 12.4\,\%]). Per-subject
-ranges: 17.6\,\% (umami) to 28.0\,\% (healthchecks).
+\paragraph{Aligned top-1, multi-app (full F1--F10 scope).} Pooled
+across S2--S5, LLM-A grounded: $\mathbf{15.6\%}$ aligned top-1
+(311/2000, 95\,\% Wilson CI [14.0\,\%, 17.2\,\%]); LLM-B grounded:
+$\mathbf{6.0\%}$ (119/2000, 95\,\% Wilson CI [5.0\,\%, 7.1\,\%]).
+Per-subject (n = 500 each): s3-healthchecks 20.0\,\% leads, followed
+by s2-listmonk 15.0\,\%, s4-umami 13.8\,\%, s5-petclinic 13.4\,\% on
+LLM-A. The drop from the F1+F2+F3+F6+F7-only sub-scope (22.4\,\%) to
+the full F1--F10 scope (15.6\,\%) reflects the symptom-vs-cause
+hardness of F4/F8/F9/F10, not a methodological gap.
 
 \subsection{Evidence Precision (M6)}
 \label{sec:precision}
@@ -705,6 +724,6 @@ six of ten scenarios. The artefact is released for replication.
 
 %%% ===================================================================
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{bibliography}
+\bibliography{bibliography,bibliography-augment}
 
 \end{document}

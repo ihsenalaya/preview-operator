@@ -582,3 +582,19 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - B2 multi-app: 36/40 — lost 4 s5/F10 outputs in the cleanup; will re-run via 14b script just for s5/F10 (~2 min).
 - 0 active previews. Cluster idle.
 - 61 min since last commit — **PUSHING NOW**.
+
+### 2026-05-24 00:20 UTC — FINAL — Phase 5b article complete
+
+All machine work done. Pushed:
+- 500/500 matrix captures (S1 100 + multi-app 400, F1-F10 all 10/10 per subject).
+- 4000/4000 LLM diagnoses (LLM-A grounded + LLM-B grounded × C1-C5 × 200 reports each).
+- 40/40 B2 cells (K8sGPT + Kagent) on multi-app.
+- 9 statistical analyses re-run on full data (17, 18, 19, 21, 22, 23, 24, 25, 26).
+- article.tex (728 lines, ACM sigconf) with FINAL numbers.
+- bibliography-augment.bib (40 verified refs from sub-agent literature search; 9 UNVERIFIED flagged for human spot-check).
+- EVALUATION-DRAFT.md §11 Final Numbers added.
+
+Tomorrow (human, non-substituable):
+- Cohen κ canonical (2 h)
+- Verify 9 UNVERIFIED biblio entries (~30 min)
+- Re-read article.tex + EVALUATION-DRAFT.md (~1 h)

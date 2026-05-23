@@ -1,6 +1,6 @@
 # Pareto frontier — bundle size vs top-1 accuracy
 
-Generated 2026-05-23T18:30:22.018622Z. 10 cells, 1 on the Pareto front.
+Generated 2026-05-23T22:10:21.852838Z. 10 cells, 1 on the Pareto front.
 
 Cells on the frontier: configurations that no other configuration strictly dominates on both axes.
 

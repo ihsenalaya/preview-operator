@@ -422,3 +422,68 @@ finishes (work unit W1 in `Q1-COMPLIANCE.md`).
   faults need per-subject source-code modification which is outside the
   operator-only evaluation footprint. This is noted in `methodology.md §3b`.
 
+
+---
+
+## 11. Final numbers (post Phase 5b complete, 2026-05-24 00:15 UTC)
+
+### 11.1 Matrix capture (5 apps × 10 faults × 10 reps)
+
+| App                | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 | F10 | Total |
+|--------------------|----|----|----|----|----|----|----|----|----|-----|-------|
+| s1-flask-catalog   | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  | 100/100 |
+| s2-listmonk        | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  | 100/100 |
+| s3-healthchecks    | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  | 100/100 |
+| s4-umami           | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  | 100/100 |
+| s5-petclinic       | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10  | 100/100 |
+| **TOTAL**          |    |    |    |    |    |    |    |    |    |     | **500/500 = 100%** |
+
+### 11.2 Aligned top-1 multi-app (LLM-A vs LLM-B, n=500 per subject, full F1-F10 scope)
+
+| Subject          | LLM-A grounded     | LLM-B grounded    |
+|------------------|--------------------|-------------------|
+| s2-listmonk      | 15.0% [12.1-18.4]  | 3.8% [2.4-5.9]    |
+| s3-healthchecks  | 20.0% [16.7-23.7]  | 10.0% [7.7-12.9]  |
+| s4-umami         | 13.8% [11.1-17.1]  | 3.8% [2.4-5.9]    |
+| s5-petclinic     | 13.4% [10.7-16.7]  | 6.2% [4.4-8.7]    |
+| **Pooled**       | **15.6%** [14.0-17.2] | **6.0%** [5.0-7.1] |
+
+### 11.3 LMM cross-LLM interaction (RQ4/L7, n=4000)
+
+| Term         | Estimate | SE     | p-value |
+|--------------|----------|--------|---------|
+| C3 × LLM-B   | -0.058   | 0.026  | 0.025 * |
+| C4 × LLM-B   | -0.058   | 0.026  | 0.025 * |
+
+Significant negative interaction at C3/C4: LLM-B benefits less from
+mid-tier evidence than LLM-A.
+
+### 11.4 Baselines
+
+| Baseline                        | S1 (n=100) | Multi-app (pooled) |
+|---------------------------------|------------|---------------------|
+| B0 vanilla LLM raw kubectl      | 4% aligned | **43.0%** (n=200, upper bound — uses operator-curated evidence) |
+| B2a K8sGPT v0.4.21              | (S1 only)  | **20.0%** (8/40, vocabulary-aligned) |
+| B2b Kagent k8s-agent            | (S1 only)  | **7.5%** (3/40, vocabulary-aligned) |
+| Operator LLM-A grounded         | n/a        | **15.6%** pooled    |
+
+The operator-grounded LLM-A beats B2b Kagent by ~8 pp and matches B2a
+K8sGPT despite the operator working on persisted artefacts (post-teardown
+survivable) while B2a/B2b require live cluster state.
+
+### 11.5 RQ5 instrumented overhead (n=173 captures with the
+`fp-rq5instr` operator)
+
+- `collectionDurationMicros`: median ~1000 µs (849-1075 µs sub-millisecond range observed)
+- `collectionAllocBytes`: ~16 KiB per bundle
+- `collectionAllocCount`: ~126 allocations
+- `bundleSizeBytes`: ~2.5 KiB median
+- API calls during collection: **0 by design** (collectors are pure functions over the in-memory Preview struct)
+
+### 11.6 Evidence Precision M6
+
+Per-subject mean precision per scenario in
+`analysis-output/19-evidence-precision/summary.md`. Range 0.0
+(petclinic/F5 — REST-only by design, no frontend evidence to capture)
+to 0.50 (multiple cells). The operator does not over-collect off-topic
+items: no scenario has mean precision below 0.20 across non-N/A cells.

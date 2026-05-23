@@ -27,9 +27,9 @@
 
 ### LLM-B
 
-- component: `—`  
-- category:  `—`  
-- cause:     —
+- component: `svc-backend`  
+- category:  `configuration`  
+- cause:     The backend service deployment failed due to the readiness probe being unable to connect to the health check endpoint, likely caused by a misconfiguration in the backend service or a network issue.
 
 ## Commentary
 

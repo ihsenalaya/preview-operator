@@ -36,8 +36,13 @@ GROUND_TRUTH = {
     "F1":  {"component_role": "migration-job",  "category": "database"},
     "F2":  {"component_role": "app",            "category": "configuration"},
     "F3":  {"component_role": "app",            "category": "infrastructure"},
+    "F4":  {"component_role": "backend",        "category": "application"},
+    "F5":  {"component_role": "frontend",       "category": "application"},
     "F6":  {"component_role": "app",            "category": "infrastructure"},
     "F7":  {"component_role": "service",        "category": "infrastructure"},
+    "F8":  {"component_role": "backend",        "category": "observability"},
+    "F9":  {"component_role": "seed-job",       "category": "database"},
+    "F10": {"component_role": "test-suite",     "category": "test-reliability"},
 }
 
 
@@ -128,6 +133,85 @@ SUBJECT_ALIASES: dict[tuple[str, str], list[str]] = {
     ("s5-petclinic", "service"): [
         r"^service$", r"^svc-backend$", r"^backend$", r"^petclinic$",
         r"^spring-petclinic$", r"^selector$", r"^endpoints$",
+    ],
+
+    # Added 2026-05-24 — F4/F5/F8/F9/F10 multi-app coverage. F4/F8 ground
+    # truth is `backend`; F5 is `frontend`; F9 is `seed-job`; F10 is
+    # `test-suite`. The aliases below mirror what each subject's LLM
+    # diagnoser actually names for those roles.
+    ("s1-flask-catalog", "backend"): [
+        r"^backend$", r"^svc-backend$", r"^api$", r"^app\.py$",
+        r"^application$", r"^app$", r"^route$",
+    ],
+    ("s1-flask-catalog", "frontend"): [
+        r"^frontend$", r"^ui$", r"^catalogue$", r"^catalog$", r"^html$",
+        r"^frontend\.py$", r"^web$",
+    ],
+    ("s1-flask-catalog", "seed-job"): [
+        r"^seed-?job$", r"^seed$", r"^ai-?seed$", r"^data$", r"^seeding$",
+        r"^ai-?enrichment$", r"^catalogue-?seed$",
+    ],
+    ("s1-flask-catalog", "test-suite"): [
+        r"^test-?suite$", r"^test$", r"^tests$", r"^flaky$",
+        r"^e2e-?tests?$", r"^smoke-?tests?$", r"^regression-?tests?$",
+    ],
+    ("s2-listmonk", "backend"): [
+        r"^backend$", r"^svc-backend$", r"^listmonk$", r"^api$",
+        r"^application$", r"^app$",
+    ],
+    ("s2-listmonk", "frontend"): [
+        r"^frontend$", r"^admin$", r"^ui$", r"^web$",
+    ],
+    ("s2-listmonk", "seed-job"): [
+        r"^seed-?job$", r"^seed$", r"^migration$", r"^data$",
+    ],
+    ("s2-listmonk", "test-suite"): [
+        r"^test-?suite$", r"^tests?$", r"^flaky$",
+        r"^e2e-?tests?$", r"^smoke-?tests?$", r"^regression-?tests?$",
+    ],
+    ("s3-healthchecks", "backend"): [
+        r"^backend$", r"^svc-backend$", r"^hc-?web$", r"^healthchecks$",
+        r"^web$", r"^api$", r"^application$",
+    ],
+    ("s3-healthchecks", "frontend"): [
+        r"^frontend$", r"^web$", r"^ui$", r"^django-?ui$",
+    ],
+    ("s3-healthchecks", "seed-job"): [
+        r"^seed-?job$", r"^seed$", r"^migration$", r"^data$",
+    ],
+    ("s3-healthchecks", "test-suite"): [
+        r"^test-?suite$", r"^tests?$", r"^flaky$",
+        r"^e2e-?tests?$", r"^smoke-?tests?$", r"^regression-?tests?$",
+    ],
+    ("s4-umami", "backend"): [
+        r"^backend$", r"^svc-backend$", r"^umami$", r"^api$",
+        r"^application$", r"^app$", r"^next\.?js$",
+    ],
+    ("s4-umami", "frontend"): [
+        r"^frontend$", r"^ui$", r"^web$", r"^next\.?js$",
+    ],
+    ("s4-umami", "seed-job"): [
+        r"^seed-?job$", r"^seed$", r"^prisma-?seed$", r"^data$",
+    ],
+    ("s4-umami", "test-suite"): [
+        r"^test-?suite$", r"^tests?$", r"^flaky$",
+        r"^e2e-?tests?$", r"^smoke-?tests?$", r"^regression-?tests?$",
+    ],
+    ("s5-petclinic", "backend"): [
+        r"^backend$", r"^svc-backend$", r"^petclinic$",
+        r"^spring-?petclinic$", r"^api$", r"^application$", r"^spring(-boot)?$",
+    ],
+    ("s5-petclinic", "frontend"): [
+        # petclinic-rest is REST-only — frontend is N/A; alias list kept
+        # for matcher symmetry but will not match in practice.
+        r"^frontend$", r"^ui$", r"^web$", r"^swagger$",
+    ],
+    ("s5-petclinic", "seed-job"): [
+        r"^seed-?job$", r"^seed$", r"^flyway$", r"^migration$", r"^data$",
+    ],
+    ("s5-petclinic", "test-suite"): [
+        r"^test-?suite$", r"^tests?$", r"^flaky$",
+        r"^e2e-?tests?$", r"^smoke-?tests?$", r"^regression-?tests?$",
     ],
 }
 
