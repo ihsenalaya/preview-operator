@@ -28,7 +28,16 @@ ai_api_url: https://preview-openai-idp.openai.azure.com/openai/deployments/gpt-4
 # images → only the manifest/infra-injectable subset.
 faults:
   s1-flask-catalog: [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
-  s2-listmonk:       [F1, F2, F3, F6, F7]
-  s3-healthchecks:   [F1, F2, F3, F6, F7]
-  s4-umami:          [F1, F2, F3, F6, F7]
-  s5-petclinic:      [F1, F2, F3, F6, F7]
+  # Multi-app extension (2026-05-23, closes the Q1-COMPLIANCE symmetry
+  # gap): F4 via post-migration DB-table-rename, F5 via env-var frontend
+  # break (N/A on petclinic-rest), F8 via pg_sleep BEFORE trigger, F9 via
+  # post-seed UPDATE that NULLs a NOT-NULL column, F10 via the
+  # FP_F10_FLAKY env var read by the harness-adapter wrapper. Injectors
+  # in injectors_multiapp/dispatch.py.
+  # Phase A: F4/F5/F8/F9 work via meta.yaml mutation (no rebuild).
+  # F10 is temporarily excluded from this phase; it's added in Phase B
+  # after the harness-adapter images are rebuilt with FP_F10_FLAKY support.
+  s2-listmonk:       [F1, F2, F3, F4, F5, F6, F7, F8, F9]
+  s3-healthchecks:   [F1, F2, F3, F4, F5, F6, F7, F8, F9]
+  s4-umami:          [F1, F2, F3, F4, F5, F6, F7, F8, F9]
+  s5-petclinic:      [F1, F2, F3, F4,     F6, F7, F8, F9]    # F5 N/A — REST-only

@@ -147,9 +147,16 @@ def aligned_match(subject: str, role: str, diag_component: str) -> bool:
 
 
 def parse_diag_filename(name: str) -> tuple[str, str, str] | None:
-    """`diag-C1-rule-grounded.json` → ('C1', 'rule', 'grounded')"""
-    m = re.match(r"diag-(C[1-5])-(rule|llm)-(grounded|freeform)\.json", name)
-    return (m.group(1), m.group(2), m.group(3)) if m else None
+    """`diag-C1-rule-grounded.json` → ('C1', 'rule', 'grounded').
+    The `-llmb` variant collapses to engine `llm-b` so the engine_mode
+    column distinguishes LLM-A vs LLM-B."""
+    m = re.match(r"diag-(C[1-5])-(rule|llm)-(grounded|freeform)(-llmb)?\.json$", name)
+    if not m:
+        return None
+    conf, engine, mode, llmb = m.group(1), m.group(2), m.group(3), m.group(4)
+    if engine == "llm" and llmb:
+        engine = "llm-b"
+    return (conf, engine, mode)
 
 
 def wilson_ci(s: int, n: int, z: float = 1.96):

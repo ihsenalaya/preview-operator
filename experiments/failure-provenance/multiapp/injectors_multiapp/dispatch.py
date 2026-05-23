@@ -86,6 +86,133 @@ def prepare(subject: dict, fault: str, cfg: dict) -> DeployPlan:
                 {"name": "DATABASE_URL", "value": "postgres://fp:fp@10.255.255.1:5432/fp"})
         return DeployPlan(subject=s, image=stock)
 
+    if fault == "F4":
+        # F4 — broken backend route. The application starts cleanly, but one of
+        # its critical resources is missing at query time: the post-migration
+        # step renames the subject's primary table to a name the app does not
+        # know. Subsequent API calls that read that table return 5xx.
+        # Semantically still "application: the application's behavior is
+        # broken" — the path from request to a populated resource is severed.
+        critical_table = {
+            "s2-listmonk":     "lists",
+            "s3-healthchecks": "api_check",
+            "s4-umami":        "website",
+            "s5-petclinic":    "pets",
+        }.get(sid)
+        if critical_table is None:
+            raise ValueError(f"F4 multi-app: unknown critical table for {sid}")
+        original = s.get("migration_command") or []
+        # Append a "rename critical table" psql command after the original
+        # migration runs (so seeding still works, then the table is severed).
+        rename = (
+            f'apt-get install -y postgresql-client 2>/dev/null; '
+            f'psql "$DATABASE_URL" -c "ALTER TABLE {critical_table} '
+            f'RENAME TO {critical_table}_fp_f4_broken"'
+        )
+        if original and isinstance(original, list) and len(original) >= 3:
+            # original is typically [sh, -c, <command>]; suffix our command
+            new_cmd = original[2] + f' && {rename}'
+            s["migration_command"] = [original[0], original[1], new_cmd]
+        return DeployPlan(subject=s, image=stock)
+
+    if fault == "F5":
+        # F5 — frontend bug. For binary-app subjects (listmonk/umami) the
+        # frontend is compiled into the image so this fault category is not
+        # injectable without a fork-and-build. For petclinic-rest there is no
+        # frontend by design — this scenario is N/A and the orchestrator
+        # records the row as such instead of injecting a placeholder. For
+        # healthchecks (Django templates) and umami/listmonk (where a
+        # *served* URL exists) we mis-configure the frontend base URL via
+        # env so the user-facing UI breaks while the API stays healthy.
+        if sid == "s5-petclinic":
+            raise ValueError("F5 N/A: s5-petclinic is a REST-only API")
+        svcs = s.get("services", [])
+        env_var_map = {
+            "s2-listmonk":     ("ROOT_URL",         "http://fp-f5-broken-frontend.invalid:0"),
+            "s3-healthchecks": ("SITE_ROOT",        "http://fp-f5-broken-frontend.invalid:0"),
+            "s4-umami":        ("NEXT_PUBLIC_API_URL", "http://fp-f5-broken-frontend.invalid:0"),
+        }
+        name, val = env_var_map.get(sid, ("FRONTEND_URL_OVERRIDE", "http://fp-f5-broken-frontend.invalid:0"))
+        svcs[0].setdefault("env", []).append({"name": name, "value": val})
+        return DeployPlan(subject=s, image=stock)
+
+    if fault == "F8":
+        # F8 — backend latency. Inject a Postgres BEFORE-INSERT trigger that
+        # calls pg_sleep(2) on the critical table; every write path that
+        # touches that table is now slow by 2 s. Smoke / regression suites
+        # exercise these writes, so the latency surfaces as test timeouts
+        # OR observably slower responses. Semantically still "observability:
+        # the system is unhealthy in a way that is only visible in timing".
+        critical_table = {
+            "s2-listmonk":     "lists",
+            "s3-healthchecks": "api_check",
+            "s4-umami":        "website",
+            "s5-petclinic":    "pets",
+        }.get(sid)
+        if critical_table is None:
+            raise ValueError(f"F8 multi-app: unknown critical table for {sid}")
+        sql = (
+            "CREATE OR REPLACE FUNCTION fp_f8_delay() RETURNS trigger AS "
+            "\\$\\$ BEGIN PERFORM pg_sleep(2); RETURN NEW; END; \\$\\$ "
+            "LANGUAGE plpgsql; "
+            f"CREATE TRIGGER fp_f8_latency BEFORE INSERT OR UPDATE ON "
+            f"{critical_table} FOR EACH ROW EXECUTE FUNCTION fp_f8_delay();"
+        )
+        original = s.get("migration_command") or []
+        inject = (
+            f'apt-get install -y postgresql-client 2>/dev/null; '
+            f'psql "$DATABASE_URL" -c "{sql}"'
+        )
+        if original and isinstance(original, list) and len(original) >= 3:
+            new_cmd = original[2] + f' && {inject}'
+            s["migration_command"] = [original[0], original[1], new_cmd]
+        return DeployPlan(subject=s, image=stock)
+
+    if fault == "F9":
+        # F9 — bad seed data. The migration runs successfully but the seed
+        # step inserts a row that violates the application's logical
+        # constraints. For subjects with a 'lists'-like primary table, we
+        # insert a row with a deliberately bad NOT-NULL or foreign-key
+        # value. Diagnosis must point at the seed step, not at the
+        # backend or migration.
+        critical_table = {
+            "s2-listmonk":     "lists",
+            "s3-healthchecks": "api_check",
+            "s4-umami":        "website",
+            "s5-petclinic":    "pets",
+        }.get(sid)
+        if critical_table is None:
+            raise ValueError(f"F9 multi-app: unknown critical table for {sid}")
+        # An UPDATE that NULLs a known-required column triggers the app's
+        # subsequent read to crash on the NULL.
+        bad_sql_per_subject = {
+            "s2-listmonk":     "UPDATE lists SET name = NULL WHERE id = (SELECT id FROM lists LIMIT 1)",
+            "s3-healthchecks": "UPDATE api_check SET name = NULL WHERE id = (SELECT id FROM api_check LIMIT 1)",
+            "s4-umami":        "UPDATE website SET name = NULL WHERE website_id = (SELECT website_id FROM website LIMIT 1)",
+            "s5-petclinic":    "UPDATE pets SET name = NULL WHERE id = (SELECT id FROM pets LIMIT 1)",
+        }
+        original = s.get("migration_command") or []
+        bad = bad_sql_per_subject[sid]
+        inject = (
+            f'apt-get install -y postgresql-client 2>/dev/null; '
+            f'psql "$DATABASE_URL" -c "{bad}"'
+        )
+        if original and isinstance(original, list) and len(original) >= 3:
+            new_cmd = original[2] + f' && {inject}'
+            s["migration_command"] = [original[0], original[1], new_cmd]
+        return DeployPlan(subject=s, image=stock)
+
+    if fault == "F10":
+        # F10 — flaky test. Sets the FP_F10_FLAKY=1 env var on services so
+        # the test wrapper (when rebuilt with the flaky-mode support — see
+        # harness-adapter/wrapper.py) injects a deliberate non-deterministic
+        # failure on one test. By construction F10 has no real root cause:
+        # the diagnosis evaluation here is the F10 hallucination control.
+        svcs = s.get("services", [])
+        for svc in svcs:
+            svc.setdefault("env", []).append({"name": "FP_F10_FLAKY", "value": "1"})
+        return DeployPlan(subject=s, image=stock)
+
     if fault == "F7":
         # Multi-app F7 — Service routes to a port the application does NOT
         # bind to.
