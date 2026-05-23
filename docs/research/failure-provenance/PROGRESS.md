@@ -499,3 +499,34 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - 10 active previews. Cluster relaxed: vmss00000b dropped from 89 % CPU to 12 %. Autoscaler will likely shrink soon.
 - Phase A ETA: 10 more minutes → ~22:13 Paris.
 - Commit age 47 min. Push at 60 min threshold (next tick).
+
+### 2026-05-23 20:14 UTC (22:14 Paris) — tick 20 — F5 batch running on rebuilt :fp-f5 adapters
+- 4 F5-only processes alive 2m03s (314314-314317), one per subject.
+- 20 active previews (concurrency 5 × 4 processes). Cluster vmss00000a at 95 % CPU — heavy but autoscale should kick in if it climbs more. Other nodes 14-42 %.
+- 333 captures (down 1 from 334 — stale s4 F5 r2 deleted). F5 0/40 (first cycle still in flight, ~5 min). F4/F8/F9 all 40/40 ✅, F10 13/40 (terminal).
+- All F5 reps now expected to capture deterministically (wrapper.py returns 500 on `/` when FP_F5_BROKEN_FRONTEND=1; smoke.py's `_frontend_check` detects the marker and fails).
+- 1 min since last commit (commit d57da07 pushed at 22:13). No push this tick.
+
+### 2026-05-23 20:23 UTC (22:23 Paris) — tick 21 — F5 FIX VALIDATED, ALL 4 SUBJECTS 10/10 ✅
+- F5 fully captured on all 4 multi-app subjects: **s2-listmonk 10/10, s3-healthchecks 10/10, s4-umami 10/10, s5-petclinic 10/10**. Deterministic capture rate via wrapper.py FP_F5_BROKEN_FRONTEND injection + smoke.py _frontend_check.
+- 373/400 captures (93.25 %). F4 ✅ 40/40, F5 ✅ 40/40 (was 1 in tick 19!), F8 ✅ 40/40, F9 ✅ 40/40, F10 13/40 + the flaky-pass no-reports.
+- Per subject: s2 93, s3 90, s4 90, s5 **100/100 COMPLETE**.
+- Processes 314314-314316 alive 11m26s working through F10 reps in their queues (s2 +7, s3 +10, s4 +10 F10 attempts). 314317 (s5) exited.
+- F10 in-flight produces some no-reports (flaky-pass) — these are the legitimate negative outcomes of F10 by design, not missing measurements.
+- Cluster: 4 nodes, all CPU under 20 %, RAM under 61 %. 15 active previews.
+- 10 min since last commit. Push horaire dans ~50 min, ou plus tôt si milestone (fin F5+F10 = milestone).
+- NEXT: when all 4 F5 processes exit, auto-launch fp-diagnose on the new ~40 F5 captures + remaining F10 captures × 2 LLMs × 5 configs.
+
+### 2026-05-23 20:33 UTC (22:33 Paris) — tick 22 — F5 phase complete, auto-launch fp-diagnose phase 2
+- ALL 4 F5 processes EXITED clean. Captures stable at 373/400 (s5 100/100 ✅; s2 93, s3 90, s4 90).
+- F4 ✅ 40/40, F5 ✅ 40/40 (FIX VALIDATED), F8 ✅ 40/40, F9 ✅ 40/40, F10 13/40 + ~27 flaky-pass no-reports = methodologically valid per F10 design.
+- 0 active previews. Cluster idle.
+- AUTO-LAUNCH triggered: fp-diagnose batch v2 (PID 321847 with pools 321853/A + 321854/B). 865 LLM-A jobs + 865 LLM-B jobs = 1730 calls × ~3s = ~10-15 min wall-clock. The 2024 existing diags short-circuit via the script's existence check.
+- 20 min since last commit. No push this tick — will push when diag batch completes.
+
+### 2026-05-23 20:45 UTC (22:45 Paris) — tick 23 — fp-diagnose 2 + B2 multi-app in parallel
+- fp-diagnose Phase 2 batch (PID 321847): 12 min elapsed, 2780/3730 diags on disk (75 %). ~14 pool workers active in parallel.
+- B2 multi-app (PID 328534, 53s): deployed first cell pr-90101 (s2-listmonk/F1), waiting for it to settle in Failed state before K8sGPT + Kagent probes.
+- 1 active preview (the B2 cell). Other 4 nodes idle, vmss00000a/b at 3-4 % CPU after the F5 batch unwound.
+- 373/400 multi-app captures stable. F4/F5/F8/F9 all 40/40 ✅. F10 13/40 + 27 flaky-pass.
+- Commit age 33 min. No push this tick (next at 22:55).

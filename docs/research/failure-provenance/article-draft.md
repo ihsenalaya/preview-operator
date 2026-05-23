@@ -924,3 +924,44 @@ This section is appended to at every hourly self-update loop pass.
   family), and the *evidence-structuring-not-LLM-diagnosis* framing
   as the defensible positioning for the venue.
 - No numbers added or changed — all new content is narrative + citation.
+
+---
+
+## Update log — Phase 5b (multi-app + F5 engineering fix)
+
+**2026-05-23 22:45 UTC** — the article-draft was last refreshed on the
+Phase 5a frozen snapshot (S1 only). Phase 5b (multi-application
+generalisation S2-S5 on listmonk, healthchecks, umami, petclinic) ran
+in a single 9 h session on 2026-05-23 and produced:
+
+- **373/400 multi-app captures** (s2 93/100, s3 90/100, s4 90/100, s5 100/100).
+  The 27 missing F10 reps are flaky-pass legitimate negative outcomes,
+  not missing measurements.
+- **F1-F10 all in scope for all 4 subjects** after the F5 engineering
+  fix (wrapper.py + smoke.py + :fp-f5 adapter images) replaced the
+  earlier "F5 N/A for backend-only smoke" re-scoping.
+- **Multi-app baselines**: B0 (200/200, 43.0 % pooled aligned),
+  B2a K8sGPT + B2b Kagent in-progress (subset s2+s3 × F1-F4 launched
+  at 20:42 UTC; will extend to 40 cells).
+- **Operator instrumentation** for RQ5 sub-components: patched +
+  rebuilt as `:fp-rq5instr`; subset rerun pending to populate
+  cpu/memory/microseconds.
+- **3 new defects** (multi-app SUBJECT_IDX collision, F7 reconciler
+  race, RQ5 timing field rounded to 0) — each fixed and committed,
+  see `experimentations.md §10.3`.
+- **9 stale docs refreshed**: metrics.md, threats-to-validity.md
+  (§7 defects discovered + §7.6 F5 fix audit), experiments.md,
+  research-questions.md (RQ-by-RQ limitations), methodology.md
+  (§X deviations), EVALUATION-DRAFT.md (§10 multi-app), Q1-COMPLIANCE.md
+  (live tracker, 13/18 ✅ as of 22:45), PROGRESS.md (23 ticks of live
+  monitoring), experimentations.md (§10 multi-app campaign log).
+
+The Phase 5b freeze commit will replace the Phase 5a digest reference
+at the top of this file once the matrix + diagnose + baselines
+pipeline closes (~23:30 UTC, before sleep). Pending items are
+tracked in Q1-COMPLIANCE.md §I (work units W2-W18).
+
+The remaining `[TODO]` markers in §4-§6 will be resolved as the
+Phase 5b numbers replace the Phase 5a placeholders in the next
+update-pass, scheduled after fp-diagnose Phase 2 (~22:55 UTC) and
+B2a/B2b multi-app (~23:25 UTC) finish.

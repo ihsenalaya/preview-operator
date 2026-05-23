@@ -15,8 +15,9 @@ The primary environment is a local Kubernetes cluster created with **Kind** (Kub
 in Docker). Kind is chosen because it is single-machine, scriptable, and produces a
 deterministic, disposable cluster — ideal for reproducible fault injection.
 
-- Kubernetes version: **TODO_VERIFY** — pin one version and record it (e.g. the version
-  used by the operator's `make test-e2e`).
+- Kubernetes version: **1.34.7** — pinned on the AKS `idp-preview-test` cluster
+  used for the full campaign (S1 + multi-app). Recorded in `experimentations.md §1`.
+  Local kind cluster runs the same minor version when used for smoke tests.
 - Node layout: single control-plane node unless a scenario needs more.
 - Host machine specification (CPU model, cores, RAM, OS) **must be recorded** in the
   results, because overhead metrics (RQ5) are hardware-dependent.

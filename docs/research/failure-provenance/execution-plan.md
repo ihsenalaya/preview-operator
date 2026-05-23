@@ -226,3 +226,36 @@ recorded in the CSV. **No invented measurements, no extrapolation, no
 "approximate" numbers.** A single fabricated row kills the paper. When
 unmeasured, the cell is left empty / marked TODO and the limitation is
 reported honestly in `threats-to-validity.md`.
+
+---
+
+## Phase 5a closure + Phase 5b completion log
+
+**Last refresh:** 2026-05-23 22:45 UTC.
+
+This execution-plan document is a static contract; the Phase-5 campaign
+has since closed Phase 5a (S1 idp-preview, 100/100 captures, frozen
+2026-05-23 ~11:32 UTC at commit `2e81a648`) AND a Phase 5b
+(multi-application generalisation on s2-listmonk, s3-healthchecks,
+s4-umami, s5-petclinic).
+
+For the live state of the Phase-5 work-unit closure plan, see
+**`Q1-COMPLIANCE.md`** (Sections I + J + per-file checklist). For the
+chronology of multi-app defects + fixes, see **`experimentations.md §10`**.
+For per-tick status, see **`PROGRESS.md §9` (Live monitoring log)**, which
+records every 10-minute cron tick since 2026-05-23 16:08 UTC.
+
+### LLM substitution chain (replaces this doc's original "LLM-B = Llama-3.3-70B")
+
+The Together.ai Llama-3.3-70B endpoint was unreachable during the
+campaign (regional capacity outage). The cross-LLM RQ4 reading therefore
+uses:
+
+| Slot         | Pre-registered | Actually run                  |
+|--------------|----------------|-------------------------------|
+| LLM-A        | gpt-4o-mini-2024-07-18 | Same                           |
+| LLM-B        | Llama-3.3-70B (Together.ai)   | **cohere-command-a (Azure AI Foundry)** |
+| Judge        | Claude Sonnet 4.5      | **Mistral-Large-3 (Azure AI Foundry)** |
+
+Three disjoint provider families (OpenAI / Cohere / Mistral) preserved.
+Documented in `llm-selection.md §3.1`.

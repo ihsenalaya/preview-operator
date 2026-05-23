@@ -188,3 +188,33 @@ application (Flask Python); generalization to other stacks (Go, Django,
 Next.js, Spring Boot) is future work, demonstrated as feasible by the
 existing multi-app orchestrator (`run-matrix.py`, see
 `docs/research/failure-provenance/multi-app-plan.md`)."
+
+---
+
+## Phase 5b unlock — multi-app campaign actually ran (2026-05-23 evening)
+
+**This locked-plan document is now superseded for the multi-app scope.**
+
+The original lock said "multi-app S2-S5: **SKIP** for this paper, future-work".
+That decision was reversed on 2026-05-23 14:33 UTC when the multi-app
+campaign was launched. Status as of 2026-05-23 22:45 UTC:
+
+- 373/400 multi-app captures landed (s2 93, s3 90, s4 90, s5 100/100 ✅).
+- All 10 fault classes in scope on s2/s3/s4 (s5 = 9 + F5 included via fix).
+- B0 multi-app baseline done (200/200, 43.0 % pooled aligned).
+- B2a + B2b multi-app baseline in progress.
+- 3 new defects discovered + fixed during the multi-app run; documented
+  in `experimentations.md §10.3`.
+- F5 engineering fix landed (wrapper.py proxy injection + smoke.py
+  `_frontend_check` + `:fp-f5` adapter images), captures 40/40
+  deterministically.
+- Operator instrumented for RQ5 sub-components (`fp-rq5instr` image).
+
+The **canonical execution sequence** is now tracked in
+`Q1-COMPLIANCE.md` (live, 18 work units, 13 ✅ as of 22:45) — that file
+supersedes the §1 roadmap above for what is actually happening.
+
+The §6 "scope justification for skipping multi-app" reasoning has been
+empirically overtaken: the multi-app run completed in 9 h wall-clock on
+one session, demonstrating that fork-and-build wasn't required (the
+`harness-adapter` pattern + wrapper.py proxy is enough).
