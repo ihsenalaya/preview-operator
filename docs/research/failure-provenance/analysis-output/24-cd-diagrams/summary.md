@@ -1,6 +1,6 @@
 # CD diagrams — Friedman + Nemenyi post-hoc
 
-Generated 2026-05-23T18:06:58.638846Z.
+Generated 2026-05-23T18:30:21.743570Z.
 
 ## LLM=A
 
@@ -8,11 +8,11 @@ Friedman ranks across 10 scenarios over 5 configurations. Critical Difference (N
 
 | C | avg rank |
 |---|---|
-| C4 | 2.700 |
-| C5 | 2.850 |
-| C1 | 3.150 |
-| C2 | 3.150 |
-| C3 | 3.150 |
+| C4 | 2.200 |
+| C5 | 2.750 |
+| C3 | 3.250 |
+| C2 | 3.350 |
+| C1 | 3.450 |
 
 Figure: `cd_llm_a.png`
 
@@ -22,11 +22,11 @@ Friedman ranks across 10 scenarios over 5 configurations. Critical Difference (N
 
 | C | avg rank |
 |---|---|
-| C1 | 3.000 |
-| C2 | 3.000 |
-| C3 | 3.000 |
-| C4 | 3.000 |
-| C5 | 3.000 |
+| C5 | 2.350 |
+| C4 | 2.500 |
+| C3 | 3.250 |
+| C2 | 3.350 |
+| C1 | 3.550 |
 
 Figure: `cd_llm_b.png`
 

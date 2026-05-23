@@ -1,23 +1,23 @@
                     Mixed Linear Model Regression Results
 =============================================================================
 Model:                    MixedLM         Dependent Variable:         correct
-No. Observations:         2000            Method:                     REML   
-No. Groups:               10              Scale:                      0.0087 
+No. Observations:         4000            Method:                     REML   
+No. Groups:               10              Scale:                      0.0658 
 Min. group size:          200             Log-Likelihood:             inf    
-Max. group size:          200             Converged:                  Yes    
-Mean group size:          200.0                                              
+Max. group size:          600             Converged:                  Yes    
+Mean group size:          400.0                                              
 -----------------------------------------------------------------------------
                                    Coef.  Std.Err.   z    P>|z| [0.025 0.975]
 -----------------------------------------------------------------------------
-Intercept                          -0.048                                    
-C(configuration)[T.C2]             -0.000    0.009 -0.000 1.000 -0.018  0.018
-C(configuration)[T.C3]             -0.000    0.009 -0.000 1.000 -0.018  0.018
-C(configuration)[T.C4]              0.050    0.009  5.349 0.000  0.032  0.068
-C(configuration)[T.C5]              0.050    0.009  5.349 0.000  0.032  0.068
-C(llm)[T.B]                        -0.000    0.009 -0.000 1.000 -0.018  0.018
-C(configuration)[T.C2]:C(llm)[T.B]  0.000    0.013  0.000 1.000 -0.026  0.026
-C(configuration)[T.C3]:C(llm)[T.B]  0.000    0.013  0.000 1.000 -0.026  0.026
-C(configuration)[T.C4]:C(llm)[T.B] -0.050    0.013 -3.782 0.000 -0.076 -0.024
-C(configuration)[T.C5]:C(llm)[T.B] -0.050    0.013 -3.782 0.000 -0.076 -0.024
+Intercept                           0.053                                    
+C(configuration)[T.C2]              0.030    0.018  1.654 0.098 -0.006  0.066
+C(configuration)[T.C3]              0.095    0.018  5.236 0.000  0.059  0.131
+C(configuration)[T.C4]              0.160    0.018  8.819 0.000  0.124  0.196
+C(configuration)[T.C5]              0.138    0.018  7.579 0.000  0.102  0.173
+C(llm)[T.B]                        -0.037    0.018 -2.067 0.039 -0.073 -0.002
+C(configuration)[T.C2]:C(llm)[T.B] -0.013    0.026 -0.487 0.626 -0.063  0.038
+C(configuration)[T.C3]:C(llm)[T.B] -0.058    0.026 -2.241 0.025 -0.108 -0.007
+C(configuration)[T.C4]:C(llm)[T.B] -0.058    0.026 -2.241 0.025 -0.108 -0.007
+C(configuration)[T.C5]:C(llm)[T.B] -0.035    0.026 -1.364 0.173 -0.085  0.015
 Group Var                           0.000                                    
 =============================================================================

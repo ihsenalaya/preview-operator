@@ -75,4 +75,33 @@ def load_unified() -> pd.DataFrame:
                 "bundle_size_bytes": 0,
                 "hallucination_rate": 0.0,
             })
+    # 3) Multi-app rescore (2000 rows: LLM-A + LLM-B on S2-S5)
+    ma = ROOT.parent.parent / "docs/research/failure-provenance/analysis-output/17-multiapp-rescore/per-subject-results.csv"
+    if ma.is_file():
+        df = pd.read_csv(ma)
+        for _, r in df.iterrows():
+            em = str(r.get("engine_mode", ""))
+            # engine_mode formats: llm-grounded, llm-b-grounded, rule-grounded
+            if em.startswith("llm-b-"):
+                engine = "llm"; mode = em[len("llm-b-"):]; llm = "B"
+            elif em.startswith("llm-"):
+                engine = "llm"; mode = em[len("llm-"):]; llm = "A"
+            elif em.startswith("rule-"):
+                engine = "rule"; mode = em[len("rule-"):]; llm = "rule"
+            else:
+                continue
+            rows.append({
+                "subject": str(r.get("subject_id", "")),
+                "scenario": str(r.get("scenario_id", "")),
+                "rep": str(r.get("rep", "")),
+                "configuration": str(r.get("configuration", "")),
+                "engine": engine,
+                "mode": mode,
+                "llm": llm,
+                "correct": int(r.get("top1_aligned", 0) or 0),
+                "aligned": int(r.get("top1_aligned", 0) or 0),
+                "evidence_recall": 0.0,
+                "bundle_size_bytes": 0,
+                "hallucination_rate": 0.0,
+            })
     return pd.DataFrame(rows)
