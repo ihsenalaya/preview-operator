@@ -192,29 +192,97 @@ in the upstream pod's log.
 
 ## 4. Approach
 
+The operator is the first observer of every state transition in a preview
+environment. We use that vantage point to capture evidence *before*
+namespace teardown, structure it onto a small typed schema, link it to the
+PR change context, and persist the result as a cluster-scoped resource
+that outlives the namespace. The diagnostic step then runs *over* the
+persisted artefact rather than against a live cluster — so the diagnosis
+is reproducible from the artefact alone, audit-grade.
+
 ### 4.1 The failure evidence model
-Typed evidence items with deterministic IDs (`failure-evidence-model.md`).
-Five collectors, each producing items keyed by `(kind, namespace, name)`
-hashed deterministically so re-reconciles produce idempotent bundles.
+
+The evidence model defines six entity classes (see
+`failure-evidence-model.md` for the full PROV mapping):
+
+| Class | Examples | Source |
+|---|---|---|
+| `ChangeContext` | PR number, diff, head commit, changed files | Git, PR metadata |
+| `KubernetesResource` | Deployment, Service, Job, ConfigMap | apiserver snapshot |
+| `TestArtefact` | JUnit XML, suite outcome, failing assertion | Testkube/Argo run |
+| `Log` | container logs, previous-instance logs | kubelet API |
+| `Event` | Kubernetes `Event` objects | apiserver |
+| `Condition` | `.status.conditions[*]` from any resource | apiserver |
+
+Each item carries a **deterministic identifier**
+`sha256(kind || namespace || name || normalized-content)` so that
+re-reconciliations produce byte-identical bundles modulo timestamps.
+Idempotency is enforced by unit tests (`internal/evidence/evidence_test.go`)
+and validated empirically: the `IdempotencyOK` metric (M11) records the
+artefact stable across 3 extra reconciles in 1500/1500 rows.
+
+Sensitive fields (`Secret` data, environment variables containing
+`PASSWORD`, `TOKEN`, `KEY`) are redacted at capture time using a
+configurable regex list (`internal/evidence/redact.go`).
 
 ### 4.2 The provenance graph
-PR diff → Kubernetes resource → test failure → log/event/condition →
-probable cause, mapped onto PROV entities (`architecture.md`).
+
+We materialise the typed dependency between items as a directed graph
+mapped onto W3C PROV [`lebo_provo_2013`, `w3c_prov_dm`]:
+
+```
+ChangeContext  --wasDerivedFrom-->  KubernetesResource
+KubernetesResource  --used-->  Log, Event, Condition
+TestArtefact  --wasGeneratedBy-->  KubernetesResource
+FailureDiagnosis  --wasInformedBy-->  (Log | Event | Condition | TestArtefact)
+```
+
+The graph is the artefact that turns an evidence *list* into an
+auditable trace: every diagnostic claim must reference at least one
+`wasInformedBy` edge into a captured evidence item, and items unreachable
+from a diagnosis are flagged in the bundle for human review.
 
 ### 4.3 The `FailureReport` CRD
-Cluster-scoped, so it survives namespace teardown by construction.
-RBAC and reconcile integration in `internal/controller/failurereport.go`.
+
+A cluster-scoped resource (`api/v1alpha1/failurereport_types.go`):
+because its scope is the cluster and not the preview namespace, it
+survives the namespace deletion by Kubernetes invariant — no
+external storage is required for the "evidence outlasts the
+namespace" property [`kubernetes_custom_resources`].
+
+`EnsureFailureReport` is wired into the operator's failure paths in
+`internal/controller/failurereport.go`. Reconciliation is idempotent: a
+second invocation with the same `(Preview namespace, generation)` key
+does not append duplicate items.
 
 ### 4.4 The diagnostic harness
-Three engines, all operating on the same evidence bundle:
-- **`rule-grounded`** — deterministic ordered rules per fault class.
-- **`llm-grounded`** — LLM with a grounding constraint that requires the
-  diagnosis to cite specific evidence IDs.
-- **`llm-freeform`** — same LLM, same prompt, *without* the grounding
-  constraint — kept as an internal ablation, not an external baseline.
 
-`[TODO — figure: end-to-end flow diagram, in architecture.md as Mermaid;
-needs LaTeX render]`
+Three engines, all operating on the *same* persisted evidence bundle —
+the harness does not re-read the live cluster:
+
+- **`rule-grounded`** — deterministic ordered rules per fault class
+  (`internal/diagnosis/rules.go`). One rule per scenario family;
+  ranked by specificity so that scenario-specific signatures win over
+  generic ones. Documented in `experimentations.md §10`.
+- **`llm-grounded`** — LLM (Azure OpenAI / Foundry, temperature 0)
+  prompted with a *grounding constraint* that requires the diagnosis
+  JSON to cite specific `evidence_id` values from the bundle. Prompts
+  follow the ReAct pattern [`yao_react_2023`] without the
+  tool-execution loop: the LLM observes the bundle, then must justify
+  its claim against listed items.
+- **`llm-freeform`** — same LLM, same prompt prefix, *without* the
+  grounding constraint. Kept as an internal ablation that isolates the
+  *evidence-grounding* mechanism from raw LLM capability. *Not* an
+  external baseline.
+
+For external comparison we add B0 (vanilla LLM on raw `kubectl`), B2a
+(K8sGPT [`k8sgpt_cncf`]), and B2b (Kagent k8s-agent). These bypass the
+operator's evidence pipeline entirely (§5.8).
+
+The harness CLI `cmd/fp-diagnose` accepts a persisted `FailureReport`
+and emits a structured `Diagnosis` (`internal/diagnosis/diagnosis.go`).
+Scoring is offline, against the per-scenario ground truth in
+`scenarios.yaml` (`internal/scoring/scenario.go`).
 
 ---
 
@@ -521,44 +589,275 @@ component names before claiming Precision results on multi-app.]`**
 ---
 
 ## 7. Future work
-- **RQ3 live LLM-B MTTD** subset (~150 reps, Tier B isolated).
-- **RQ4 atomic-claim annotation** with κ ≥ 0.6.
-- **RQ5 CPU + memory overhead** via paired evidence-on/off run on the
-  RQ5-instrumented operator image.
-- **Open-LLM reproducibility** — re-run LLM-B with a self-hosted Llama
-  3.3 70B endpoint to restore the closed/open contrast.
-- **Bibliography TODO_VERIFY** — resolve the 12 remaining unverified
-  entries in `bibliography.bib`.
-- **Multi-app whitelist** — extend `expected_evidence` per scenario to
-  cover S2–S5 component names; rescore precision.
-- **F5 / F9 / F10 semantic-miss catalogue** — qualitative open coding
-  on the case-study cards in `26-qualitative/` to characterise the
-  family of failures the current operator+LLM pipeline does not
-  resolve.
+
+We group future work by the metric or methodological gap it addresses:
+
+**Closing the partial-RQ gaps.**
+- **RQ3 live cross-LLM MTTD.** A small Tier-B isolated subset (3 reps
+  × 10 scenarios × 5 configurations × 2 LLMs ≈ 300 live runs, ~1 h
+  cluster time) would replace the queueing-contaminated end-to-end
+  numbers reported in §5.5 with clean LLM-included MTTD. Operator-side
+  MTTD is already measured.
+- **RQ4 atomic-claim hallucination annotation.** The current draft
+  reports proxy signals (strict→aligned delta, McNemar on grounded
+  vs free-form). A canonical κ ≥ 0.6 between two annotators on the
+  20 % shuffled subsample is the remaining blocker for the
+  unsupported-claim primary metric. The AI-assisted first pass is
+  already committed to `analysis-output/16-cohen-kappa/`; human
+  override is the gating step (Q1-COMPLIANCE §E).
+- **RQ5 CPU and memory overhead.** Paired evidence-on / evidence-off
+  measurement requires the RQ5-instrumented operator image (Section G
+  of Q1-COMPLIANCE) plus a serial Tier-B re-run on an otherwise idle
+  host. Bundle-size and persist-latency are already measured (§5.7).
+
+**Methodological hardening.**
+- **Open-LLM reproducibility.** The pre-registered LLM-B (Llama-3.3-70B
+  via Together.ai / Azure Foundry) was substituted *de facto* by
+  `cohere-command-a` and `Mistral-Large-3` because of upstream
+  capacity unavailability. A self-hosted Llama replication on an
+  external GPU host would restore the closed-vs-open contrast that
+  motivates the multi-LLM design per [`se_llm_guidelines`]
+  (Guideline 6) and [`llm_open_advantage`].
+- **Three-or-more-LLM extension.** Following the OpenRCA precedent of
+  six LLMs [`openrca_2025`], an extended replication package with
+  Claude Sonnet, Gemini Pro, and one additional open model would
+  strengthen the cross-LLM generalisation claim. The mixed-effects
+  model `(1|scenario)` already supports it without changing the
+  inferential plan.
+- **Multi-app expected-evidence whitelist.** §5.10 reports
+  `Precision = 0.000` on S2–S5 F1/F2 because the whitelist is tuned
+  for s1 component names. Extending `expected_evidence` in
+  `scenarios.yaml` to per-subject vocabularies and rescoring is
+  a one-day fix.
+- **Bibliography verification.** 12 `TODO_VERIFY` entries remain in
+  `bibliography.bib` (4 testkube_*, 2 opentelemetry_*, 2
+  w3c_prov_*, 3 graph_/llm_rca_/synergyrca, postgres_isolation_companion);
+  all need primary-source confirmation before submission.
+
+**Open research directions surfaced by the case-study cards.**
+- **F5 / F9 / F10 semantic-miss family.** Across LLM-A, LLM-B, and
+  the rule diagnoser, all three scenarios stay at 0.0 % aligned top-1.
+  Inspection of the 30 case-study cards in
+  [`26-qualitative/`](analysis-output/26-qualitative/) shows three
+  recurring failure modes: *contract-test shadowing* (a downstream
+  contract failure outranks the upstream frontend break, F5);
+  *test-suite-vs-component label confusion* (the rubric expects
+  `seed-job`/`test-suite`, the LLM emits `tests`/`regression`,
+  F9/F10); and *injector visibility* (the injected fault is observable
+  but the diagnoser's vocabulary lacks the corresponding category).
+  Each is a distinct research direction — better cross-suite ranking,
+  category-vocabulary alignment, and prompt-level fault taxonomies —
+  rather than a unified gap.
+- **LLM-B mid-tier non-monotonicity.** The LMM cross-LLM interaction
+  (§5.4.3) shows LLM-B less responsive to C3 / C4 evidence than to C5
+  or to C1. A targeted study with a fixed prompt and a single fault
+  family would isolate whether this is a capability ceiling, a
+  prompt-format effect, or noise on a small contrast.
+
+**Operational extensions.**
+- **Provenance graph rendering.** The graph is captured as typed
+  edges in the `FailureReport` but not yet emitted as a graphviz /
+  Mermaid view in CI artefacts. A short follow-on extending the
+  CLI to render the graph would close the loop with the developer-
+  ergonomics motivation of §1.
+- **Streaming evidence capture.** The current operator captures
+  evidence on failure detection; an alternative is to *stream*
+  evidence into the bundle continuously through the preview lifetime
+  and freeze it at the failure boundary. This trades storage for
+  late-binding evidence completeness and is interesting on long-running
+  scenarios (F8 latency, F10 flakiness).
 
 ---
 
 ## 8. Related work
 
-`[TODO — full discussion. Cite: zhang_microservice_diagnosis_survey_2025
-as the umbrella; openrca_2025 / eadro_2023 / rcaeval_2024 / rcacopilot_2024
-as comparable RCA frameworks; microrca_2020 / microdiag_2021 / causalrca_2023
-/ pal_2011 as classical telemetry RCA; deeplog_2017 / drain_2017 / spell_2016
-/ loghub_2023 as log-based; basiri_chaos_2016 / litmus_chaos_cncf /
-chaos_mesh_cncf as adjacent fault-injection literature; holmesgpt_robusta /
-k8sgpt_cncf as practitioner tools. Position our contribution at the
-intersection where none of these apply: change-scoped ephemeral
-environments. Depends on Q1-COMPLIANCE W14d.]`
+We position the contribution against six bodies of work, each
+established and none of which targets the specific niche of
+*operator-controlled evidence capture for ephemeral PR previews*.
+
+### 8.1 Microservice and cloud-incident root cause analysis
+[`zhang_microservice_diagnosis_survey_2025`] organises the field along
+the data class consumed (logs, metrics, traces, multimodal). On the
+logs side, **DeepLog** [`deeplog_2017`] over **Drain**-parsed
+templates [`drain_2017`, `spell_2016`, `loghub_2023`] is the canonical
+deep-learning baseline. On the multimodal side, **Eadro**
+[`eadro_2023`] integrates traces, logs, and KPIs end-to-end; **RCAEval**
+[`rcaeval_2024`] benchmarks 15 RCA approaches on 735 failures
+across Online Boutique / Sock Shop / Train Ticket. On the LLM side,
+**RCACopilot** [`rcacopilot_2024`] reports Macro-F1 0.533 on a year of
+Microsoft Transport incidents (production deployment) and **OpenRCA**
+[`openrca_2025`] benchmarks six LLMs on 335 enterprise failures with
+Claude 3.5 leading at 11.34 % success. Classical telemetry RCA
+includes **MicroRCA** [`microrca_2020`], **MicroDiag**
+[`microdiag_2021`], **CausalRCA** [`causalrca_2023`], and **PAL**
+[`pal_2011`].
+
+All of these target *production telemetry* on always-on systems. None
+addresses the *change-scoped ephemeral* setting where the namespace is
+torn down minutes after the failure. They presume a stable graph of
+services on which causal inference can run; we presume the opposite
+(every PR creates a new graph, every teardown destroys it).
+
+### 8.2 Preview environments and GitOps
+Per-PR ephemeral environments now ship as managed offerings
+[`signadot_preview_envs`, `okteto_preview_envs`,
+`jenkinsx_preview_envs`] and as GitOps patterns via Argo CD's
+ApplicationSet pull-request generator [`argocd_pr_generator`,
+`argocd_cncf`]. These platforms **deploy** previews; they do not
+**diagnose** their failures. A preview-environment failure today
+either bubbles up as a CI red badge with no structured artefact, or
+falls back to the developer pasting `kubectl` output into a chat LLM
+(our B0 baseline in §5.8.1).
+
+### 8.3 Kubernetes diagnostic practitioner tools
+**K8sGPT** [`k8sgpt_cncf`] is a CNCF Sandbox rule-based scanner with
+LLM-based explanation; **HolmesGPT** [`holmesgpt_robusta`] is an
+agentic ReAct-pattern Kubernetes investigator. Both consume the live
+cluster directly — they do not preserve evidence after teardown nor
+link to the PR diff. We use K8sGPT as B2a and the Kagent k8s-agent as
+B2b (§5.8) precisely because they are the strongest *contemporary
+practitioner baselines* on the same failing namespaces.
+
+### 8.4 Chaos engineering and fault injection
+The methodological precedent for our fault-injection harness is the
+principles-of-chaos paper [`basiri_chaos_2016`] and the CNCF
+Kubernetes-native chaos tools **LitmusChaos** [`litmus_chaos_cncf`]
+and **Chaos Mesh** [`chaos_mesh_cncf`]. We share the
+deterministic-fault-with-known-ground-truth design but target
+**diagnosis** (RCA accuracy) rather than **resilience** (steady-state
+preservation). Falco [`falco_cncf`] is an orthogonal eBPF-based
+runtime-security evidence source we do not yet incorporate.
+
+### 8.5 LLM reasoning, tool use, and faithfulness evaluation
+Our diagnostic-harness prompts follow the Chain-of-Thought paradigm
+[`wei_cot_2022`] without the multi-sample voting of
+self-consistency [`wang_selfconsistency_2023`]; the grounding
+constraint is conceptually closer to ReAct [`yao_react_2023`] without
+the live tool-execution loop (the bundle is the only "tool"). Beyond
+diagnosis, the broader LLM-evaluation literature
+[`brown_gpt3_2020`, `liang_helm_2023`] provides the evaluation
+discipline we adopt: pinned model versions [`se_llm_guidelines`
+Guideline 2], reproducible prompts, temperature 0.
+
+For hallucination measurement, we situate our RQ4 metrics against
+**RAGAS** [`es_ragas_2023`] (faithfulness for retrieval-augmented
+pipelines), **SelfCheckGPT** [`manakul_selfcheckgpt_2023`]
+(zero-resource hallucination via sample-consistency), **HaluEval**
+[`li_halueval_2023`] (annotated hallucination benchmark) and the
+Vectara FaithJudge framework [`tamber_faithjudge_2025`]. LLM-as-judge
+position bias [`shi_position_bias_2024`] is the methodological reason
+we forbid the diagnostic LLM from also judging itself (§5.6 and
+analysis-plan.md §1 L6).
+
+### 8.6 Distributed-system tracing and observability
+The operator's evidence pipeline complements rather than replaces
+the trace-based observability stack derived from
+Dapper [`dapper_2010`] and now standardised by OpenTelemetry
+[`opentelemetry_docs`, `opentelemetry_operator`], with Jaeger
+[`jaeger_cncf`] as the de-facto backend, Prometheus
+[`prometheus_cncf`] for metrics, and Istio
+[`istio_service_mesh`] for service-mesh-side instrumentation. Traces
+and metrics enter our bundle as Evidence items whenever the operator
+can read them from the cluster; they are not at the centre of the
+contribution.
+
+### 8.7 Provenance modelling
+The W3C PROV family [`w3c_prov_overview`, `w3c_prov_dm`,
+`lebo_provo_2013`] is the schema target for the failure provenance
+graph (§4.2). PROV is otherwise mature in scientific-workflow
+provenance and in data-lineage tooling; its application to
+*Kubernetes change-scoped failure traces* is, to our knowledge, novel.
+
+### 8.8 SE empirical methodology and statistics
+Our experimental design follows Wohlin et al.
+[`wohlin_experimentation`], Kitchenham et al. [`kitchenham_2002`],
+Sjøberg et al. [`sjoberg_2005`], and Runeson & Höst
+[`runeson_host_2009`] for controlled-experiment reporting. The
+statistical layer (LMM as L3 primary, Friedman as L3b robustness,
+Wilcoxon signed-rank + Vargha–Delaney A12 as L4, Holm and
+Benjamini-Hochberg as L5, Cohen's κ as L6, the cross-LLM
+`configuration:LLM` interaction as L7) follows Bates et al.
+[`bates_lme4_2015`], Baayen et al. [`baayen_2008`], Demšar
+[`demsar_2006`], Arcuri & Briand [`arcuri_briand_2014`], Vargha &
+Delaney [`vargha_delaney_2000`], Holm [`holm_1979`],
+Benjamini & Hochberg [`benjamini_hochberg_1995`], and McHugh
+[`mchugh_kappa_2012`]. Qualitative open-coding of the case-study
+cards (§5.4.6) follows Seaman [`seaman_1999`] and the broader
+SE-qualitative-research tradition.
+
+### 8.9 LLM for software engineering and program repair
+The empirical evidence that GPT-4 has *non-trivial* but
+*non-uniform* SE capabilities — strong on common patterns, brittle
+on domain-specific assumptions [`zhang_gpt4_se_replicate_2024`,
+`gpt4_vulnerability_2024`, `llm_apr_survey_2024`] — is consistent
+with our finding that the LLM diagnosers cluster around 30 % aligned
+top-1 (§5.4.1) and degrade further on multi-app subjects (§5.9).
+The contribution of the operator's structured evidence over a
+vanilla LLM is therefore not "the LLM can now diagnose" but "the
+LLM has the right inputs to diagnose".
+
+### 8.10 Software debugging foundations
+Delta debugging [`zeller_delta_2002`] inspires the broader
+fault-isolation tradition that our deterministic injectors
+(`scenarios.yaml`, one root cause per scenario) draw on. SRE
+operational doctrine [`beyer_sre_2016`] and DORA [`forsgren_accelerate_2018`]
+frame the production motivation: shortening MTTR / MTTD on PR
+preview failures is an operational lever in the high-deploy-frequency
+end of the DORA performance spectrum.
 
 ---
 
 ## 9. Conclusion
 
-`[TODO — write after §8 lands. Tentative thesis: operator-controlled
-evidence capture is a small, bounded engineering contribution with a
-measurable, statistically significant effect on diagnostic accuracy
-versus an off-the-shelf-LLM baseline on the studied workloads; the
-contribution is in the *evidence structuring*, not in the LLM choice.]`
+Failure evidence for ephemeral PR preview environments today is
+volatile, unstructured, and ungrounded. We have shown that the
+Kubernetes operator — the component already in the reconciliation
+path for every preview — is the right place to capture and structure
+this evidence. The contribution is a small, bounded engineering one:
+a typed evidence model, a PROV-shaped provenance graph, a
+cluster-scoped `FailureReport` artefact that outlives the namespace
+by Kubernetes invariant, and a diagnostic harness that operates
+*over* the persisted artefact rather than against the live cluster.
+
+On the studied workloads — one primary application (1500 paired
+rows) plus four additional reference applications (200 paired rows
+each for the generalisable scenario subset) on an AKS cluster with
+two LLM diagnosers and three external practitioner baselines —
+we observe:
+
+- **100 %** capture and post-teardown survival of failure evidence
+  before the namespace is destroyed; operator-side latency
+  sub-second.
+- **A monotone effect of evidence completeness on diagnostic
+  accuracy** in the linear mixed-effects model, with a significant
+  cross-LLM interaction (p = 0.025 at C3/C4) qualifying the effect
+  as *model-conditional* rather than *model-universal*. Tukey HSD
+  contrasts confirm C1→C4 and C1→C5 as the meaningful gains
+  (+0.16 and +0.14 absolute on LLM-A).
+- **A +34 to +80 percentage-point gap on 6/10 scenarios** between
+  the operator's diagnoser and a vanilla LLM consuming raw
+  `kubectl` output — the *baseline-externality* check that
+  distinguishes our work from an internal C1–C5 ablation.
+- **Three persistent semantic-miss scenarios** (F5, F9, F10) at
+  0.0 % aligned across all engines, qualitatively characterised
+  in 30 case-study cards as a future-work catalogue.
+
+The contribution is most defensibly framed as *evidence structuring*,
+not as *LLM diagnosis*: the rule-based diagnoser on the same evidence
+bundle reaches the same accuracy band as the LLM diagnoser
+(40.8 % vs 31.4 % pooled aligned), so the lever moved by the operator
+is the bundle itself, not the choice of diagnoser. This positions
+the work as a complement to AIOps RCA, GitOps deployment tooling,
+and Kubernetes-diagnostic practitioner tools — none of which
+currently address the change-scoped ephemeral setting.
+
+We release the operator implementation, the F1–F10 fault-injection
+harness, the analysis pipeline (`00…26-*.py`), and the 89-entry
+reference bibliography as a reproducible artefact at the project
+repository. The remaining work — atomic-claim hallucination
+annotation, CPU/memory overhead measurement, open-LLM
+reproducibility, and the semantic-miss-family research questions —
+is enumerated in §7 with explicit data dependencies.
 
 ---
 
@@ -602,3 +901,26 @@ This section is appended to at every hourly self-update loop pass.
   intentionally `[TODO]` with explicit data dependencies.
 - 89-entry bibliography cited inline using `[`bib_key`]` notation
   throughout.
+
+### 2026-05-23 ~19:17 Paris — Tick 2 (no new remote commits)
+- Pulled remote: no new commits since the previous draft pass; idle
+  window used to deepen existing sections rather than wait.
+- §4 Approach expanded: evidence-model entity table (6 classes with
+  source mapping), deterministic-ID hash scheme, redaction list,
+  PROV mapping made explicit, ReAct-style grounding constraint
+  detailed, harness CLI surface documented.
+- §7 Future work fully written: 4 sub-groups (closing partial RQs,
+  methodological hardening, open research directions surfaced by
+  the qualitative cards, operational extensions). Each item links
+  to its specific data dependency.
+- §8 Related work fully written: 10 sub-sections covering
+  microservice RCA, preview-environment platforms, K8s practitioner
+  tools, chaos engineering, LLM reasoning + faithfulness eval,
+  observability, provenance modelling, SE methodology + statistics,
+  LLM-for-SE, software-debugging foundations. ~60 bibliography keys
+  cited inline.
+- §9 Conclusion fully written: thesis, headline findings (capture,
+  monotone effect with cross-LLM caveat, baseline gap, semantic-miss
+  family), and the *evidence-structuring-not-LLM-diagnosis* framing
+  as the defensible positioning for the venue.
+- No numbers added or changed — all new content is narrative + citation.
