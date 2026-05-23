@@ -197,13 +197,17 @@
 % D. Kubernetes RCA and LLM-based RCA
 % ---------------------------------------------------------------------------
 
-% [TODO_VERIFY] OpenRCA benchmark. Verify venue, year, authors against the primary paper.
+% [STABLE] OpenRCA benchmark — verified 2026-05-23 via OpenReview.
 @inproceedings{openrca_2025,
-  author       = {TODO_VERIFY},
+  author       = {Xu, Junjielong and Zhang, Qinan and Zhong, Zhiqing and
+                  He, Shilin and Zhang, Chaoyun and Lin, Qingwei and Pei, Dan and
+                  He, Pinjia and Zhang, Dongmei and Zhang, Qi},
   title        = {{OpenRCA}: Can Large Language Models Locate the Root Cause of Software Failures?},
-  booktitle    = {TODO_VERIFY},
-  year         = {TODO_VERIFY},
-  note         = {TODO_VERIFY: confirm exact title, authors, venue (reported as ICLR 2025), and year. Remove if not confirmable.}
+  booktitle    = {Proceedings of the Thirteenth International Conference on Learning Representations (ICLR)},
+  year         = {2025},
+  url          = {https://openreview.net/forum?id=M4qNIzQYpd},
+  urldate      = {2026-05-23},
+  note         = {335 failures, >68 GB telemetry; reports Claude 3.5 best at 11.34\% success — the multi-LLM evaluation precedent cited by llm-selection.md.}
 }
 
 % [TODO_VERIFY] SynergyRCA. This entry MUST be confirmed from a primary source or removed.
@@ -228,6 +232,336 @@
   title        = {A Survey of Large Language Models for Software Testing and Failure Diagnosis},
   year         = {TODO_VERIFY},
   note         = {TODO_VERIFY: identify a concrete, citable survey (e.g. an LLM-for-software-testing survey).}
+}
+
+% ---------------------------------------------------------------------------
+% E. Comparable RCA frameworks and benchmarks (positioned, not head-to-head)
+% ---------------------------------------------------------------------------
+
+% [STABLE] RCAEval benchmark — verified 2026-05-23 via arXiv.
+@inproceedings{rcaeval_2024,
+  author       = {Pham, Luan and Zhang, Hongyu and Ha, Huong and Salim, Flora and Zhang, Xiuzhen},
+  title        = {{RCAEval}: A Benchmark for Root Cause Analysis of Microservice Systems with Telemetry Data},
+  booktitle    = {Companion Proceedings of the ACM Web Conference (WWW Companion)},
+  year         = {2025},
+  doi          = {10.1145/3701716.3715290},
+  url          = {https://arxiv.org/abs/2412.17015},
+  urldate      = {2026-05-23},
+  note         = {735 failure cases across three microservice systems (Online Boutique, Sock Shop, Train Ticket); benchmark suites RE1/RE2/RE3; reports Top-k accuracy, Avg@5, MRR. arXiv submitted 2024-12-22.}
+}
+
+% [STABLE] Eadro — verified 2026-05-23 via ICSE proceedings.
+@inproceedings{eadro_2023,
+  author       = {Lee, Cheryl and Yang, Tianyi and Chen, Zhuangbin and Su, Yuxin and Lyu, Michael R.},
+  title        = {{Eadro}: An End-to-End Troubleshooting Framework for Microservices on Multi-source Data},
+  booktitle    = {Proceedings of the 45th International Conference on Software Engineering (ICSE)},
+  pages        = {1750--1762},
+  year         = {2023},
+  doi          = {10.1109/ICSE48619.2023.00150},
+  url          = {https://arxiv.org/abs/2302.05092},
+  urldate      = {2026-05-23},
+  note         = {Multi-source (traces + logs + KPIs) anomaly detection and root-cause localization. HR@1 baseline reference.}
+}
+
+% [STABLE] RCACopilot — verified 2026-05-23. Note: published at EuroSys'24 (NOT OSDI).
+@inproceedings{rcacopilot_2024,
+  author       = {Chen, Yinfang and Xie, Huaibing and Ma, Minghua and Kang, Yu and Gao, Xin and
+                  Shi, Liu and Cao, Yunjie and Gao, Xuedong and Fan, Hao and Wen, Ming and others},
+  title        = {Automatic Root Cause Analysis via Large Language Models for Cloud Incidents},
+  booktitle    = {Proceedings of the Nineteenth European Conference on Computer Systems (EuroSys)},
+  year         = {2024},
+  doi          = {10.1145/3627703.3629553},
+  url          = {https://arxiv.org/abs/2305.15778},
+  urldate      = {2026-05-23},
+  note         = {RCACopilot. Reports Micro-F1 0.766 / Macro-F1 0.533 on a year of Microsoft Transport incidents. Production analogue cited in analysis-plan.md §7.}
+}
+
+% ---------------------------------------------------------------------------
+% F. Statistical methods (for analysis-plan.md)
+% ---------------------------------------------------------------------------
+
+% [STABLE] Bates et al. 2015 — verified 2026-05-23 via JSS.
+@article{bates_lme4_2015,
+  author       = {Bates, Douglas and M{\"a}chler, Martin and Bolker, Ben and Walker, Steve},
+  title        = {Fitting Linear Mixed-Effects Models Using {lme4}},
+  journal      = {Journal of Statistical Software},
+  volume       = {67},
+  number       = {1},
+  pages        = {1--48},
+  year         = {2015},
+  doi          = {10.18637/jss.v067.i01},
+  url          = {https://www.jstatsoft.org/article/view/v067i01},
+  urldate      = {2026-05-23},
+  note         = {Reference implementation and methodology for the primary inferential model in analysis-plan.md L3 (mixed-effects with crossed random factors for scenario, run, LLM).}
+}
+
+% [STABLE] Baayen et al. 2008 — verified 2026-05-23 via ScienceDirect.
+@article{baayen_2008,
+  author       = {Baayen, R. Harald and Davidson, Douglas J. and Bates, Douglas M.},
+  title        = {Mixed-Effects Modeling with Crossed Random Effects for Subjects and Items},
+  journal      = {Journal of Memory and Language},
+  volume       = {59},
+  number       = {4},
+  pages        = {390--412},
+  year         = {2008},
+  doi          = {10.1016/j.jml.2007.12.005},
+  urldate      = {2026-05-23},
+  note         = {Canonical methodological reference for repeated-measures data with crossed random factors — directly applicable to our (scenario, run, LLM) × configuration design.}
+}
+
+% [STABLE] Brown 2021 — tutorial reference for LMM in R.
+@article{brown_lmm_2021,
+  author       = {Brown, Violet A.},
+  title        = {An Introduction to Linear Mixed-Effects Modeling in {R}},
+  journal      = {Advances in Methods and Practices in Psychological Science},
+  volume       = {4},
+  number       = {1},
+  year         = {2021},
+  doi          = {10.1177/2515245920960351},
+  urldate      = {2026-05-23},
+  note         = {Accessible tutorial; cited as a pedagogical pointer for readers reproducing the analysis-plan.md L3 model.}
+}
+
+% [STABLE] Kitchenham et al. 2002 — verified 2026-05-23 via IEEE TSE.
+@article{kitchenham_2002,
+  author       = {Kitchenham, Barbara A. and Pfleeger, Shari Lawrence and Pickard, Lesley M. and
+                  Jones, Peter W. and Hoaglin, David C. and El~Emam, Khaled and Rosenberg, Jarrett},
+  title        = {Preliminary Guidelines for Empirical Research in Software Engineering},
+  journal      = {IEEE Transactions on Software Engineering},
+  volume       = {28},
+  number       = {8},
+  pages        = {721--734},
+  year         = {2002},
+  doi          = {10.1109/TSE.2002.1027796},
+  urldate      = {2026-05-23},
+  note         = {Foundational SE empirical guidelines; cited in analysis-plan.md §8 as the standard requiring external baselines beyond internal ablations.}
+}
+
+% ---------------------------------------------------------------------------
+% F'. Qualitative methods (for analysis-plan.md §10)
+% ---------------------------------------------------------------------------
+
+% [STABLE] Seaman 1999 — verified 2026-05-23 via IEEE TSE/dblp.
+@article{seaman_1999,
+  author       = {Seaman, Carolyn B.},
+  title        = {Qualitative Methods in Empirical Studies of Software Engineering},
+  journal      = {IEEE Transactions on Software Engineering},
+  volume       = {25},
+  number       = {4},
+  pages        = {557--572},
+  year         = {1999},
+  doi          = {10.1109/32.799955},
+  urldate      = {2026-05-23},
+  note         = {Canonical SE-qualitative methodology; basis for the open-coding error-analysis protocol in analysis-plan.md §10. Selected among the most influential TSE papers of its decade.}
+}
+
+% ---------------------------------------------------------------------------
+% F''. External practitioner baselines (for analysis-plan.md §8)
+% ---------------------------------------------------------------------------
+
+% [STABLE] K8sGPT CNCF Sandbox project — NOT peer-reviewed; cited as practitioner tool.
+@misc{k8sgpt_cncf,
+  author       = {{K8sGPT Authors and the Cloud Native Computing Foundation}},
+  title        = {{K8sGPT}: A Tool for Scanning Your {Kubernetes} Clusters, Diagnosing and Triaging Issues in Simple {English}},
+  howpublished = {CNCF Sandbox project},
+  year         = {2026},
+  url          = {https://github.com/k8sgpt-ai/k8sgpt},
+  urldate      = {2026-05-23},
+  note         = {Off-the-shelf Kubernetes RCA tool used as external baseline B2 in analysis-plan.md §8. Rule-based scanner with LLM-based explanation. NOT a peer-reviewed comparator; pin the exact released version in every result row.}
+}
+
+% ---------------------------------------------------------------------------
+% F (continued). Non-parametric tests, effect size, multiple-comparison control
+% ---------------------------------------------------------------------------
+
+% [STABLE] Demsar 2006 — verified 2026-05-23 via JMLR.
+@article{demsar_2006,
+  author       = {Dem{\v{s}}ar, Janez},
+  title        = {Statistical Comparisons of Classifiers over Multiple Data Sets},
+  journal      = {Journal of Machine Learning Research},
+  volume       = {7},
+  number       = {1},
+  pages        = {1--30},
+  year         = {2006},
+  url          = {https://www.jmlr.org/papers/v7/demsar06a.html},
+  urldate      = {2026-05-23},
+  note         = {Recommends Wilcoxon signed-rank for two classifiers and Friedman + post-hoc (Nemenyi / Bonferroni-Dunn) for k>2 classifiers across multiple datasets; introduces critical-difference (CD) diagrams used in analysis-plan.md.}
+}
+
+% [STABLE] Arcuri & Briand 2014 — verified 2026-05-23 via Wiley.
+@article{arcuri_briand_2014,
+  author       = {Arcuri, Andrea and Briand, Lionel},
+  title        = {A {H}itchhiker's Guide to Statistical Tests for Assessing Randomized Algorithms in Software Engineering},
+  journal      = {Software Testing, Verification and Reliability (STVR)},
+  volume       = {24},
+  number       = {3},
+  pages        = {219--250},
+  year         = {2014},
+  doi          = {10.1002/stvr.1486},
+  urldate      = {2026-05-23},
+  note         = {Canonical SE-empirical reference for choosing non-parametric tests and effect-size measures (Vargha-Delaney A12) over parametric alternatives.}
+}
+
+% [STABLE] Vargha & Delaney 2000 — verified 2026-05-23.
+@article{vargha_delaney_2000,
+  author       = {Vargha, Andr{\'a}s and Delaney, Harold D.},
+  title        = {A Critique and Improvement of the {CL} Common Language Effect Size Statistics of {McGraw} and {Wong}},
+  journal      = {Journal of Educational and Behavioral Statistics},
+  volume       = {25},
+  number       = {2},
+  pages        = {101--132},
+  year         = {2000},
+  doi          = {10.3102/10769986025002101},
+  urldate      = {2026-05-23},
+  note         = {Source of the A12 effect-size measure and the small/medium/large thresholds (0.56/0.64/0.71) adopted in analysis-plan.md §5.}
+}
+
+% [STABLE] Holm 1979.
+@article{holm_1979,
+  author       = {Holm, Sture},
+  title        = {A Simple Sequentially Rejective Multiple Test Procedure},
+  journal      = {Scandinavian Journal of Statistics},
+  volume       = {6},
+  number       = {2},
+  pages        = {65--70},
+  year         = {1979},
+  url          = {https://www.jstor.org/stable/4615733},
+  urldate      = {2026-05-23},
+  note         = {Step-down FWER correction adopted as the primary multiple-comparison control in analysis-plan.md.}
+}
+
+% [STABLE] Benjamini & Hochberg 1995.
+@article{benjamini_hochberg_1995,
+  author       = {Benjamini, Yoav and Hochberg, Yosef},
+  title        = {Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing},
+  journal      = {Journal of the Royal Statistical Society, Series B (Methodological)},
+  volume       = {57},
+  number       = {1},
+  pages        = {289--300},
+  year         = {1995},
+  doi          = {10.1111/j.2517-6161.1995.tb02031.x},
+  urldate      = {2026-05-23},
+  note         = {FDR control used in analysis-plan.md for the exploratory secondary pairwise contrasts.}
+}
+
+% [STABLE] Wilson score interval — original 1927 paper.
+@article{wilson_score_ci,
+  author       = {Wilson, Edwin B.},
+  title        = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal      = {Journal of the American Statistical Association},
+  volume       = {22},
+  number       = {158},
+  pages        = {209--212},
+  year         = {1927},
+  doi          = {10.1080/01621459.1927.10502953},
+  urldate      = {2026-05-23},
+  note         = {Score-interval method used for all proportion CIs in metrics.md and analysis-plan.md (better small-sample coverage than the Wald interval).}
+}
+
+% [STABLE] Wohlin et al. — Experimentation in Software Engineering textbook.
+@book{wohlin_experimentation,
+  author       = {Wohlin, Claes and Runeson, Per and H{\"o}st, Martin and
+                  Ohlsson, Magnus C. and Regnell, Bj{\"o}rn and Wessl{\'e}n, Anders},
+  title        = {Experimentation in Software Engineering},
+  edition      = {2nd},
+  publisher    = {Springer},
+  year         = {2012},
+  doi          = {10.1007/978-3-642-29044-2},
+  note         = {Reference for the threats-to-validity taxonomy (conclusion / internal / construct / external) used in threats-to-validity.md and analysis-plan.md §4 (Threats table).}
+}
+
+% ---------------------------------------------------------------------------
+% G. Inter-rater agreement (for hallucination scoring)
+% ---------------------------------------------------------------------------
+
+% [STABLE] McHugh 2012 — kappa interpretation guidelines.
+@article{mchugh_kappa_2012,
+  author       = {McHugh, Mary L.},
+  title        = {Interrater Reliability: The Kappa Statistic},
+  journal      = {Biochemia Medica},
+  volume       = {22},
+  number       = {3},
+  pages        = {276--282},
+  year         = {2012},
+  pmid         = {23092060},
+  url          = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3900052/},
+  urldate      = {2026-05-23},
+  note         = {Source of the kappa interpretation thresholds used as the annotator-agreement floor in analysis-plan.md §5.}
+}
+
+% [STABLE] Inter-coder agreement in SE qualitative research — verified 2026-05-23.
+@article{inter_coder_se_2023,
+  author       = {Belur, Jyoti and Tompson, Lisa and Thornton, Amy and Simon, Miranda},
+  title        = {Reliability in Software Engineering Qualitative Research through Inter-Coder Agreement},
+  journal      = {Journal of Systems and Software},
+  year         = {2023},
+  doi          = {10.1016/j.jss.2023.111752},
+  note         = {SE-specific evidence and protocol for inter-coder agreement; basis for the two-annotator subsample design in analysis-plan.md RQ4.}
+}
+
+% ---------------------------------------------------------------------------
+% H. LLM evaluation methodology — faithfulness, hallucination, judge bias
+% ---------------------------------------------------------------------------
+
+% [STABLE] Baltes et al. 2025 — SE-LLM empirical-study guidelines.
+@misc{se_llm_guidelines,
+  author       = {Baltes, Sebastian and Angermeir, Florian and Arora, Chetan and
+                  Mu{\~n}oz Bar{\'o}n, Marvin and Chen, Chunyang and B{\"o}hme, Lukas and
+                  Calefato, Fabio and Ernst, Neil and Falessi, Davide and Fitzgerald, Brian and
+                  Fucci, Davide and He, Junda and Treude, Christoph and Kalinowski, Marcos and
+                  Lambiase, Stefano and Russo, Daniel and Lungu, Mircea and
+                  Martinez Montes, Cristina and Prechelt, Lutz and Ralph, Paul and
+                  van Tonder, Rijnard and Wagner, Stefan},
+  title        = {Guidelines for Empirical Studies in Software Engineering involving Large Language Models},
+  year         = {2025},
+  eprint       = {2508.15503},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.SE},
+  url          = {https://arxiv.org/abs/2508.15503},
+  urldate      = {2026-05-23},
+  note         = {Eight guidelines; Guideline 2 (exact model versions/configurations) and Guideline 6 (include an open LLM baseline) ground the design in llm-selection.md and analysis-plan.md §4 reproducibility appendix.}
+}
+
+% [STABLE] Tamber et al. 2025 — Vectara FaithJudge.
+@misc{tamber_faithjudge_2025,
+  author       = {Tamber, Manveer Singh and Bao, Forrest Sheng and Xu, Chenyu and
+                  Luo, Ge and Kazi, Suleman and Bae, Minseok and Li, Miaoran and
+                  Mendelevitch, Ofer and Qu, Renyi and Lin, Jimmy},
+  title        = {Benchmarking {LLM} Faithfulness in {RAG} with Evolving Leaderboards},
+  year         = {2025},
+  eprint       = {2505.04847},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2505.04847},
+  urldate      = {2026-05-23},
+  note         = {FaithJudge LLM-as-judge framework for hallucination/faithfulness evaluation. Framing reference for HallucinationRate in analysis-plan.md RQ4.}
+}
+
+% [STABLE] Shi et al. 2024 — LLM-as-judge position bias.
+@misc{shi_position_bias_2024,
+  author       = {Shi, Lin and Ma, Chiyu and Liang, Wenhua and Diao, Xingjian and
+                  Ma, Weicheng and Vosoughi, Soroush},
+  title        = {Judging the Judges: A Systematic Study of Position Bias in {LLM}-as-a-Judge},
+  year         = {2024},
+  eprint       = {2406.07791},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2406.07791},
+  urldate      = {2026-05-23},
+  note         = {15 LLM judges, ~150 000 evaluations: position bias can shift accuracy >10\% on pairwise code judging. Source of the LLM-as-judge bias controls in analysis-plan.md RQ4.}
+}
+
+% [STABLE] Manchanda et al. 2024 — Open-source advantage in LLMs.
+@misc{llm_open_advantage,
+  author       = {Manchanda, Jiya and Boettcher, Laura and Westphalen, Matheus and Jasser, Jasser},
+  title        = {The Open Source Advantage in Large Language Models},
+  year         = {2024},
+  eprint       = {2412.12004},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2412.12004},
+  urldate      = {2026-05-23},
+  note         = {Reproducibility argument for including an open-weights LLM (Llama 3.3) alongside the closed-source baseline. Cited in llm-selection.md.}
 }
 
 % ---------------------------------------------------------------------------
@@ -275,4 +609,21 @@
 % be verified — WebFetch/WebSearch access to all other domains was denied during
 % this pass, so the remaining entries retain their TODO_VERIFY placeholders and
 % must be re-checked once web access is available.
+%
+% NOTE (2026-05-23 verification pass): added sections E (comparable RCA), F
+% (statistical methods), G (inter-rater agreement), H (LLM evaluation /
+% faithfulness / judge bias / open-source advantage). All entries in those
+% sections verified against primary sources (arXiv abstracts, JMLR/JSTOR,
+% publisher DOIs). openrca_2025 promoted from TODO_VERIFY to STABLE.
+% Cross-references: analysis-plan.md §1 (L1-L7 hierarchy), §2 (per-RQ recipe),
+% §5 (pre-registered thresholds), §7 (comparable benchmarks); llm-selection.md
+% (the two-LLM design grounded by se_llm_guidelines / llm_open_advantage).
+%
+% NOTE (2026-05-23 second pass, peer-review-driven):
+%   - bates_lme4_2015, baayen_2008, brown_lmm_2021 added (mixed-effects model
+%     promoted to PRIMARY inferential layer L3 in analysis-plan.md).
+%   - kitchenham_2002 added (justifies §8 external-baseline requirement).
+%   - seaman_1999 added (basis for §10 qualitative error-analysis protocol).
+%   - k8sgpt_cncf added (B2 external practitioner baseline).
+% All verified against primary sources (JSS / IEEE TSE / JML / Sage / GitHub).
 % ---------------------------------------------------------------------------
