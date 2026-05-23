@@ -478,3 +478,48 @@ component vocabulary is aligned at offline re-score. F2 is the experiment's
 clearest evidence that **evidence completeness gates diagnosis accuracy** — a
 result in itself, to be framed as such (not hidden as a flat zero). 0 runs
 skipped, 0 errors.
+
+### F4 — broken contract-tested API endpoint (application) — matrix attempt 7-bis
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 6/10  | 0/10 | 0/10 |
+| C2 | 6/10  | 0/10 | 0/10 |
+| C3 | 6/10  | 0/10 | 0/10 |
+| C4 | 6/10  | 1/10 | 0/10 |
+| C5 | 6/10  | 0/10 | 0/10 |
+
+10/10 captured (no missed FailureReports). Aggregate top-1 accuracy:
+rule-grounded **30/50 = 60%**, llm-grounded **1/50 = 2%**, llm-freeform
+**0/50 = 0%**.
+
+**Setup change from earlier attempts.** Attempt 7 first attempt observed a
+non-determinism in the AI test-plan resolver: 9 of 10 reps included the
+`contract` suite — which is the only suite that exercises the broken
+`/api/products/top-rated` endpoint — and one rep (r10) excluded it, producing
+no FailureReport because all selected suites passed. The operator was patched
+to force `EffectiveMode = FullSuite` for any Preview carrying the
+`failure-provenance.experiment/owned=true` label (commit `39231a5`), and the
+F4 run was repeated end-to-end with all 4 suites guaranteed. F4 is now 10/10
+captured rather than 9/10, with the F4 data inside this section coming from
+the deterministic re-run.
+
+**Rule-grounded performance is the same shape as F1's** — the rule diagnoser
+correctly identifies the failed contract suite as the root cause for 6 of the
+10 reps (60%) and misses 4. The 4 misses are reps where the `e2e` suite (which
+fails as a downstream consequence of the route change — Playwright assertions
+on the catalogue page time out because the broken endpoint feeds it) is
+ranked above the `contract` suite by the heuristic, mis-attributing root cause
+to the frontend. This is consistent with the prior finding that **co-failing
+suites confuse a single-hypothesis diagnoser** — fixable offline by ranking
+contract-suite failures above e2e timeouts.
+
+**LLM scores are near-zero**, consistent with F1/F2: the model names the
+component "backend" or "application" rather than the ground-truth
+"api-endpoint", so the strict vocabulary match returns 0. This is the same
+component-vocabulary alignment finding documented for F1/F2 — the diagnosis
+text contains the right information but does not score under exact match.
+
+0 runs skipped, 0 errors. Defect #15 (test-Job ActiveDeadlineSeconds=300s) +
+the FullSuite bypass under the experiment label between them removed every
+known non-determinism that previously caused F4–F8 to stall mid-rep.
