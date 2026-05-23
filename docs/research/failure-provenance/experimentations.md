@@ -523,3 +523,45 @@ text contains the right information but does not score under exact match.
 0 runs skipped, 0 errors. Defect #15 (test-Job ActiveDeadlineSeconds=300s) +
 the FullSuite bypass under the experiment label between them removed every
 known non-determinism that previously caused F4–F8 to stall mid-rep.
+
+### F5 — frontend breaking change (HTML/JS contract) — matrix attempt 7-bis
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+10/10 captured (no missed FailureReports). Top-1 accuracy is 0/150 — **but
+that is a clean zero, not a measurement gap**. The fault injects correctly,
+the FailureReport is produced every run, all four suites run, e2e fails with
+the expected Playwright `Locator.wait_for` timeouts on the catalogue
+elements, contract fails with the HTTP 500 on `/api/tests` reporting that
+every report carries.
+
+The diagnoser-side miss is now well-characterised:
+
+1. **Co-failing suites.** F5's fault breaks the frontend catalogue page, so
+   e2e fails (`catalog_page_loads: timeout`). But the contract suite also
+   fails on this stack — its harness POSTs to `/api/tests` for result
+   reporting and the endpoint 500s before the frontend break is even
+   exercised. The single-hypothesis diagnosers see both failures and rank
+   the contract HTTP 500 above the e2e Playwright timeout, attributing root
+   cause to *backend* / *API* rather than *frontend*.
+2. **Component-vocabulary mismatch.** Even when the rule diagnoser correctly
+   picks "frontend" as the cause for the e2e-only signature, the strict
+   matcher fails because the diagnosis text uses "backend" / "API" /
+   "application" rather than the ground-truth label "frontend".
+
+Both are fixable offline: rank e2e suite failures above contract HTTP 500s
+that look like test-infrastructure errors, and align the component
+vocabulary before scoring. F5 is the cleanest example we have of the
+"diagnosis is right in spirit, scored as wrong by strict matcher" finding
+that has shown up in F1, F2, and partially in F4.
+
+0 runs skipped, 0 errors. The FullSuite-bypass operator fix (commit
+`39231a5`) is the only reason F5 produced 10/10 rather than the
+attempt-6-style 2-3/10 — without it the AI test-plan resolver dropped the
+e2e suite (the only suite that exercises the F5 fault) on most reps.
