@@ -284,7 +284,34 @@ Cost: USD 0.10 for the full B0 baseline (99 calls). Reproducible by
 re-running `python3 experiments/failure-provenance/analysis/09-baseline-b0.py`
 with `AI_API_URL` + `OPENAI_API_KEY` set.
 
-### 8.2 B2a / B2b — next
+### 8.2 Rule-engine sensitivity (offline v2 patch)  ✅ MEASURED
+
+`experiments/failure-provenance/analysis/11-rule-rescore.py` ports the
+operator's rule engine to Python (validated: 0 / 500 cells drift
+against the operator's live diagnoses) and re-scores with two
+over-match defects fixed offline:
+
+1. F2 traceback gate: `ruleInvalidMigration` no longer treats a
+   generic Python traceback as a SQL error.
+2. F5 / F10 changed-file routing: when the changed-file evidence
+   points at frontend / tests / seed and not backend, the more-
+   specific rule fires before `ruleContractBreak` /
+   `ruleLatencyTimeout`.
+
+Per-scenario aligned top-1 (pooled across C1–C5):
+
+| Scenario | v1 | v2 | Δ |
+|---|---|---|---|
+| F2  |  0 / 50 → 40 / 50 | **+40** |
+| F5  |  0 / 50 → 20 / 50 | **+20** |
+| F10 |  0 / 50 → 20 / 50 | **+20** |
+
+Pooled: 204 / 500 (40.8 %) → 284 / 500 (56.8 %), +80 cells (+16 pp).
+The v2 numbers are a sensitivity check — the article's primary
+RQ2 figure stays on the frozen image. EVALUATION-DRAFT §3.5 carries
+the result.
+
+### 8.3 B2a / B2b — next
 
 - **B2a — K8sGPT v0.4.21 pinned** (#24): K8sGPT is built to talk to a
   live cluster, so an offline replay against stored artifacts is not

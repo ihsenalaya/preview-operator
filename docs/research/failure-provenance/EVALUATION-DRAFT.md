@@ -130,6 +130,63 @@ misclassifications:
 
 These five cells **are the future-work catalogue** of the article.
 
+### 3.5 Rule-engine sensitivity (offline v2 patch)
+
+The 0-cells on **F2, F5, F10** for the `rule-grounded` engine are
+not unavoidable: they are caused by two over-match defects in the
+frozen rule engine, both fixable without changing the evidence
+pipeline. To quantify the impact we ported the operator's rule
+engine to Python (validated cell-for-cell: 0/500 drift against the
+operator's live diagnoses), applied the two fixes offline, and
+re-scored:
+
+1. **F2 traceback over-match.** `ruleInvalidMigration` accepts a
+   generic Python `Traceback (most recent call last)` as evidence of
+   a SQL error. F2's app pod crashes with
+   `KeyError: 'DATABASE_URL_FP_MISSING'`, which emits a traceback in
+   a *backend* pod log; the migration rule wins ahead of
+   `ruleMissingConfig` in 40 / 50 F2 cells. Fix: scope the SQL-error
+   predicate to migration/alembic-resourced log lines.
+2. **F5 / F10 co-failing-suite over-match.** `ruleContractBreak`
+   fires whenever the contract suite has any failure, even when the
+   contract failure is downstream of a frontend or test-suite
+   change. F5 and F10 always have a co-failing contract suite. Fix:
+   in v2, when the changed-file evidence routes to frontend /
+   tests / seed and not to backend, run `ruleFrontendBreak` /
+   `ruleSeedData` / `ruleFlakyTest` *before* `ruleContractBreak` /
+   `ruleLatencyTimeout`.
+
+Per-scenario aligned top-1, pooled across C1–C5 (n = 50 each):
+
+| Scenario | v1 (frozen) | v2 (offline) | Δ cells |
+|---|---|---|---|
+| F1  | 100.0 % (50/50) | 100.0 % (50/50) | 0 |
+| F2  |   0.0 % (0/50)  |  80.0 % (40/50) | **+40** |
+| F3  |  80.0 % (40/50) |  80.0 % (40/50) | 0 |
+| F4  |  60.0 % (30/50) |  60.0 % (30/50) | 0 |
+| F5  |   0.0 % (0/50)  |  40.0 % (20/50) | **+20** |
+| F6  |  54.0 % (27/50) |  54.0 % (27/50) | 0 |
+| F7  |  54.0 % (27/50) |  54.0 % (27/50) | 0 |
+| F8  |  60.0 % (30/50) |  60.0 % (30/50) | 0 |
+| F9  |   0.0 % (0/50)  |   0.0 % (0/50)  | 0 |
+| F10 |   0.0 % (0/50)  |  40.0 % (20/50) | **+20** |
+
+**Pooled:** v1 = 204 / 500 (40.8 %); v2 = 284 / 500 (56.8 %); **Δ = +80
+cells (+16.0 pp)**. F5 and F10 plateau at 40 % because the changed-file
+evidence routing only fires at C4 and C5 (ChangedFile is collected from
+C4 upwards). F2 plateaus at 80 % because two reps (F2/r1, F2/r2)
+captured the postgres-migrate JobLog but not the backend pod log — the
+fix correctly returns "unknown" on those rather than over-firing.
+
+**Status of v2.** The v2 numbers are a *sensitivity check*, not the
+article's primary RQ2 figure. The article evaluates the frozen
+operator image
+(`testagentdevops.azurecr.io/preview-operator@sha256:88cd767…`); v2 is
+quoted to show how much of the remaining gap a one-day rule-engine
+patch would close. Script:
+`experiments/failure-provenance/analysis/11-rule-rescore.py`. Output:
+`docs/research/failure-provenance/analysis-output/11-rule-rescore/`.
+
 ## 4. RQ3 — MTTD
 
 **Status: NOT MEASURED.** The captured `FailureReport.status` does not
