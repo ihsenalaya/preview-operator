@@ -1080,6 +1080,47 @@ This section is appended to at every hourly self-update loop pass.
 - 89-entry bibliography cited inline using `[`bib_key`]` notation
   throughout.
 
+### 2026-05-24 ~00:17 Paris — Tick 5 (LaTeX references review)
+- No new analysis-output landed on remote since tick 4; the Markdown
+  body of `article-draft.md` is unchanged this tick.
+- User-driven priority: review of bibliography coverage in
+  `latex/article.tex`. Audit revealed 31 cited keys of 141 total
+  bibliography entries (~22 %), with several sections (Background,
+  Approach, RQ1, RQ5, Threats) under-cited.
+- Added ~45 new in-body citations across §Background (k8s controllers,
+  finalizers, Borg, Kubebuilder, GitOps, OpenTelemetry/Dapper/Jaeger/
+  Prometheus/Istio, full microservice-RCA lineage, log-based RCA chain,
+  LLM-reasoning lineage), §Approach (PROV typing of evidence items),
+  §Experimental design (chaos-engineering precedent: Basiri 2016 +
+  Litmus + ChaosMesh + Zeller delta debugging), §RQ1 (finalizers for
+  survival), §RQ2 (Bates/Baayen/Brown for LMM; Vargha-Delaney A12;
+  Arcuri-Briand; Holm; Benjamini-Hochberg; Wilson; Demšar), §RQ3
+  (Dapper), §RQ4 (Ji hallucination survey, SelfCheckGPT, HaluEval,
+  RAGAS, Shi position-bias), §RQ5 (Beyer SRE, Bass DevOps, Forsgren
+  DORA), §Threats (Kitchenham, Seaman, Runeson-Höst, inter-coder),
+  §Related Work (greatly expanded: cluster-management lineage,
+  observability stack, fault-injection lineage, full LLM-reasoning
+  paragraph, LLM-for-SE paragraph, methodology paragraph extended,
+  DevOps/SRE paragraph added).
+- Patched 8 broken citation keys (operator_pattern →
+  kubernetes_operator_pattern, otel_spec → opentelemetry_docs,
+  react_2023 → yao2023react, friedman_1937 → friedman1937,
+  wohlin_experimentation_2024 → wohlin_experimentation,
+  ji_hallucinations_2023 → ji2023hallucination, kagent_dev → kagent,
+  se_llm_guidelines_2024 → se_llm_guidelines).
+- Added `kubernetes_jobs` entry to bibliography.bib.
+- Added per-scenario aligned top-1 table on S1 with label
+  `tab:rq2-s1` (data from `aggregate-summary.json`, verified).
+- Added 2 TikZ figures: system architecture (fig:architecture,
+  full-page) + provenance graph schema (fig:provenance-graph,
+  column-resized).
+- Added 3 PNG comparison figures from `analysis-output/05-figures/`:
+  engine-pooled-bars, forest-per-scenario, c5-minus-c1-forest.
+- LaTeX article: 9 → 13 pages, 944 → 1012 KB.
+- overleaf.zip regenerated, 387 KB.
+- No invented numbers; all citations point to verified primary
+  sources from the 89-entry bibliography.
+
 ### 2026-05-23 ~23:17 Paris — Tick 4 (Phase 5b multi-app numbers landed)
 - Stale-sweep `32184df` had appended a Phase 5b update-log; this tick
   integrates the **verified** Phase 5b numbers into the article body
