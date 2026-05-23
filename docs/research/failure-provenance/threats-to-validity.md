@@ -126,3 +126,69 @@ The article should state plainly:
 - Absolute numbers (overhead, MTTD, bundle size) are **environment-specific** and
   should be read as evidence of feasibility and of *relative* differences between
   configurations, not as universal constants.
+
+---
+
+## 7. Defects discovered during execution and how they were closed
+
+This section documents the threats that were surfaced *during* the matrix
+runs, in chronological order. They are recorded so that an independent
+reviewer can verify our closure path against the live `PROGRESS.md` log.
+
+### 7.1 F7 race condition (multi-app subjects only) — closed
+
+The original F7 injector patched the operator-managed Service selector at
+`post_deploy`. The operator's reconciler reverts any change to the Service
+spec within ~3 s. Whether the test Jobs observed a broken Service therefore
+depended on which loop (test Job or operator reconcile) won the race. The
+listmonk F7 captures `r1`-`r3` (lucky races) and `r4`-`r10` (lost races
+→ no-report) demonstrated the non-determinism.
+
+The fault model was redesigned at the **meta.yaml level**: `services[0].port`
+is set to 19999, an unbound port. The operator generates the Service routing
+to 19999, the application binds to its standard port, and the resulting
+"connection refused" propagates to a deterministic FailureReport on every
+rep. All 17 race-condition F7 captures (3 listmonk + 4 umami + 10 petclinic)
+were invalidated and re-collected with the new mechanism. Documented in
+commit `ca5a88a` and in `EVALUATION-DRAFT.md §10`.
+
+**Threat-to-validity impact**: the previously published S1 F7 numbers
+(commit `2e81a648` Phase 5a freeze) remain valid because S1 was unaffected
+by the race (the operator reconciles less aggressively on the
+single-application path); only multi-app needed the redesign.
+
+### 7.2 RQ3 timing breakdown — partial mitigation
+
+`status.collectionDurationMillis` was set with the `omitempty` JSON tag.
+Bundle assembly is sub-millisecond on the demo workloads, so the field
+rounded to zero and was omitted from the serialised report. Operator
+patched (commit `e0eae6f`) to also emit `collectionDurationMicros`,
+`collectionAllocBytes`, and `collectionAllocCount`. A subset re-run with
+the patched image populates these fields on real captures.
+
+### 7.3 RQ5 paired ON/OFF baseline — pending
+
+The pre-registration required a paired `EVIDENCE_COLLECTION=on` vs `off`
+re-run on the same scenarios. ON runs are the full matrix; OFF is pending
+the post-patch subset re-run. Until that is filled, RQ5's overhead claim
+covers only the storage sub-component (`BundleSizeBytes`) plus the
+sub-millisecond duration estimate from the patched operator. Tracked as
+work unit W7 in `Q1-COMPLIANCE.md`.
+
+### 7.4 Cohen κ on hallucination scoring — partial
+
+The pre-registration requires two annotators on a 20 % shuffled subsample.
+A proxy automated annotator (Mistral-Large-3) was generated as the second
+LLM family; a Claude-Opus AI-assisted first pass populated `correct_human`
+with per-row reasoning published in `claude-annotation-audit.csv`. The
+**canonical κ** for the article requires the project-lead human reviewer
+to validate the AI-assisted column blind, override disagreements, and
+sign off. This is the only true human-only gate left in the closure plan.
+Tracked as W15 in `Q1-COMPLIANCE.md`.
+
+### 7.5 Multi-app baselines — partial
+
+S1 has B0 (vanilla LLM raw kubectl), B2a (K8sGPT v0.4.21), and B2b
+(Kagent k8s-agent). Multi-app extension is pending; symmetry between S1
+and multi-app baselines is required for the cross-application
+generalisation claim. Tracked as W2 + W3.
