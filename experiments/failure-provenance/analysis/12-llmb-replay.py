@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 """12-llmb-replay.py — replay the LLM engine on the frozen Phase 5a
-evidence bundles using LLM-B = `gpt-4o-2024-11-20` (Azure OpenAI
-Global Standard, temperature 0).
+evidence bundles using LLM-B = `Llama-3.3-70B-Instruct` (Meta family,
+Azure AI Foundry, GlobalStandard, temperature 0).
 
-Pre-registration substitution. The locked plan named LLM-B as
-`meta-llama/Llama-3.3-70B-Instruct-Turbo via Together.ai`. Because the
-Together.ai key was not available at execution time, LLM-B is
-substituted with `gpt-4o-2024-11-20` — the largest model available on
-the user's existing Azure OpenAI resource (`preview-openai-idp`,
-GlobalStandard SKU, 2000-TPM quota). This is a within-OpenAI scaling
-sensitivity rather than the originally-pre-registered cross-family
-check; the cross-family Llama replay remains future work and is so
-documented in `EVALUATION-DRAFT.md §7` and `LOCKED-PLAN.md §3`.
+This is the pre-registered LLM-B from `LOCKED-PLAN.md` — same model as
+`meta-llama/Llama-3.3-70B-Instruct-Turbo`, hosted on Azure AI Foundry
+(`fp-foundry-133641` AIServices account) rather than Together.ai. The
+Together.ai route was abandoned because no API key was available; Azure
+Foundry's MaaS catalog exposes the identical Meta-published checkpoint
+under the same name, deployable via a Cognitive Services AIServices
+account. The OpenAI-compatible `/chat/completions` shim on the Foundry
+endpoint means `fp-diagnose` runs unchanged.
 
-This script reuses the operator's `fp-diagnose` binary (so the prompt,
-the JSON schema, the response parser are bit-for-bit identical to what
-the operator runs in production) and only varies `--model` and the
-Azure deployment endpoint.
+Reusing `fp-diagnose` keeps the prompt, JSON schema, and response parser
+bit-for-bit identical to what the operator ran in production; only
+`--model` and `--ai-base-url` change between LLM-A and LLM-B.
 
 Inputs:
   results-matrix/{F}/r*/artifacts/failurereport.yaml   frozen bundles
@@ -29,11 +27,12 @@ Scoring is done at the end with the same alias matcher
 (`08-vocab-rescore.py`); the comparison report is produced separately
 (`13-llmb-report.py`).
 
-Cost model: gpt-4o GlobalStandard Azure pricing — USD 2.50/1M input,
-USD 10/1M output tokens. ~10 K input + 300 output per call ≈ USD 0.028
-per call; the full 1000-cell replay (10 scenarios × 10 reps × 5
-levels × 2 modes) projects to ~USD 28. The script prints the actual
-running cost as it goes.
+Cost model: Azure Foundry Llama-3.3-70B GlobalStandard — USD 0.71/1M
+input, USD 0.71/1M output tokens. ~6-15 K input + ~50 output per call
+≈ USD 0.007 per call; the full 1000-cell replay (10×10×5×2) projects to
+~USD 7. The script prints the actual running cost as it goes. Note: the
+default 20 K-TPM quota throttles throughput to ~3 calls/min — a quota
+bump is needed to finish in under an hour.
 """
 from __future__ import annotations
 
@@ -57,9 +56,9 @@ REPS_DEFAULT = "r1,r2,r3,r4,r5,r6,r7,r8,r9,r10"
 LEVELS_DEFAULT = "C1,C2,C3,C4,C5"
 MODES_DEFAULT = "grounded,freeform"
 
-# Azure GlobalStandard gpt-4o pricing, USD per 1M tokens.
-PRICE_IN = 2.50 / 1_000_000
-PRICE_OUT = 10.00 / 1_000_000
+# Azure Foundry Llama-3.3-70B GlobalStandard pricing, USD per 1M tokens.
+PRICE_IN = 0.71 / 1_000_000
+PRICE_OUT = 0.71 / 1_000_000
 
 
 # Vocabulary aliases — mirrors 08-vocab-rescore.py.
@@ -173,11 +172,11 @@ def main() -> int:
     ap.add_argument("--reps",      default=REPS_DEFAULT)
     ap.add_argument("--levels",    default=LEVELS_DEFAULT)
     ap.add_argument("--modes",     default=MODES_DEFAULT)
-    ap.add_argument("--model",     default="gpt-4o-2024-11-20")
-    ap.add_argument("--deployment", default="gpt-4o",
+    ap.add_argument("--model",     default="Llama-3.3-70B-Instruct")
+    ap.add_argument("--deployment", default="llama-3-3-70b",
         help="Azure OpenAI deployment name (used to build the base URL)")
     ap.add_argument("--azure-host",
-        default="https://preview-openai-idp.openai.azure.com")
+        default="https://fp-foundry-133641.cognitiveservices.azure.com")
     ap.add_argument("--out-csv",
         default="experiments/failure-provenance/results-matrix/"
                 "results-llmb.csv")
