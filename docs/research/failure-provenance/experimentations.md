@@ -688,3 +688,22 @@ align the component vocabulary) but it is consistent with the F5/F6/F8
 story rather than a new failure mode.
 
 0 runs skipped, 0 errors.
+
+### F9 — flaky test (test-reliability) — matrix attempt 7-bis
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+10/10 captured. F9 injects a non-deterministic assertion into the regression
+suite that fails with ~55% probability per run. Bundles include the
+expected regression failure (`phase=Failed passed=7 failed=2`) alongside the
+recurring contract HTTP 500 and e2e Playwright timeout. Top-1 0/150: the
+diagnoser names backend/test-infrastructure rather than the
+"test-reliability" / "flaky-test" ground-truth label — the same offline-
+fixable component-vocabulary issue as F1/F4/F5/F6/F7/F8. 0 runs skipped,
+0 errors.
