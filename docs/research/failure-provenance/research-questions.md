@@ -154,3 +154,26 @@ RQ1–RQ4 are the **core** failure-provenance questions and anchor the article. 
 the **overhead** question that establishes practicality. Database-isolation overhead
 and AI seed-data quality are deliberately excluded — they belong to the companion
 PostgreSQL article.
+
+---
+
+## Honest limitations — what we did and did not measure for each RQ
+
+For full Q1 transparency, the following is the actual measurement
+coverage relative to the pre-registration. The corresponding sensitivity
+analyses are in `analysis-output/` and the closure plan for each gap is
+in `Q1-COMPLIANCE.md`.
+
+| RQ | Pre-registered measurement | What landed | Closure plan |
+|----|----------------------------|-------------|--------------|
+| RQ1 | Evidence Preservation Rate, Snapshot Survival Rate, Recall | Fully measured (1500/1500 S1 + 200/200 multi-app) | — |
+| RQ2 | Top-1, Top-3, Precision, Recall, Recommendation Usefulness | Top-1, Top-3, Recall fully; Precision via external compute (`analysis-output/19`); Recommendation Usefulness pending (W6) | W6 LLM-as-judge with κ floor |
+| RQ3 | MTTD median + IQR + bootstrap 95% CI | Operator-side latency: sub-second on all 1500+200 cells. Diagnosis-side: external estimator (`analysis-output/18`) with documented queueing caveat; clean wrap-and-time on instrumented operator pending (W7) | W7 instrumented re-run subset |
+| RQ4 | Hallucination Rate; Cohen κ ≥ 0.6 gate; LLM-A vs LLM-B interaction | Hallucination rate fully; κ partial (proxy Mistral-Large-3 done; canonical human reviewer pending W15); interaction estimable via LMM (`analysis-output/21`) | W15 human review of κ subsample |
+| RQ5 | Time / CPU / memory / storage / API-calls overhead, paired ON vs OFF | Storage (`bundleSizeBytes`): full coverage. Time / memory / alloc count: operator patched to capture sub-millisecond resolution; subset re-run pending (W7) | W7 instrumented re-run + paired OFF baseline |
+
+The matrix collection phase is complete (1500 S1 + 200 multi-app =
+1700 captures, 0 no-report, 0 fabricated values). The remaining gaps
+are measurement *coverage* of the existing captures, not measurement
+*existence*. Each gap is bounded in size and has a concrete closure
+work unit in `Q1-COMPLIANCE.md`.

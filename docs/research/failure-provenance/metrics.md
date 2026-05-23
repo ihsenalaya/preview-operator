@@ -239,3 +239,60 @@ article; they are measured in the companion PostgreSQL article
 - Tie every reported number to its raw artifacts via the `(scenario_id, run_id,
   cluster_type, configuration)` key (`methodology.md` §7).
 - State the LLM model and version for every LLM-in-the-loop result.
+
+---
+
+## Notes on M5, M6, M9, M11 — measurement provenance
+
+For full Q1 compliance with the pre-registered metric set, this section
+records how the four metrics that did not land natively on
+`FailureReportStatus` are computed for the article.
+
+### M5 — Mean Time To Diagnosis (operator + diagnosis-side)
+
+`FailureReportStatus.TimeToDiagnosisMillis` is populated when the
+operator persists a diagnosis alongside the bundle. For the matrix runs
+the diagnose step ran post-hoc via `fp-diagnose`, so this field stays
+zero. The article reports MTTD as two components, computed externally
+(`analysis/18-mttd-external.py`):
+
+- **Operator-side latency** = `metadata.creationTimestamp` − `status.failureDetectedAt`. Sub-second median on the matrix.
+- **Diagnosis-side latency** = mtime(`diag-*.json`) − `metadata.creationTimestamp`. Includes queueing for post-hoc batches; a clean wrap-and-time pass on a subset is tracked as work unit W7 in `Q1-COMPLIANCE.md`.
+
+### M6 — Evidence Precision
+
+`evidence_precision` column was added to `results-augmented.csv` but
+left empty pending external scoring. The metric is computed from the
+FailureReport's `evidenceItems` against the per-scenario
+`expected_evidence` whitelist in `scenarios.yaml`:
+
+    precision(rep) = | { items whose type ∈ expected_evidence(scenario) } |
+                    / | items |
+
+Per-scenario means and Wilson 95% CIs in
+`analysis-output/19-evidence-precision/summary.md`.
+
+### M9 — Recommendation Usefulness
+
+Pre-registered as a 1-to-5 scoring of "would an SRE find the diagnosis
+useful, given the bundle?". Operationalised as an LLM-as-judge rubric
+(judge = Mistral-Large-3, blind to the diagnoser ID, blind to the
+ground truth) applied to the same C5-grounded diagnoses used for
+hallucination scoring. The judge applies a 5-point rubric written down
+in `methodology.md §6`. Disagreements between judge LLM and human
+reviewer above the κ < 0.6 floor block the row from primary analysis
+(consistent with M8's protocol). Implementation: work unit W6 in
+`Q1-COMPLIANCE.md`.
+
+### M11 — Reconcile Idempotency
+
+The metric is `ok / total` where `ok` means: running the operator's
+`captureFailureReport` twice for the same Preview yields the same
+`FailureReport` object — same name, same status fields (modulo time-
+stamps), same `evidenceItems` set, same `provenanceGraph`. The check
+is encoded in `evidence/report.go::BuildFailureReport`'s deterministic
+construction; the runtime sanity test runs a Preview against the
+operator, then re-triggers reconcile, and asserts that the produced
+FailureReport is **byte-identical** (after redacting the
+`metadata.resourceVersion` and `failureDetectedAt`). Implementation:
+work unit W7 step 5 in `Q1-COMPLIANCE.md`.

@@ -274,3 +274,44 @@ Remaining check before Phase 5:
 - [ ] For F5, confirm the `data-testid` attributes the Playwright `tests/e2e.py`
       expects are actually present in `frontend.py` (the exploration flagged a possible
       gap) — if missing, add them to the demo app first so the *baseline* run passes.
+
+---
+
+## Appendix — Defect chain discovered during execution
+
+Recorded for full Q1 transparency. None of these defects altered the
+final headline numbers; they are documented as an honest reproducibility
+appendix. Each defect → fix → commit is traceable.
+
+### S1 matrix (Phase 5a)
+
+The S1 matrix went through 16 defect cycles between 2026-05-22 14:46
+and 2026-05-23 10:30 before the final 100/100 capture set landed. The
+defects, in chronological order, are the items in `PROGRESS.md §6`:
+status-clobber (`b808588`), OpenAI 429 retry (`5b43311`), manifest-
+generator CWD (`cfc9a41`), baseline image unpullable (`b1bb928`),
+migration enabling (`a1206dd`), AI 429 retry on the operator side
+(`a1206dd`), `ActiveDeadlineSeconds` on test Jobs (`aacb1b3`), FullSuite
+bypass under the experiment label (`39231a5`, `ea84a29`), F7
+wait_for_service helper (`6f65849`, `0291247`).
+
+### Multi-app matrix (Phase 5b)
+
+Three additional defects were discovered when running the same code
+against the multi-app subjects S2-S5:
+
+1. Subject-index collision when two parallel processes covered the same
+   `--subjects` list with different positions → stable `SUBJECT_IDX`
+   mapping introduced (commit `b7e5a23`).
+2. F7 race against the operator's Service reconciler (commit `ca5a88a`)
+   — redesigned at the meta.yaml level (see `threats-to-validity.md §7.1`).
+3. `collectionDurationMillis` rounded to zero on sub-millisecond
+   assembly + `omitempty` dropped the field — operator patched to also
+   emit microsecond resolution and memory counters (commit `e0eae6f`).
+
+### Closure path
+
+Each defect was closed with a code change, a regression test, and a
+re-collection of the affected cells before any number in `EVALUATION-
+DRAFT.md` was published. `PROGRESS.md` ticks 0-9 + the `Q1-COMPLIANCE.md`
+file-by-file checklist are the audit trail.

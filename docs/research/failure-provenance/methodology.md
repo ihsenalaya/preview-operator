@@ -196,3 +196,51 @@ evidence.
   concurrency runs.
 
 Full discussion of remaining threats is in `threats-to-validity.md`.
+
+---
+
+## §X — Execution log: deviations from the methodology
+
+This section is appended after the experiment was run, to disclose the
+deviations from the methodology described above. None of them change
+the headline conclusions; each is bounded and quantified.
+
+1. **RQ5 paired ON / OFF baseline** — the methodology described a paired
+   run of each scenario with `EVIDENCE_COLLECTION=on` and `=off` for
+   overhead measurement. Only the ON arm was run on the S1 + multi-app
+   matrix. The OFF arm is pending the instrumented-operator subset
+   re-run (W7 in `Q1-COMPLIANCE.md`). The published storage component
+   of M10 (`bundleSizeBytes`) is unaffected; the time / memory
+   components are derived from `runtime.ReadMemStats` deltas captured
+   by the instrumented operator.
+
+2. **F7 fault model on multi-app subjects** — the original injector
+   patched the Service selector post-deploy. The operator's reconciler
+   reverted the patch within ~3 s on multi-app subjects (operator-owned
+   Service spec), producing a race condition. The fault model was
+   redesigned to set `services[0].port = 19999` (an unbound port) at
+   the meta.yaml level *before* deploy, which yields a deterministic
+   "connection refused" failure consistent with the F7 infrastructure
+   class. The semantic class of F7 is preserved. Documented in
+   `threats-to-validity.md §7.1`.
+
+3. **Recommendation Usefulness scoring** — operationalised as
+   LLM-as-judge (Mistral-Large-3, blind) rather than the
+   originally-considered manual rubric, to keep the protocol
+   reproducible. Disagreements above the κ < 0.6 floor with the human
+   reviewer block the row from primary analysis (consistent with M8).
+
+4. **Cross-LLM substitution chain** — the originally pre-registered
+   LLM-B was Llama-3.3-70B (Together.ai). It was substituted to
+   Cohere `command-a` (Azure AI Foundry) after a regional capacity
+   outage on the Foundry Llama deployment. The substitution preserves
+   the methodological requirement of three disjoint provider families
+   (OpenAI / Cohere / Mistral). Documented in `llm-selection.md §3.1`.
+
+5. **F4, F5, F8, F9, F10 not in scope on S2–S5** — the operator-only
+   evaluation footprint requires injection at the manifest level (no
+   per-subject source-code patches). F4/F5/F8/F9/F10 rely on
+   application-level code paths that are S1-specific. The multi-app
+   scope is the F1, F2, F3, F6, F7 subset. The article's RQ4 cross-LLM
+   reading uses the same fault subset, so multi-app and S1 are still
+   matcher-comparable on those five.
