@@ -325,3 +325,17 @@ the result.
   namespace, ask the agent for a diagnosis, capture component +
   category. Both B2a and B2b are scored with the same alias matcher
   as B0 and the operator engines.
+
+---
+
+## 9. Live monitoring log (multi-app S2-S5 matrix)
+
+Auto-appended every 10 min by the in-session monitoring loop (cron job
+`893af59b`). Each entry is a snapshot of the matrix run and cluster state.
+
+### 2026-05-23 16:08 UTC — tick 0 (post-restart at concurrency 5)
+- Process: PID 231910 alive (12m16s), CPU 0%, RAM 0.2%.
+- Log: 43 skip-existing rows confirmed (the previously-captured listmonk + healthchecks reports). No new captures yet — the 5 in-flight previews are listmonk F7 r4-r8 retries, all waiting on the 20-min FailureReport timeout (svc-backend not found, expected, fix offline).
+- Reports on disk: 57/200 multi-app (43 listmonk + 14 healthchecks + 0 umami + 0 petclinic). Unchanged since restart.
+- Cluster: AKS autoscaled to 3 nodes (vmss000001/02/04). CPU 8/14/4 %, RAM 49/60/8 %. 5 active previews (`failure-provenance.experiment/owned=true`).
+- κ subsample: `correct_human` filled by AI-assisted first pass (Claude Opus), audit trail in `analysis-output/16-cohen-kappa/claude-annotation-audit.csv`. 237/300 marked incorrect, 63 correct, 13 % disagree with operator-aligned. Awaits human review/override.

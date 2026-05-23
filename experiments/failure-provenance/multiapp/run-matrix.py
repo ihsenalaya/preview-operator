@@ -97,9 +97,16 @@ def run_unit(subject: dict, subject_idx: int, fault: str, rep: int, cfg: dict,
     pr_number = 90000 + subject_idx * 1000 + _fault_idx(fault) * 100 + rep
     name = f"pr-{pr_number}"
     run_dir = out_dir / sid / fault / f"r{rep}"
-    run_dir.mkdir(parents=True, exist_ok=True)
     row = {"subject": sid, "fault": fault, "rep": rep, "preview": name,
            "status": "pending"}
+
+    # Idempotent restart: skip if this rep already captured a report.
+    report_path = run_dir / "report.json"
+    if report_path.exists() and report_path.stat().st_size > 0:
+        row["status"] = "skip-existing"
+        return row
+
+    run_dir.mkdir(parents=True, exist_ok=True)
 
     if not execute:
         row["status"] = "dry-run"
