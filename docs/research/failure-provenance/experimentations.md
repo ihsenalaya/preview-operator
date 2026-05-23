@@ -565,3 +565,45 @@ that has shown up in F1, F2, and partially in F4.
 `39231a5`) is the only reason F5 produced 10/10 rather than the
 attempt-6-style 2-3/10 — without it the AI test-plan resolver dropped the
 e2e suite (the only suite that exercises the F5 fault) on most reps.
+
+### F6 — eager database connection at import (database readiness) — matrix attempt 7-bis
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+10/10 captured (no missed FailureReports). Top-1 0/150 across all engines.
+The pattern is identical to F5: contract suite fails with HTTP 500 on the
+`/api/tests` reporting endpoint, e2e fails with Playwright timeouts, smoke
+and regression pass.
+
+**Honest finding: the F6 fault did not manifest as designed.** The injector
+adds an eager `psycopg2.connect(..., connect_timeout=3)` at module import,
+intending to crash the backend container when the database pod isn't yet
+accepting connections — `import` fails → CrashLoopBackOff → no traceback,
+similar to F2. In this run the operator's startup ordering masks the
+race: the migration Job is a dependency of backend, the migration only
+runs after postgres-readiness, and by the time the backend pod is
+admitted to the cluster postgres is already accepting connections. The
+eager `connect()` succeeds, the app starts, and the only failures observed
+are downstream e2e/contract artefacts that look identical to F5's.
+
+This is a meaningful experimental observation — **the F6 fault scenario,
+as currently implemented, exercises the same failure signature as F5
+rather than its intended database-readiness path**. Two takeaways:
+1. The diagnosers cannot be faulted for missing the "database readiness"
+   ground truth when the evidence in the bundle does not actually contain
+   a database-readiness signal — the bundle is dominated by frontend e2e
+   timeouts.
+2. To produce the intended database race, the injector would need a
+   harder-to-mask trigger (e.g. require a connection at module import
+   *with no migration-job dependency to gate startup*, or remove the
+   migration step entirely for the F6 case so the race is exposed).
+
+0 runs skipped, 0 errors. F6 r5 ACR build failed transiently (network
+blip on the `python:3.12-slim` mirror pull); the orchestrator re-used the
+deterministic cached image from an earlier attempt, so the rep is valid.
