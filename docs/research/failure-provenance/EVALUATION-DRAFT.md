@@ -173,13 +173,12 @@ Future work, flagged in §8 below.
 
 ## 7. Comparison with external baselines (Phase 5b/c/d)
 
-**Status: not yet collected — Phase 2 of the locked plan.**
+Per `analysis-plan.md §8`, three external practitioner baselines are
+specified:
 
-Per `analysis-plan.md §8`, this article will compare against:
-
-- **B0 — Vanilla LLM on raw kubectl output** (task #23)
-- **B2a — K8sGPT v0.4.21 pinned** (task #24)
-- **B2b — Kagent generic `k8s-agent`** (task #25)
+- **B0 — Vanilla LLM on raw kubectl output** — **MEASURED** (§7.1)
+- **B2a — K8sGPT v0.4.21 pinned** — pending (task #24)
+- **B2b — Kagent generic `k8s-agent`** — pending (task #25)
 
 `LOCKED-PLAN.md §3` documents why both K8sGPT and Kagent are run:
 K8sGPT is the CNCF-Sandbox practitioner standard cited in the
@@ -191,6 +190,67 @@ A cross-LLM (LLM-B = Llama-3.3-70B-Instruct-Turbo) pass is also
 pending — tasks #21–#22 — and will populate the
 `configuration:LLM` interaction term required by
 `analysis-plan.md §3`.
+
+### 7.1 B0 — Vanilla LLM on raw kubectl output
+
+For each of the 99 reps that have a complete kubectl artifact bundle
+(`F4/r1` is the one rep where kubectl artifacts were not captured),
+we sent the raw kubectl output of the failing preview namespace
+(events, pods, deployments, services, endpoints, jobs, and the last
+200 lines of each non-previous container log) to LLM-A at
+temperature 0 with a fixed JSON-format SRE-diagnosis prompt. No
+operator artifacts (`FailureReport`, `evidenceRefs`, reconcile
+events, source tree) were exposed to the model. This is what a
+practitioner sees if they paste their kubectl output into a chat
+LLM with no additional tooling — and it is the floor against which
+the operator + evidence pipeline must demonstrate value.
+
+Aligned top-1 (per-scenario alias table, identical matcher to §3.2)
+and category-only top-1 by scenario:
+
+| Scenario | n | B0 aligned top-1 | B0 category top-1 | Best operator engine | Operator aligned top-1 (C1–C5) | gap |
+|---|---|---|---|---|---|---|
+| F1  | 10 |  20.0% (2/10) |   0.0% (0/10) | rule-grounded | 100.0% (50/50) | **+80 pp** |
+| F2  | 10 |   0.0% (0/10) |   0.0% (0/10) | llm-freeform  |  68.0% (34/50) | **+68 pp** |
+| F3  | 10 |   0.0% (0/10) |  90.0% (9/10) | rule-grounded |  80.0% (40/50) | **+80 pp** |
+| F4  |  9 |   0.0% (0/9)  |  55.6% (5/9)  | rule-grounded |  60.0% (30/50) | **+60 pp** |
+| F5  | 10 |   0.0% (0/10) |  30.0% (3/10) | rule-grounded |   0.0% (0/50)  | +0 pp |
+| F6  | 10 |   0.0% (0/10) |  20.0% (2/10) | rule-grounded |  54.0% (27/50) | **+54 pp** |
+| F7  | 10 |  20.0% (2/10) |  10.0% (1/10) | rule-grounded |  54.0% (27/50) | **+34 pp** |
+| F8  | 10 |   0.0% (0/10) |   0.0% (0/10) | rule-grounded |  60.0% (30/50) | **+60 pp** |
+| F9  | 10 |   0.0% (0/10) |   0.0% (0/10) | rule-grounded |   0.0% (0/50)  | +0 pp |
+| F10 | 10 |   0.0% (0/10) |  30.0% (3/10) | rule-grounded |   0.0% (0/50)  | +0 pp |
+
+**Pooled B0 (n = 99):** strict top-1 0/99 = 0.0% (Wilson 95% CI
+[0.0%, 3.7%]); aligned top-1 4/99 = 4.0% (Wilson 95% CI [1.6%,
+9.9%]); category top-1 23/99 = 23.2% (Wilson 95% CI [16.0%, 32.5%]).
+
+**Failure-mode observation — the missing link.** Across the 99 B0
+calls, the vanilla LLM systematically blames the *symptom-bearing*
+object — typically a test pod (`e2e-tests`, `microcks-import`,
+`ai-tests`) or the database pod (`postgres`) — instead of the
+*upstream component* at fault. F4 (broken backend route) is blamed
+on `postgres` 8/9 times; F8 (latency in backend) is blamed on
+`e2e-tests` 6/10 times; F9 (bad seed data) is blamed on `e2e-tests`
+9/10 times; F3 (bad image tag) is correctly classified as
+*infrastructure* in 9/10 reps but names `postgres` as the failing
+component every single time. The operator's `FailureReport` closes
+this gap by linking each test-suite failure to its provenance — the
+changed file, the originating workload, the SQL or HTTP error in
+the upstream pod's log — which is the evidence the LLM needs to
+land on the right component.
+
+On the three semantic-miss scenarios (F5, F9, F10, see §3.4) the
+operator's best engine is also at 0 % aligned: both B0 and the
+operator fail at the floor for the same vocabulary-mismatch reason,
+so the gap there is +0 pp by construction, not by parity of
+diagnostic quality.
+
+Cost: USD 0.10 for the full B0 baseline (99 calls,
+`gpt-4o-mini-2024-07-18`, Azure OpenAI). Per-rep diagnoses are
+preserved at `results-matrix/F*/r*/b0-diag.json`; the flat CSV is
+`results-matrix/results-b0.csv`; the report and figures live in
+`docs/research/failure-provenance/analysis-output/10-b0-report/`.
 
 ## 8. Threats to validity
 

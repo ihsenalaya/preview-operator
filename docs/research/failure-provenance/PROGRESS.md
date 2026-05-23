@@ -239,3 +239,62 @@ suite-priority ranking is the next step (Lot 6.3 + defect #10).
   diagnoses that already name the right thing in different words.
 - Workstream B (multi-app S2–S5) is gated on S1's completion and the
   user's go/no-go.
+
+## 8. Phase 2 — B0 practitioner baseline (2026-05-23)
+
+Phase 2 starts on the locked plan: external baselines that close the
+question "how much value does the operator + FailureReport pipeline add
+on top of an LLM that just reads kubectl?".
+
+### 8.1 B0 — vanilla LLM on raw kubectl  ✅ MEASURED
+
+`experiments/failure-provenance/analysis/09-baseline-b0.py` calls
+`gpt-4o-mini-2024-07-18` at temperature 0 with the raw kubectl bundle
+from each failing preview namespace (events, pods, deployments,
+services, endpoints, jobs, last 200 lines of every non-previous
+container log) and asks for a single-component diagnosis in JSON.
+No operator artifacts are shown. The script saves one
+`b0-diag.json` per rep next to the existing `diag-C*-*.json` files,
+plus the flat `results-matrix/results-b0.csv`.
+
+| Metric | n | Result | Wilson 95% CI |
+|---|---|---|---|
+| strict top-1   | 99 | 0/99 = 0.0 %   | [0.0 %, 3.7 %] |
+| aligned top-1  | 99 | 4/99 = 4.0 %   | [1.6 %, 9.9 %] |
+| category top-1 | 99 | 23/99 = 23.2 % | [16.0 %, 32.5 %] |
+
+The gap vs the operator's best engine per scenario is **+34 to +80 pp**
+on F1, F2, F3, F4, F6, F7, F8, and +0 pp on F5, F9, F10 (both
+B0 and the operator are at 0 % aligned on those — the documented
+semantic-miss zone, §3.4). One rep is excluded (F4/r1 has no kubectl
+artifacts captured), so n = 99/100. Full table and per-scenario
+component breakdown: `docs/research/failure-provenance/analysis-output/10-b0-report/b0-vs-operator.md`.
+
+The failure mode is clear and reproducible: B0 systematically blames
+the **symptom-bearing** object (a test pod, the database pod) rather
+than the **upstream component** at fault. F4 (broken backend route) is
+blamed on `postgres` 8/9 times; F8 (latency in backend) is blamed on
+`e2e-tests` 6/10 times; F9 (bad seed data) is blamed on `e2e-tests`
+9/10 times. The operator's `FailureReport` closes this gap by linking
+each test-suite failure to its provenance — the changed file, the
+originating workload, the SQL/HTTP error in the upstream pod's log —
+which is exactly the evidence the LLM needs.
+
+Cost: USD 0.10 for the full B0 baseline (99 calls). Reproducible by
+re-running `python3 experiments/failure-provenance/analysis/09-baseline-b0.py`
+with `AI_API_URL` + `OPENAI_API_KEY` set.
+
+### 8.2 B2a / B2b — next
+
+- **B2a — K8sGPT v0.4.21 pinned** (#24): K8sGPT is built to talk to a
+  live cluster, so an offline replay against stored artifacts is not
+  faithful. The replay strategy will be: stand up a synthetic
+  in-cluster namespace from the stored manifests on the AKS cluster
+  itself, run `k8sgpt analyze --explain --backend azureopenai`, then
+  capture component + category from its output. Pinned to v0.4.21 for
+  reproducibility (the analyser set has shifted in later releases).
+- **B2b — Kagent `k8s-agent`** (#25): the `k8s-agent` Service in
+  `kagent-system` accepts A2A JSON-RPC. Same recipe: synthesise the
+  namespace, ask the agent for a diagnosis, capture component +
+  category. Both B2a and B2b are scored with the same alias matcher
+  as B0 and the operator engines.

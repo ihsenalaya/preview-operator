@@ -1,0 +1,100 @@
+{
+  "per_scenario": [
+    {
+      "scenario": "F1",
+      "n_b0": 10,
+      "b0_aligned": 2,
+      "b0_category": 0,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 50,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F2",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 0,
+      "best_operator_engine": "llm-freeform",
+      "operator_aligned": 34,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F3",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 9,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 40,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F4",
+      "n_b0": 9,
+      "b0_aligned": 0,
+      "b0_category": 5,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 30,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F5",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 3,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 0,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F6",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 2,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 27,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F7",
+      "n_b0": 10,
+      "b0_aligned": 2,
+      "b0_category": 1,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 27,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F8",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 0,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 30,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F9",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 0,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 0,
+      "operator_n": 50
+    },
+    {
+      "scenario": "F10",
+      "n_b0": 10,
+      "b0_aligned": 0,
+      "b0_category": 3,
+      "best_operator_engine": "rule-grounded",
+      "operator_aligned": 0,
+      "operator_n": 50
+    }
+  ],
+  "pooled": {
+    "n": 99,
+    "strict": 0,
+    "aligned": 4,
+    "category": 23
+  }
+}
