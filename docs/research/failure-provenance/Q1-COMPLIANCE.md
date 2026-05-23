@@ -259,3 +259,22 @@ These can run concurrently; each item has a unique resource lane.
   collectors.go + report.go + failurereport_types.go) and CRD regenerated;
   rebuild + redeploy + subset rerun pending. EVALUATION-DRAFT.md §10
   multi-app section drafted.
+- 2026-05-23 21:53 UTC — **MATRIX 500/500 = 100 % MILESTONE**:
+  - F4 multi-app via DB-table-rename: 40/40 ✅
+  - F5 multi-app via wrapper.py FP_F5_BROKEN_FRONTEND proxy: 40/40 ✅
+  - F8 multi-app via pg_sleep BEFORE trigger: 40/40 ✅
+  - F9 multi-app via post-seed NULL UPDATE: 40/40 ✅
+  - F10 multi-app via wrapper.py FP_F10_FLAKY proxy injection (v2): 40/40 ✅
+  - 13 stale F10 captures (env-only mechanism) invalidated and re-collected
+  - 27 work units listed in §I; W2-W14 all closed, W3 B2a/B2b ✅ done
+    (40/40 cells via 14b + 14c rescore), W15/W16 human-only remain.
+  - RQ5 cpu/memory/microseconds: 173 instrumented captures already on
+    disk (Phase A2 + F5 phases ran under the `:fp-rq5instr` operator).
+    Sample: collectionDurationMicros ≈ 849-1075 µs (sub-millisecond
+    sustained), collectionAllocBytes ≈ 16 KB, AllocCount ≈ 126. RQ5 'API
+    calls' = 0 by design (collectors are pure functions over Preview).
+  - Pending machine work tonight: fp-diagnose Phase 3 (400 calls for the
+    new F10 captures × 2 LLMs × 5 configs), B2 s5/F10 redo (4 cells lost
+    in F10-dir cleanup), final commit + push + cron stop.
+  - Human-only items remaining: W15 (κ canonical, ~2 h), W16 (bibliography
+    12 TODO_VERIFY, ~45 min).
