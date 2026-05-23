@@ -707,3 +707,65 @@ diagnoser names backend/test-infrastructure rather than the
 "test-reliability" / "flaky-test" ground-truth label — the same offline-
 fixable component-vocabulary issue as F1/F4/F5/F6/F7/F8. 0 runs skipped,
 0 errors.
+
+### F10 — flaky test (test-reliability) — matrix attempt 7-bis
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+10/10 captured. F10 injects a non-deterministic assertion that fails with
+~55% probability — analogous to F9's pattern. Top-1 0/150 on the strict
+matcher: same component-vocabulary miss documented for F5/F6/F7/F8/F9.
+The bundles contain the expected regression-suite failure alongside the
+recurring contract HTTP 500 and e2e timeout cascade from this Flask
+stack. 0 runs skipped, 0 errors.
+
+---
+
+## 9.X. Final matrix summary — attempt 7-bis (2026-05-23)
+
+**Cluster runs: 100/100 captured, 0 produced no FailureReport.**
+1500 result-CSV rows across 10 scenarios × 5 evidence levels × 3 engine
+modes × 10 repetitions, all on AKS `idp-preview-test` with operator
+`testagentdevops.azurecr.io/preview-operator:fp-fullsuite` (16 defects
+fixed across the lab notebook above).
+
+Per-scenario capture and top-1 accuracy summary:
+
+| Scenario | Capture | Rule-grounded top-1 | LLM-grounded top-1 | LLM-freeform top-1 |
+|----------|--------|---------------------|--------------------|--------------------|
+| F1 crash on start | 10/10 | high (≈100% C5) | vocab miss | vocab miss |
+| F2 OOMKill | 10/10 | log-gap (`F2 r1` defect #11) | vocab miss | vocab miss |
+| F3 image-pull fail | 10/10 | clean | vocab miss | vocab miss |
+| F4 broken contract API | 10/10 | 30/50 = 60% | 1/50 = 2% | 0/50 |
+| F5 frontend HTML id | 10/10 | 0 (co-failing suites confuse ranking) | 0 | 0 |
+| F6 DB readiness | 10/10 | 0 (fault did not manifest as designed) | 0 | 0 |
+| F7 broken Service selector | 10/10 | 0 (sparse bundle on race) | 0 | 0 |
+| F8 artificial latency | 10/10 | 0 (vocabulary) | 0 | 0 |
+| F9 flaky/seed data | 10/10 | 0 | 0 | 0 |
+| F10 flaky test | 10/10 | 0 | 0 | 0 |
+
+**Cross-cutting findings (not specific to any one scenario):**
+- The strict component matcher returns 0 whenever the diagnosis text names
+  the *changed file's component* ("backend", "API", "application") rather
+  than the abstract ground-truth role ("frontend", "test-reliability",
+  "observability"). This is the **largest single contributor** to the
+  top-1=0 pattern, fixable offline at score time (planned task #20).
+- Co-failing suites (contract HTTP 500 on `/api/tests` + e2e Playwright
+  timeouts) appear on every Flask preview. Single-hypothesis diagnosers
+  rank them above the actually-injected fault.
+- Two faults did not manifest as designed:
+  - **F6**: operator startup ordering masks the DB-readiness race.
+  - **F7**: operator reconciles the Service selector back within seconds,
+    so bundle size depends on whether tests fired before the revert.
+- Defect #15 (`ActiveDeadlineSeconds`) + FullSuite-bypass under
+  `failure-provenance.experiment/owned=true` reduced the no-report rate
+  from 60–80% (attempt 6) to 0% (attempt 7-bis).
+
+Next step: Phase 5a freeze, CSV schema augmentation, then the analysis
+pipeline (RQ1–RQ5) per `LOCKED-PLAN.md`.
