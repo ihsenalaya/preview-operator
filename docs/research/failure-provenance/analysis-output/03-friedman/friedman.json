@@ -1,0 +1,1326 @@
+{
+  "friedman": [
+    {
+      "scenario": "F1",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": 1.25,
+      "df": 4,
+      "p_value": 0.8697998213433591
+    },
+    {
+      "scenario": "F2",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": 16.00000000000004,
+      "df": 4,
+      "p_value": 0.0030191636511225544
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": 8.173913043478292,
+      "df": 4,
+      "p_value": 0.08541130560035304
+    },
+    {
+      "scenario": "F3",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": 40.0,
+      "df": 4,
+      "p_value": 4.328422607120966e-08
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F4",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": 40.0,
+      "df": 4,
+      "p_value": 4.328422607120966e-08
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": 26.000000000000025,
+      "df": 4,
+      "p_value": 3.1644611697734393e-05
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": 25.454545454545453,
+      "df": 4,
+      "p_value": 4.0756787682360696e-05
+    },
+    {
+      "scenario": "F5",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F6",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": 36.000000000000014,
+      "df": 4,
+      "p_value": 2.8936961514953814e-07
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": 33.629629629629655,
+      "df": 4,
+      "p_value": 8.875647054427016e-07
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": 14.00000000000003,
+      "df": 4,
+      "p_value": 0.007295055724436032
+    },
+    {
+      "scenario": "F7",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": 36.000000000000014,
+      "df": 4,
+      "p_value": 2.8936961514953814e-07
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F8",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": 40.0,
+      "df": 4,
+      "p_value": 4.328422607120966e-08
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": 37.60000000000002,
+      "df": 4,
+      "p_value": 1.354967662399148e-07
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": 21.217391304347856,
+      "df": 4,
+      "p_value": 0.00028673812657407927
+    },
+    {
+      "scenario": "F9",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F10",
+      "engine": "rule-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-grounded",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-freeform",
+      "n_reps": 10,
+      "chi_square": NaN,
+      "df": 4,
+      "p_value": NaN
+    }
+  ],
+  "wilcoxon": [
+    {
+      "scenario": "F1",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 2.0,
+      "p_value": 0.5637028616507731,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 1.5,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 2.0,
+      "p_value": 0.5637028616507731,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F1",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 2.0,
+      "p_value": 0.5637028616507731,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F2",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F2",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F2",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F2",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.04550026389635839,
+      "p_holm": 0.13650079168907517
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.15729920705028502,
+      "p_holm": 0.15729920705028502
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.014305878435429648,
+      "p_holm": 0.05722351374171859
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.04550026389635839,
+      "p_holm": 0.13650079168907517
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.9519315235887424
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.9519315235887424
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F2",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 3.5,
+      "p_value": 0.10247043485974941,
+      "p_holm": 0.40988173943899764
+    },
+    {
+      "scenario": "F3",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F3",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F3",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F3",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F4",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F4",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F4",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F4",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0046777349810472576,
+      "p_holm": 0.014033204943141774
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.31731050786291415
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0026997960632601866,
+      "p_holm": 0.010799184253040746
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 3.5,
+      "p_value": 0.10247043485974941,
+      "p_holm": 0.20494086971949882
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0046777349810472576,
+      "p_holm": 0.01871093992418903
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.15729920705028502,
+      "p_holm": 0.15729920705028502
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.014305878435429648,
+      "p_holm": 0.028611756870859296
+    },
+    {
+      "scenario": "F4",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0081509715935027,
+      "p_holm": 0.024452914780508102
+    },
+    {
+      "scenario": "F5",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F5",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F6",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0026997960632601866,
+      "p_holm": 0.010799184253040746
+    },
+    {
+      "scenario": "F6",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F6",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0026997960632601866,
+      "p_holm": 0.010799184253040746
+    },
+    {
+      "scenario": "F6",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0046777349810472576,
+      "p_holm": 0.014033204943141774
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.6346210157258283
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0026997960632601866,
+      "p_holm": 0.010799184253040746
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.6346210157258283
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.025347318677468252,
+      "p_holm": 0.07604195603240475
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 2.0,
+      "p_value": 0.5637028616507731,
+      "p_holm": 0.8284323564850506
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.014305878435429648,
+      "p_holm": 0.05722351374171859
+    },
+    {
+      "scenario": "F6",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 7.0,
+      "p_value": 0.4142161782425253,
+      "p_holm": 0.8284323564850506
+    },
+    {
+      "scenario": "F7",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0026997960632601866,
+      "p_holm": 0.010799184253040746
+    },
+    {
+      "scenario": "F7",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0026997960632601866,
+      "p_holm": 0.010799184253040746
+    },
+    {
+      "scenario": "F7",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F7",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F8",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F8",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F8",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F8",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.001953125,
+      "p_holm": 0.0078125
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.6346210157258283
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.0081509715935027,
+      "p_holm": 0.0326038863740108
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.31731050786291415,
+      "p_holm": 0.6346210157258283
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": 0.0,
+      "p_value": 0.014305878435429648,
+      "p_holm": 0.04291763530628895
+    },
+    {
+      "scenario": "F8",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": 2.0,
+      "p_value": 0.5637028616507731,
+      "p_holm": 0.6346210157258283
+    },
+    {
+      "scenario": "F9",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F9",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "rule-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "rule-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "rule-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-grounded",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-grounded",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-grounded",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-freeform",
+      "pair": "C4_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-freeform",
+      "pair": "C1_vs_C5",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    },
+    {
+      "scenario": "F10",
+      "engine": "llm-freeform",
+      "pair": "C3_vs_C4",
+      "n_reps": 10,
+      "wilcoxon_V": NaN,
+      "p_value": 1.0,
+      "p_holm": 1.0
+    }
+  ]
+}
