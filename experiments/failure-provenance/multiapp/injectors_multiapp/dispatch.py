@@ -22,7 +22,22 @@ from __future__ import annotations
 import copy
 import dataclasses
 import subprocess
+import time
 from typing import Callable, Optional
+
+
+def _wait_for_service(ns: str, svc_name: str, timeout_s: int = 180) -> bool:
+    """Block until `svc_name` exists in `ns`, or timeout. Returns True on
+    success. Used by F7 to avoid racing the operator's Service creation."""
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        out = subprocess.run(
+            ["kubectl", "-n", ns, "get", "service", svc_name],
+            capture_output=True, text=True)
+        if out.returncode == 0:
+            return True
+        time.sleep(3)
+    return False
 
 
 @dataclasses.dataclass
@@ -72,17 +87,29 @@ def prepare(subject: dict, fault: str, cfg: dict) -> DeployPlan:
         return DeployPlan(subject=s, image=stock)
 
     if fault == "F7":
-        # Broken Service selector — post-deploy, repoint svc-<first> at a
-        # selector that matches no pods, so the Service has zero endpoints.
-        app = s["services"][0]["name"]
-
-        def _break_selector(preview_name: str, ns: str) -> None:
-            subprocess.run(
-                ["kubectl", "-n", ns, "patch", "service", f"svc-{app}",
-                 "--type=merge", "-p",
-                 '{"spec":{"selector":{"app":"fp-f7-no-such-pod"}}}'],
-                check=False)
-
-        return DeployPlan(subject=s, image=stock, post_deploy=_break_selector)
+        # Multi-app F7 — Service routes to a port the application does NOT
+        # bind to.
+        #
+        # The previous implementation patched Service.spec.selector
+        # post-deploy. That race-conditioned against the operator's
+        # reconciler: the operator reverts the selector within ~3s, so
+        # whether the test Jobs saw a broken service depended on whether
+        # they ran before or after the reconcile (verified live on
+        # 2026-05-23 against pr-90709/pr-90710). The captures collected
+        # this way are non-credible for a Q1 evaluation.
+        #
+        # Encoding the fault at the meta.yaml level — by setting
+        # services[0].port to a port the application never listens on —
+        # produces a deterministic, operator-respected failure: the
+        # operator generates a Service with port 19999, the application
+        # binds to its standard port (e.g. 9000 for listmonk, 8000 for
+        # healthchecks, 3000 for umami, 8080 for petclinic), endpoints
+        # exist (the selector still matches pods) but no process answers
+        # on 19999 → connection refused → test suites fail → operator
+        # captures FailureReport. Semantically still "service
+        # mis-configured / unreachable" — the F7 infrastructure category.
+        s = copy.deepcopy(subject)
+        s["services"][0]["port"] = 19999
+        return DeployPlan(subject=s, image=stock)
 
     raise ValueError(f"fault {fault} not in the S2-S5 manifest-injectable scope")

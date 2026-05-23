@@ -339,3 +339,56 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - Reports on disk: 57/200 multi-app (43 listmonk + 14 healthchecks + 0 umami + 0 petclinic). Unchanged since restart.
 - Cluster: AKS autoscaled to 3 nodes (vmss000001/02/04). CPU 8/14/4 %, RAM 49/60/8 %. 5 active previews (`failure-provenance.experiment/owned=true`).
 - κ subsample: `correct_human` filled by AI-assisted first pass (Claude Opus), audit trail in `analysis-output/16-cohen-kappa/claude-annotation-audit.csv`. 237/300 marked incorrect, 63 correct, 13 % disagree with operator-aligned. Awaits human review/override.
+
+### 2026-05-23 16:16 UTC — tick 1 (3-process parallelism armed)
+- Processes: PID 231910 (s2+s3, 19m50s) + PID 234801 (s4-umami, 1m23s) + PID 234802 (s5-petclinic, 1m23s). All three alive and submitting work.
+- Logs: process A still showing 43 skip-existing; B and C started but no unit has completed a full cycle yet (provisioning + image build + suite run + capture takes ~6 min minimum).
+- Reports on disk: 57/200 multi-app (unchanged — first new captures expected ~16:18-16:20).
+- Cluster: AKS scaled to **3 nodes** (vmss000005 just joined, autoscaler reacted to 20 pending pods). 15 active previews (5 listmonk F7 retries + 5 umami F1 + 5 petclinic F1). CPU 10/30/n-a%, RAM 50/59/n-a%. New node still initializing kubelet metrics.
+- κ #28: AI-assisted first pass committed (b7e5a23). Awaiting human review.
+- Commit age: 6 min. No push this tick.
+
+### 2026-05-23 16:22 UTC — tick 2 (parallel processes hitting stride)
+- Processes: PID 231910 (26m27s), 234801 (8m), 234802 (8m) — all alive.
+- Logs: A captured 6 + no-report 5 + skip-existing 57; B captured 15 (F1+F2 done on umami); C captured 14 (F1+F2 nearly done on petclinic).
+- Reports on disk: 92/200 multi-app — s2 43/50, s3 20/50, s4 15/50, s5 14/50. **+34 captures in 6 minutes** vs tick 1.
+- Cluster: AKS scaled to **4 nodes** (vmss000006 joined). vmss000001 21% CPU/50% RAM, vmss000002 38%/59%, vmss000005 44%/21%, vmss000006 still initializing. 15 active previews (8 Running + 6 Provisioning + 1 transient).
+- κ #28: untouched since b7e5a23, awaits human review.
+- Commit age 13 min. No push this tick.
+
+### 2026-05-23 16:33 UTC — tick 3 (post-F7-fix restart, F7 retries in flight)
+- Processes: PID 241256 (s2+s3, 4m28s), 241257 (s4, 4m28s), 241258 (s5, 4m28s) — all alive after the F7 dispatch.py patch was applied. Old processes 231910/234801/234802 killed and replaced.
+- F7 fix shipped: dispatch.py `_break_selector` now calls `_wait_for_service(180s)` before patching `svc-<app>` and fails loud if the service never appears. Mirrors the S1 wait_for_service helper. No more silent no-report from selector race.
+- Logs since restart: A 43 skip; B 10 captured + 30 skip; C 7 captured + 28 skip. All previously-captured units short-circuited via skip-existing.
+- Reports on disk: 148/200 multi-app — s2 43/50 (F7 r4-r10 retry pending), s3 30/50, s4 40/50, s5 35/50. **+90 captures since tick 0** (started at 57/200).
+- Cluster: 4 nodes. vmss000006 at 59% CPU (down from 72%). 15 active previews, 10 Running + 5 Provisioning. New nodes vmss000005/06 absorbed the 3x load.
+- Memory rule added: `feedback-q1-no-missing-tests` — no missing tests accepted for Q1; rerun or fix root cause, never "fix offline".
+- Commit age 23 min. No push this tick.
+
+### 2026-05-23 16:42 UTC (18:42 Paris) — tick 4 (s5-petclinic DONE)
+- **Process C (241258) exited cleanly** — s5-petclinic 50/50 captures ✅ (first subject 100% done in multi-app).
+- Processes still alive: A (241256, 14m15s) and B (241257, 14m15s).
+- Reports on disk: 163/200 multi-app. s2 43/50, s3 30/50, s4 40/50, **s5 50/50**.
+- Cluster: 4 nodes, all CPU/RAM comfortable (max 13% CPU, 58% RAM). 10 active previews, all Running.
+- Process B captured 10 + 30 skip — F6 batch on umami done, currently in F7 batch (the patch's first real test on umami).
+- Process A still showing only 43 skip-existing — F7 listmonk retries (r4-r8) probably still in their first wait_for_service / e2e cycle. Patience.
+- Pace this tick: +3 captures in 3 min (~60/h) — slower because the remaining units are mostly F7 (longest cycle).
+- Commit age 33 min. No push this tick.
+
+### 2026-05-23 16:58 UTC (18:58 Paris) — tick 5 (F7 BLOCKER discovered)
+- Processes: A (241256, 29m48s), B (241257, 29m48s), C exited cleanly earlier.
+- Reports on disk: **177/200** — s2 43/50, s3 40/50, s4 44/50, s5 50/50.
+- 🚨 **F7 BLOCKER for multi-app**: Investigation on pr-90709/pr-90710 revealed the operator reconciles Service.spec.selector within ~3s, undoing the F7 post-deploy patch. Tested 5 strategies (Service selector patch, Deployment template, Deployment command, scale-replicas-0, delete Service), all reverted. Means F7 captures on multi-app subjects (43 expected: 7 listmonk + 10 healthchecks + 10 umami + 10 petclinic + 6 already captured for listmonk r1-r3) are at risk of being invalid or absent. The 6 F7 reps marked `captured` (3 listmonk r1-r3 + ? on s4/s5) need a content audit to confirm they were captured for an F7-related failure and not unrelated test flakiness.
+- 6 no-report cumulés (A: 5, B: 1) — all listmonk + umami F7 fails per current bug.
+- Cluster: 3 nodes (vmss000006 scaled down — autoscaler reclaimed it as load dropped). 10 active previews, all Running.
+- Commit age 48 min. No push this tick (threshold 60 min).
+- **Decision pending from user**: option A (modify operator to skip Service reconcile for experiment-owned label) or B (re-encode F7 at meta.yaml level) or C (content-audit existing F7 captures first).
+
+### 2026-05-23 17:10 UTC (19:10 Paris) — tick 6 (F7 redesigned at meta.yaml level, hourly push due)
+- Processes: A (257317, 2m01s), B (257318, 2m01s), C (257319, 2m01s).
+- **F7 fix v2 deployed**: dispatch.py F7 no longer post-deploy patches the Service selector (operator reverts in 3s, race condition, non-credible captures). New mechanism mutates services[0].port to 19999 in the meta.yaml before deploy — operator generates the Service routing to a port the application does not bind to, producing a deterministic readiness-probe failure ("connect: connection refused 10.244.x.x:19999"). Verified on listmonk F7 r4, r5: real new captures with bundle 2625 bytes, evidence 7 items including the explicit refused-probe event.
+- All previous F7 captures invalidated and re-run: 3 listmonk + 4 umami + 10 petclinic deleted from disk + cluster CRs (283 → 3 FailureReport CRs in cluster, the last 3 are owned by in-flight previews). Q1 rule applied: race-condition captures are non-credible, must be regenerated with the operator-respected mechanism.
+- Logs: A 2 captured + 40 skip; B 5 captured + 40 skip (umami F7 batch in progress); C 40 skip (petclinic F7 batch just submitted).
+- Reports on disk: 167/200 — s2 42/50, s3 40/50, s4 45/50, s5 40/50.
+- Cluster: 3 nodes, vmss000005 at 90% CPU (the new node took most of the F7 retry load), vmss000002 at 42%. 15 active previews, all Provisioning. New F7 cycle takes ~2 min per capture vs ~6 min for non-F7.
+- Commit age 60 min → push horaire en cours: includes dispatch.py F7 v2 patch + updated PROGRESS.md + new F7 reports.

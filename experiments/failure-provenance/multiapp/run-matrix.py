@@ -88,13 +88,25 @@ class ImageCache:
 # --------------------------------------------------------------------------
 # one (subject, fault, rep) unit
 # --------------------------------------------------------------------------
+# Stable subject indices so two processes launched with different
+# --subjects lists do NOT collide on PR numbers.
+SUBJECT_IDX = {
+    "s2-listmonk": 0,
+    "s3-healthchecks": 1,
+    "s4-umami": 2,
+    "s5-petclinic": 3,
+}
+
+
 def run_unit(subject: dict, subject_idx: int, fault: str, rep: int, cfg: dict,
              cache: ImageCache, out_dir: pathlib.Path, execute: bool) -> dict:
     """Execute one cluster run and return a results row dict."""
     sid = subject["id"]
-    # Deterministic, collision-free PR number: 90000 + subject(0-4)*1000 +
-    # fault(1-10)*100 + rep. Disjoint from the S1 run-kind matrix (pr-9xxx).
-    pr_number = 90000 + subject_idx * 1000 + _fault_idx(fault) * 100 + rep
+    # Deterministic, collision-free PR number based on the *stable* subject
+    # index (not the position in --subjects), so parallel processes that
+    # cover disjoint subjects share no PR numbers.
+    stable_idx = SUBJECT_IDX.get(sid, subject_idx)
+    pr_number = 90000 + stable_idx * 1000 + _fault_idx(fault) * 100 + rep
     name = f"pr-{pr_number}"
     run_dir = out_dir / sid / fault / f"r{rep}"
     row = {"subject": sid, "fault": fault, "rep": rep, "preview": name,
