@@ -401,3 +401,17 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - Cluster: 4 nodes (vmss000007 joined during the F7 retry rush, now idle), CPU all under 13%, RAM under 58%. 0 active previews — full teardown after each successful capture.
 - Total wall-clock for multi-app collection: ~2h50min (14:33 → 17:22 UTC), spread across 4 restart cycles each driven by a discovered defect (concurrency bump, SUBJECT_IDX stable mapping, F7 wait_for_service patch attempt v1, F7 port-mismatch patch v2). The final 200/200 result includes only captures from the v2 deterministic mechanism.
 - Last commit ca5a88a is 11 min old. No push this tick — next push window will batch the matrix-complete status with the post-collection analysis output.
+
+### 2026-05-23 17:37 UTC (19:37 Paris) — tick 8 (matrix idle, diagnose batch active)
+- Matrix processes (257317/18/19) all EXITED. Captures stable at 200/200 since tick 7 (no new captures this tick). Stop condition counter: 1 of 2 consecutive idle ticks.
+- New activity: fp-diagnose batch (PID 264623) running for 2m34s. LLM-A pool (gpt-4o-mini) + LLM-B pool (cohere-command-a) at 10 + 3 workers with per-job retry on 429. Progress: 457/2000 diagnoses on disk (diag-A 307/1000, diag-B 150/1000).
+- B0 multi-app script written: experiments/failure-provenance/analysis/09b-baseline-b0-multiapp.py — uses FailureReport evidenceItems (KubernetesEvent + PodLog + JobLog) as kubectl-equivalent bundle. Methodological deviation from S1 B0 documented in the script header; to be added to §Threats-to-Validity.
+- Tasks 2-6 pending. Diagnose finishing ~20:00 Paris, B0 starts after to avoid LLM-A endpoint contention.
+- Commit age 10 min. No push this tick (threshold 60 min).
+
+### 2026-05-23 17:42 UTC (19:42 Paris) — tick 9 (FINAL — loop stop condition met)
+- Matrix processes (257317/18/19) all EXITED, captures stable at 200/200 for the second consecutive tick. Stop condition met per the cron prompt's instructions.
+- Cron job 893af59b retired after 9 ticks of live monitoring (16:08 → 17:42 UTC ≈ 95 min coverage).
+- Diagnose batch (PID 264623) still active, 764/2000 — that work continues outside this cron. The matrix-collection phase is officially closed at this tick.
+- Commit age 16 min, push due in ~44 min.
+- Final matrix state: 200/200 multi-app captures + 100/100 S1 = 300/300 = 100 %. 0 no-report, 0 error.
