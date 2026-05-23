@@ -392,3 +392,12 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - Reports on disk: 167/200 — s2 42/50, s3 40/50, s4 45/50, s5 40/50.
 - Cluster: 3 nodes, vmss000005 at 90% CPU (the new node took most of the F7 retry load), vmss000002 at 42%. 15 active previews, all Provisioning. New F7 cycle takes ~2 min per capture vs ~6 min for non-F7.
 - Commit age 60 min → push horaire en cours: includes dispatch.py F7 v2 patch + updated PROGRESS.md + new F7 reports.
+
+### 2026-05-23 17:22 UTC (19:22 Paris) — tick 7 — **MATRIX COMPLETE 200/200** 🎉
+- All 3 processes (257317, 257318, 257319) **EXITED cleanly** — runs.csv written for s4 and s5 subjects.
+- Captures: s2-listmonk 50/50 ✅, s3-healthchecks 50/50 ✅, s4-umami 50/50 ✅, s5-petclinic 50/50 ✅.
+- **TOTAL: 200/200 multi-app captures.**
+- Q1 compliance check: **0 no-report**, **0 error/FAIL**, **0 reports under 100 bytes** across all 3 log files. Every cell of the (4 subjects × 5 faults × 10 reps) matrix has a real, non-empty FailureReport from the deterministic operator-respected F7 mechanism (port-mismatch).
+- Cluster: 4 nodes (vmss000007 joined during the F7 retry rush, now idle), CPU all under 13%, RAM under 58%. 0 active previews — full teardown after each successful capture.
+- Total wall-clock for multi-app collection: ~2h50min (14:33 → 17:22 UTC), spread across 4 restart cycles each driven by a discovered defect (concurrency bump, SUBJECT_IDX stable mapping, F7 wait_for_service patch attempt v1, F7 port-mismatch patch v2). The final 200/200 result includes only captures from the v2 deterministic mechanism.
+- Last commit ca5a88a is 11 min old. No push this tick — next push window will batch the matrix-complete status with the post-collection analysis output.
