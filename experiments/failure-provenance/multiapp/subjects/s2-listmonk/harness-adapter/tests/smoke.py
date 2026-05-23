@@ -43,5 +43,16 @@ except Exception as e:
     print(f"FAIL smoke run_log_write: {e}")
     failed += 1
 
+
+# F10 flaky-test injector — when FP_F10_FLAKY=1 the smoke suite fails
+# with probability 0.5, mimicking a test that is flaky for no reason
+# (the RQ4 hallucination control: there is no real root cause). The
+# operator's failure-detection path treats a failed smoke suite as a
+# real failure and captures a FailureReport for the rep.
+import random as _fp_random
+if os.environ.get("FP_F10_FLAKY") == "1" and _fp_random.random() < 0.5:
+    failed += 1
+    print("FAIL smoke fp_f10_flaky_injection: deliberate flake (no real cause)")
+
 print(f"Results: {passed} passed, {failed} failed")
 sys.exit(1 if failed > 0 else 0)
