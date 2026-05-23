@@ -9,7 +9,7 @@ and *Lessons Learned* sections.
 - **Integrity rule:** only measured facts go here. Unmeasured = stated as such,
   never estimated silently. (`~/CONTINUE-HERE.md` §6.)
 - **Updated:** continuously, alongside `PROGRESS.md`, at every milestone.
-- **Last updated:** 2026-05-23 01:15 UTC
+- **Last updated:** 2026-05-23 04:00 UTC
 - All times UTC. All durations wall-clock.
 
 ---
@@ -165,7 +165,8 @@ as each scenario completes. Operator `:fp-stuckfix`, AKS, 1 preview at a time.
 | F3 invalid image tag | 10 | 18.2 min | ~1.8 min | operator fails it on ImagePullBackOff (defect #14 fix) |
 | F4 broken endpoint | 8/10 | 63.9 min | ~8.0 min | 2 transient stalls (r6, r10) — preview Running, no test verdict in 20 min |
 | F5 frontend breaking change | 4/10 | ~145 min | 6 stalls × 20 min + 4 valid × ~7 min | high test-phase stall (60%); honest threat-to-validity |
-| F6-F10 | — | — | — | appended on completion |
+| F6 DB readiness timeout | 2/10 | ~165 min | 8 stalls × 20 min + 2 valid × ~7 min | severe stall (80%); honest threat-to-validity |
+| F7-F10 | — | — | — | appended on completion |
 
 Build cost is separate: with the Docker-Hub cache fix (#13) an ACR image build
 is ~33 s (was ~3 min + agent queue). Code-fault scenarios (F1,F2,F4,F5,F6,F8,
@@ -417,6 +418,29 @@ Top-1 by evidence level (over the 4 valid reps):
 
 llm-freeform 0/4 — as elsewhere. Wall-clock ~145 min (6 stalls × 20-min
 timeout + 4 valid × ~7 min).
+
+### F6 — DB readiness timeout (infrastructure) — matrix attempt 6 (canonical)
+
+Operator `:fp-stuckfix`. **2/10 valid reps** (r2, r7). 8 stalls (r1, r3, r4, r5,
+r6, r8, r9, r10) — the operator-side test-phase reconcile bug hits F6 hardest
+of any scenario (~80%), even worse than F5. The intermittent stall on
+logic/timing faults dominates the data-quality picture.
+
+Top-1 by evidence level (over the 2 valid reps):
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/2 | 0/2 | 0/2 |
+| C3 | 0/2 | 0/2 | 0/2 |
+| C5 | 0/2 | 0/2 | 0/2 |
+
+All-zero on the 2 valid reps is honest, not unexpected: F6 surfaces as a
+readiness-probe timeout, and the present bundle does not carry enough
+probe/readiness-event detail for either diagnoser to localise to the DB
+component without speculation. With only 2 valid reps, statistical claims
+about F6 would be irresponsible — it is recorded **as-measured** for the
+reviewer to weigh; the dominant takeaway is the data-quality threat
+(test-phase stall), not a diagnostic conclusion. Wall-clock ~165 min.
 
 ### F2 — missing environment variable (configuration) — matrix attempt 6 (canonical)
 
