@@ -6,13 +6,17 @@ active). Each commit on `article/failure-provenance` is a checkpoint.
 
 - **Branch:** `article/failure-provenance` (pushed to GitHub)
 - **Base commit (Phases 1–4):** `8cc635a`
-- **Last updated:** 2026-05-22 19:10 UTC
-- **Currently working on:** Lot 6. **9 defects** found and fixed end-to-end
-  (full detail + run log in `experimentations.md`). Core pipeline validated:
-  F1 smoke test 4 captured a proper `FailureReport` (JobLog, correct LLM
-  diagnosis). Operator rebuilding as `:fp-logfix` with the last fix (#9,
-  head-biased log capture). Next: redeploy → launch the 10×10 matrix →
-  monitor → aggregate. Running autonomously.
+- **Last updated:** 2026-05-23 11:10 UTC
+- **Currently working on:** Lot 6 — matrix attempt 7-bis on AKS. **F1–F9 done
+  10/10 captured (1350 / 1500 rows, 0 no-report, 0 errors)**. F10 (baseline)
+  is the last scenario, r1 building. ETA fin matrix ~11:35 UTC. After matrix:
+  aggregate RQ1–RQ5, re-score offline with aligned component vocabulary, fill
+  Evaluation. Today's session added 3 fixes (operator
+  `ActiveDeadlineSeconds`, operator FullSuite-bypass under
+  `failure-provenance.experiment/owned=true`, orchestrator F7
+  `wait_for_service`+`svc-backend`) and re-ran F4 to 10/10 (vs 9/10 before).
+  Commits since yesterday: `aacb1b3`, `39231a5`, `ea84a29`, `bce1102`,
+  `9447a77`, `6f65849`, `0291247`, `c82e03b`.
 
 ---
 
@@ -25,7 +29,7 @@ active). Each commit on `article/failure-provenance` is a checkpoint.
 | Lot 2 | Fault injectors F1–F10 | ⚠️ defects found | `4c93bf3` |
 | Lot 4 | Automated scoring | ✅ done | `200b2a6` |
 | Lot 5 | End-to-end orchestration | ⚠️ defects found | `f7ef0e8` |
-| Lot 6 | Run the 10×10 matrix on the cluster | 🔄 blocked on §6 | — |
+| Lot 6 | Run the 10×10 matrix on the cluster | 🔄 attempt 7-bis at F10 (last) | matrix log at `experiments/failure-provenance/matrix-run.log` |
 
 Legend: ✅ done · 🔄 in progress · ⚠️ defects found · ⏳ pending
 
@@ -186,3 +190,52 @@ then launch the 10×10 matrix. This work is running autonomously.
 Lots 2 and 5 were marked "done" in this tracker on 2026-05-22 14:59 without an
 end-to-end cluster run. `inject-fault.sh --list` and `go build` passing is not
 the same as a preview actually failing the intended way on the cluster.
+
+---
+
+## 7. Matrix attempt 7 / 7-bis (2026-05-23)
+
+The matrix went through two more end-to-end attempts today. The picture
+since yesterday's PROGRESS update:
+
+| Attempt | Outcome | What it surfaced | Commit |
+|---|---|---|---|
+| Attempt 6 | 60–80% stall on F5/F6/F7/F8 | Test Jobs lacked `ActiveDeadlineSeconds` — hung pods (HTTP without timeout, Playwright waiting for missing UI) kept the Job `Running` forever, so the operator stayed in `phaseRunning` and never produced a `FailureReport`. | `aacb1b3` (defect-class #15) |
+| Attempt 7 | F1–F3 clean 10/10, F4 = 9/10 (r10 miss), then stopped | The AI `TestPlanStrategist` non-deterministically dropped the very suite that exercised the injected fault (F4 r10: smoke + regression only, no contract). Without contract the route break is invisible → no failure → no report. | `39231a5` (FullSuite bypass under `failure-provenance.experiment/owned=true` label) |
+| Attempt 7-bis (F4 rerun) | F4 = 10/10 with bypass | Operator forces `EffectiveMode = FullSuite` for the experiment label, so the resolver cannot drop suites. | `ea84a29` |
+| Attempt 7-bis (F5) | F5 = 10/10 captured | Same bypass; e2e fires on every rep. Top-1 = 0 (co-failing suites + component-vocabulary mismatch — both offline-fixable). | `bce1102` |
+| Attempt 7-bis (F6) | F6 = 10/10 captured | Honest finding: the operator's startup ordering masks the intended DB-readiness race (postgres-readiness → migration → backend), so F6's eager `psycopg2.connect()` succeeds and the bundle shows the F5-like signature instead of a crashloop. | `9447a77` |
+| Attempt 7-bis (F8) | F8 = 10/10 captured (orphan) | Original wrapper was killed mid-F8 to apply F7 fix; F8 child kept running as orphan, finished cleanly. | included in `0291247` |
+| Attempt 7-bis (F7 first try) | F7 = 0/10 captured | Two orchestrator bugs in F7: `wait_for_namespace` returned before the operator had created the backend Service; and the injector hard-coded `--service backend` while the operator's Service is named `svc-backend`. | `6f65849`, then `0291247` |
+| Attempt 7-bis (F7 rerun) | F7 = 10/10 captured | Added `wait_for_service` helper; corrected to `svc-backend`. Bundles split into 1 sparse + 9 rich depending on when the operator's selector-reconcile races the injector. | `0291247` |
+| Attempt 7-bis (F9) | F9 = 10/10 captured | Flaky test injects, bundle includes the regression failure. Top-1 = 0 (vocabulary). | `c82e03b` |
+| Attempt 7-bis (F10) | F10 = in progress | Baseline / control scenario. Last to run. | — |
+
+### F1–F9 result summary (matrix attempt 7-bis)
+
+All nine completed scenarios captured 10/10 FailureReports. Top-1 accuracy
+on the strict matcher is non-zero only for F1 and F4 (rule-grounded:
+F1 ≈ 100%, F4 = 60%); the others are 0. **0 is consistently a vocabulary
+or single-hypothesis-ranking miss, not a measurement gap** — verified
+against the raw evidence bundles per scenario, written up in
+`experimentations.md §9`. Offline re-score with aligned components and
+suite-priority ranking is the next step (Lot 6.3 + defect #10).
+
+### Aggregate counters
+
+- **Cluster runs captured / planned (matrix attempt 7-bis):** 90 / 100 (F10 pending)
+- **No-report rows in attempt 7-bis:** 0
+- **Operator image in use:** `testagentdevops.azurecr.io/preview-operator:fp-fullsuite` (16 defects fixed)
+- **Operator image also published to:** `ghcr.io/ihsenalaya/preview-operator:fp-fullsuite`
+- **Backup snapshots:** `results-matrix/results-F1-F4-snapshot.csv`, `results-matrix/results-pre-rerun-F4.csv`, `results-matrix/F4-old-attempt7/`
+
+### What's left
+
+- F10 baseline run-out (~25 min).
+- Aggregate the matrix into RQ1–RQ5 numbers, append to
+  `experimentations.md`.
+- Re-score offline with aligned component vocabulary (defect #10 task in
+  the task list) and suite-priority ranking, so the strict matcher credits
+  diagnoses that already name the right thing in different words.
+- Workstream B (multi-app S2–S5) is gated on S1's completion and the
+  user's go/no-go.
