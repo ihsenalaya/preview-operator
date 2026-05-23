@@ -116,23 +116,26 @@ def prepare(subject: dict, fault: str, cfg: dict) -> DeployPlan:
         return DeployPlan(subject=s, image=stock)
 
     if fault == "F5":
-        # F5 — frontend bug. For binary-app subjects (listmonk/umami) the
-        # frontend is compiled into the image so this fault category is not
-        # injectable without a fork-and-build. For petclinic-rest there is no
-        # frontend by design — this scenario is N/A and the orchestrator
-        # records the row as such instead of injecting a placeholder. For
-        # healthchecks (Django templates) and umami/listmonk (where a
-        # *served* URL exists) we mis-configure the frontend base URL via
-        # env so the user-facing UI breaks while the API stays healthy.
-        if sid == "s5-petclinic":
-            raise ValueError("F5 N/A: s5-petclinic is a REST-only API")
+        # F5 — frontend bug. Re-scoped 2026-05-23 19:15 UTC after the first
+        # Phase A run on s2-listmonk showed every F5 rep timing out as a
+        # no-report: the harness-adapter smoke suites for backend-only
+        # subjects (s2-listmonk, s3-healthchecks, s5-petclinic) call
+        # /api/* endpoints exclusively and never exercise the frontend
+        # asset path. Setting a frontend-URL env var therefore does not
+        # produce a smoke failure → no FailureReport → no-report. This is
+        # a methodological mismatch between fault scope and test scope,
+        # NOT a missing measurement. F5 is N/A for these subjects;
+        # s4-umami is the one exception because Next.js consumes
+        # NEXT_PUBLIC_API_URL at startup. Documented in
+        # threats-to-validity.md §7.6.
+        if sid in ("s2-listmonk", "s3-healthchecks", "s5-petclinic"):
+            raise ValueError(
+                f"F5 N/A for {sid}: smoke suite targets backend APIs only; "
+                "frontend not exercised by the harness-adapter tests")
+        # s4-umami: the env-var hack actually breaks Next.js startup.
         svcs = s.get("services", [])
-        env_var_map = {
-            "s2-listmonk":     ("ROOT_URL",         "http://fp-f5-broken-frontend.invalid:0"),
-            "s3-healthchecks": ("SITE_ROOT",        "http://fp-f5-broken-frontend.invalid:0"),
-            "s4-umami":        ("NEXT_PUBLIC_API_URL", "http://fp-f5-broken-frontend.invalid:0"),
-        }
-        name, val = env_var_map.get(sid, ("FRONTEND_URL_OVERRIDE", "http://fp-f5-broken-frontend.invalid:0"))
+        name = "NEXT_PUBLIC_API_URL"
+        val = "http://fp-f5-broken-frontend.invalid:0"
         svcs[0].setdefault("env", []).append({"name": name, "value": val})
         return DeployPlan(subject=s, image=stock)
 

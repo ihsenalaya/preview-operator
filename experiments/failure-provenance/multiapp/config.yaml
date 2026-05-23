@@ -41,7 +41,14 @@ faults:
   # break; N/A on petclinic-rest), F8 (pg_sleep trigger), F9 (post-seed
   # corruption), F10 (FP_F10_FLAKY env var read by the patched smoke
   # tests). Adapter images rebuilt with the F10 hook as :fp-f10.
-  s2-listmonk:       [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
-  s3-healthchecks:   [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  # F5 scope re-narrowed 2026-05-23 19:15 UTC after Phase A first run.
+  # F5 is only meaningful where the test harness actually exercises the
+  # frontend code path. For the multi-app subjects, only s4-umami
+  # qualifies — Next.js consumes NEXT_PUBLIC_API_URL at startup. For
+  # s2/s3/s5 the smoke suite is backend-API-only, so F5 env-var injection
+  # yields silent no-reports (false negatives, not real measurements).
+  # Documented in threats-to-validity.md §7.6.
+  s2-listmonk:       [F1, F2, F3, F4,     F6, F7, F8, F9, F10]   # F5 N/A — backend-only smoke
+  s3-healthchecks:   [F1, F2, F3, F4,     F6, F7, F8, F9, F10]   # F5 N/A — backend-only smoke
   s4-umami:          [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
   s5-petclinic:      [F1, F2, F3, F4,     F6, F7, F8, F9, F10]   # F5 N/A — REST-only

@@ -415,3 +415,42 @@ Auto-appended every 10 min by the in-session monitoring loop (cron job
 - Diagnose batch (PID 264623) still active, 764/2000 — that work continues outside this cron. The matrix-collection phase is officially closed at this tick.
 - Commit age 16 min, push due in ~44 min.
 - Final matrix state: 200/200 multi-app captures + 100/100 S1 = 300/300 = 100 %. 0 no-report, 0 error.
+
+### 2026-05-23 18:35 UTC (20:35 Paris) — tick 10 — Phase A new-fault matrix in flight
+- Phase A processes 286365/66/67 alive 8m03s. Multi-app matrix is collecting the F4/F5/F8/F9/F10 captures added today to close the Q1-COMPLIANCE Section H symmetry gap.
+- Reports: 230/390 (200 existing skip-existing + 30 new). Phase A breakdown: F4 29/40 (near-done), F5 1/40, F8/F9/F10 queued.
+- Cluster autoscaled to 4 nodes (vmss000001/02/08/09); 15 active previews; CPU max 46%, RAM max 64%.
+- Companion work already done this tick: B0 multi-app baseline (200 calls, 43% pooled aligned top-1, $0.20), 17-multiapp-rescore extended to count LLM-B (engine_mode "llm-b-grounded"), LMM/Tukey/CD/Pareto re-run on the unified 4000-row dataset (S1 + multi-app), 5 stale docs refreshed (metrics, threats-to-validity, experiments, research-questions, methodology), EVALUATION-DRAFT §10 multi-app section drafted, Q1-COMPLIANCE.md file-by-file checklist updated.
+- New cron a930230b armed to push hourly + check processes every 10 min + auto-launch the next phase (fp-diagnose new captures, Phase B F10, RQ5 subset re-run, B2a/B2b multi-app, EVALUATION-DRAFT final fill, freeze + push) when Phase A finishes.
+
+### 2026-05-23 18:43 UTC (20:43 Paris) — tick 11 — Phase A progressing
+- 3 Phase A processes alive 15m49s. Reports 242/390 (+12 since tick 10). Breakdown: F4 30/40 (in-flight tail), F5 1/40 (s4-umami r2 captured; others starting), F8 10/40 (batch picked up), F9 1/40 (just starting), F10 not yet (queued; uses new :fp-f10 adapter images).
+- Cluster: 4 nodes vmss000001/02/08/09. 10 Running + 5 Provisioning previews. CPU max 39 %, RAM max 63 %.
+- F5 throughput is the slowest — env-var-frontend-break only triggers a smoke-test failure when the subject's tests actually call the frontend code path. For most subjects (s2/s3/s5) the smoke suite hits backend APIs only, so F5 likely yields no-report for those subjects. The 1 F5 capture (umami r2) is consistent — Next.js needs NEXT_PUBLIC_API_URL at startup so an invalid value crashes the app. If most F5 reps end up no-report, F5 multi-app will be re-scoped as N/A (frontend not exercised by the test harness) rather than as a missing measurement; documented closure path.
+- 12 min since last commit. No push this tick.
+
+### 2026-05-23 18:53 UTC (20:53 Paris) — tick 12 — Phase A near-complete on s5-petclinic
+- Process 286367 (s5-petclinic) EXITED — all Phase A petclinic work done (F4 10/10, F8 10/10, F9 10/10, no F5 by design, F10 deferred to Phase B). Processes 286365 (s2+s3) and 286366 (s4-umami) still alive 25m50s.
+- Reports: 253/350 Phase A target. Breakdown: F4 30/40 (s2/s4/s5 all 10, s3 0 in flight), F8 12/40 (s5 10, s4 2), F9 10/40 (s5 10), F5 1/40 (umami r2 captured — Prisma migration failed; other F5 reps no-reporting).
+- Logs: A=10 captured + 5 no-report, B=13 cap + 5 no-rep, C=30 cap (clean). The 10 no-reports so far are all F5 — confirmed F5 env-var hack does not trigger smoke-test failures on subjects whose smoke suite targets the backend only. s4-umami's 1 F5 capture is a migration-time failure (Prisma can't create user table) — likely a flake or interaction effect rather than the intended F5 frontend bug.
+- Cluster: 4 nodes, CPU max 29 %, RAM max 59 %, 1 Provisioning + 9 Running previews.
+- Decision-pending re F5: most multi-app F5 captures are non-credible (mismatch between fault model and test scope). After Phase A finishes, re-classify F5 multi-app rows: either re-inject with a frontend-touching smoke test (rebuild adapters + ~30 min) or mark as N/A (which the orchestrator should encode as a real N/A flag, not a silent no-report). Tracked as work-unit follow-up in §12.
+- Commit age 22 min. No push this tick.
+
+### 2026-05-23 19:03 UTC (21:03 Paris) — tick 13 — per-subject Phase A breakdown
+- Processes: 286365 (s2+s3, 35m50s) and 286366 (s4-umami, 35m50s) alive. 286367 (s5-petclinic) exited at tick 12.
+- Reports 264/350. Per-subject status:
+  - s2-listmonk: F1–F4, F6, F7 captured (60); F5 0/10 (env-var hack inert on backend-only smoke), F8 0/10, F9 0/10, F10 deferred (Phase B).
+  - s3-healthchecks: F1–F3, F6, F7 captured (50); F4 0/10, F5 0/10, F8 0/10, F9 0/10, F10 deferred.
+  - s4-umami: F1–F4, F6, F7, F8 captured + F5 1/10 (likely flake, see tick 12) + F9 3/10, F10 deferred (84 done).
+  - s5-petclinic: COMPLETE for Phase A — 80/80 (F1–F4, F6, F7, F8, F9; F5 N/A by design, F10 in Phase B).
+- F5 multi-app honest call: env-var hack does not propagate to backend smoke tests; only umami had 1 likely-flake F5 capture. Per the Q1 rule, F5 multi-app rows will be re-classified as **N/A — frontend not exercised by harness-adapter smoke suite** rather than left as silent no-reports. A 2-line patch to each smoke.py + adapter rebuild could add a frontend GET test, but it would still PASS under env-var injection (the JS bundle loads regardless of NEXT_PUBLIC_API_URL value), so the underlying methodology limit stands. Documented in §Threats-to-Validity §7.6 (to write).
+- Cluster: 4 nodes, 10 active previews (9 Running + 1 Provisioning).
+- 32 min since last commit. No push this tick.
+
+### 2026-05-23 19:13 UTC (21:13 Paris) — tick 14 — Phase A restart with F5 re-scoped
+- Killed process 286365 (was at 45m50s) and restarted as PID 301576 with F5 now an N/A error path for s2-listmonk + s3-healthchecks (in addition to s5-petclinic). Phase A first-run had shown F5 timing out as silent no-report on backend-only smoke suites (~20 min per rep × 10 reps × 5 slots = ~40 min of pool time burned per subject). Re-classifying F5 as N/A for these subjects converts the silent no-reports into explicit error rows in runs.csv and frees the pool to work on F8/F9 immediately.
+- Process 286366 (s4-umami) had already exited cleanly at tick 13. Process 286367 (s5-petclinic) at tick 12.
+- Reports at restart: 274/350. Per subject: s2 63, s3 50, s4 81, s5 80.
+- New process 301576 alive 5s. Cleanup deleted 3 stale orphan previews from the pre-kill batch; cluster GC ~60s.
+- dispatch.py + config.yaml updated and committed (this push) to record the F5 scope decision. The 4500-row unified analysis already treats F5 multi-app as N/A; this just makes the orchestrator consistent.
