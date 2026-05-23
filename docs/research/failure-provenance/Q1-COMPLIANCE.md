@@ -212,16 +212,16 @@ These can run concurrently; each item has a unique resource lane.
 | `analysis-output/14-cluster-baselines/`                    | ✅ S1 done | extend for multi-app (Section H) |
 | `analysis-output/16-cohen-kappa/`                          | ⚠️ proxy only | W15 |
 | `analysis-output/17-multiapp-rescore/`                     | ⏳ pending | depends on W1+W2+W3 finishing |
-| **`analysis-output/18-mttd-external/`**                    | ❌ missing | W4 |
-| **`analysis-output/19-evidence-precision/`**               | ❌ missing | W5 |
-| **`analysis-output/20-recommendation-usefulness/`**        | ❌ missing | W6 |
-| **`analysis-output/21-lmm/`**                              | ❌ missing | W8 |
-| **`analysis-output/22-tukey/`**                            | ❌ missing | W9 |
-| **`analysis-output/23-mcnemar/`**                          | ❌ missing | W10 |
-| **`analysis-output/24-cd-diagrams/`**                      | ❌ missing | W11 |
-| **`analysis-output/25-pareto/`**                           | ❌ missing | W12 |
-| **`analysis-output/26-qualitative/`**                      | ❌ missing | W13 |
-| **`analysis-output/27-idempotency-check/`**                | ❌ missing | W7 |
+| `analysis-output/18-mttd-external/`                        | ✅ done    | W4 closed (operator-side latency sub-second, e2e caveat documented) |
+| `analysis-output/19-evidence-precision/`                   | ✅ done    | W5 closed (300 reports, summary.md) |
+| **`analysis-output/20-recommendation-usefulness/`**        | ❌ missing | W6 (LLM-blocked on W1) |
+| `analysis-output/21-lmm/`                                  | ✅ done    | W8 closed (LLM-A + LLM-B unified, 2000 rows) |
+| `analysis-output/22-tukey/`                                | ✅ done    | W9 closed (Tukey HSD per LLM) |
+| `analysis-output/23-mcnemar/`                              | ✅ done    | W10 closed (100 tests on S1) |
+| `analysis-output/24-cd-diagrams/`                          | ✅ done    | W11 closed (cd_llm_a.png + cd_llm_b.png + Demsar CD) |
+| `analysis-output/25-pareto/`                               | ✅ done    | W12 closed (Pareto frontier + 2 cells on front) |
+| `analysis-output/26-qualitative/`                          | ✅ done    | W13 closed (30 case-study cards) |
+| **`analysis-output/27-idempotency-check/`**                | 🔄 in progress | W7 — operator patched, ACR build in flight |
 | `docs/research/failure-provenance/metrics.md`              | ⚠️ stale | W14 |
 | `docs/research/failure-provenance/threats-to-validity.md`  | ⚠️ stale | W14 |
 | `docs/research/failure-provenance/experiments.md`          | ⚠️ stale | W14 |
@@ -253,4 +253,9 @@ These can run concurrently; each item has a unique resource lane.
 ## Section K — Update log of this file
 
 - 2026-05-23 17:50 UTC — first draft. Captures all known gaps as of the end of
-  the multi-app matrix collection phase. To be updated on every flip.
+  the multi-app matrix collection phase.
+- 2026-05-23 18:15 UTC — first flip pass: W4, W5, W8, W9, W10, W11, W12, W13
+  closed. Operator instrumentation (W7) patch landed in code (evidence.go +
+  collectors.go + report.go + failurereport_types.go) and CRD regenerated;
+  rebuild + redeploy + subset rerun pending. EVALUATION-DRAFT.md §10
+  multi-app section drafted.

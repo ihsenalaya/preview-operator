@@ -49,6 +49,11 @@ func BuildFailureReport(b *Bundle) *platformv1alpha1.FailureReport {
 	if b.CollectionDuration > 0 {
 		status.CollectionDurationMillis = b.CollectionDuration.Milliseconds()
 	}
+	// Always record the microsecond duration so sub-millisecond runs are
+	// preserved (the millis field rounds to zero for the common case).
+	status.CollectionDurationMicros = b.CollectionDuration.Microseconds()
+	status.CollectionAllocBytes = b.CollectionAllocBytes
+	status.CollectionAllocCount = b.CollectionAllocCount
 
 	// The provenance graph is materialised only at C5. An unset Level means the
 	// full default capability, so the graph is built there too — this keeps the

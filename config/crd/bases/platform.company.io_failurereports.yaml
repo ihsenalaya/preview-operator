@@ -144,6 +144,25 @@ spec:
                   storage footprint measured by RQ5.
                 format: int64
                 type: integer
+              collectionAllocBytes:
+                description: |-
+                  CollectionAllocBytes is the heap-bytes delta during bundle assembly,
+                  from runtime.ReadMemStats. RQ5 memory sub-component.
+                format: int64
+                type: integer
+              collectionAllocCount:
+                description: |-
+                  CollectionAllocCount is the malloc-count delta during bundle assembly.
+                  RQ5 memory-pressure sub-component.
+                format: int64
+                type: integer
+              collectionDurationMicros:
+                description: |-
+                  CollectionDurationMicros is the same wall-clock window in microseconds,
+                  kept because evidence collection is typically sub-millisecond and the
+                  millisecond field rounds to zero. RQ5 time sub-component.
+                format: int64
+                type: integer
               collectionDurationMillis:
                 description: |-
                   CollectionDurationMillis is the wall-clock time the operator spent

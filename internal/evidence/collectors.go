@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 
@@ -68,10 +69,23 @@ func AssembleBundle(c *platformv1alpha1.Preview, collectors ...Collector) *Bundl
 // EVIDENCE_LEVEL knob, and CollectionDuration is the in-process overhead
 // measured by RQ5.
 func AssembleBundleForLevel(c *platformv1alpha1.Preview, level Level) *Bundle {
+	// Capture memory + time delta around the bundle assembly so RQ5's
+	// time/memory sub-components land on the resulting FailureReport with
+	// sub-millisecond resolution. The runtime.ReadMemStats call STW-pauses
+	// briefly; doing it twice per failed reconcile is negligible.
+	var startMem, endMem runtime.MemStats
+	runtime.ReadMemStats(&startMem)
 	start := time.Now()
 	b := AssembleBundle(c, CollectorsForLevel(level)...)
 	b.Level = level
 	b.CollectionDuration = time.Since(start)
+	runtime.ReadMemStats(&endMem)
+	if endMem.TotalAlloc >= startMem.TotalAlloc {
+		b.CollectionAllocBytes = int64(endMem.TotalAlloc - startMem.TotalAlloc)
+	}
+	if endMem.Mallocs >= startMem.Mallocs {
+		b.CollectionAllocCount = int64(endMem.Mallocs - startMem.Mallocs)
+	}
 	return b
 }
 

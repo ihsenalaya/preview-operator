@@ -254,6 +254,22 @@ type FailureReportStatus struct {
 	// +optional
 	CollectionDurationMillis int64 `json:"collectionDurationMillis,omitempty"`
 
+	// CollectionDurationMicros is the same wall-clock window in microseconds,
+	// kept because evidence collection is typically sub-millisecond and the
+	// millisecond field rounds to zero. RQ5 time sub-component.
+	// +optional
+	CollectionDurationMicros int64 `json:"collectionDurationMicros,omitempty"`
+
+	// CollectionAllocBytes is the heap-bytes delta during bundle assembly,
+	// from runtime.ReadMemStats. RQ5 memory sub-component.
+	// +optional
+	CollectionAllocBytes int64 `json:"collectionAllocBytes,omitempty"`
+
+	// CollectionAllocCount is the malloc-count delta during bundle assembly.
+	// RQ5 memory-pressure sub-component.
+	// +optional
+	CollectionAllocCount int64 `json:"collectionAllocCount,omitempty"`
+
 	// BundleSizeBytes is the JSON-serialised size of the evidence items — the
 	// storage footprint measured by RQ5.
 	// +optional

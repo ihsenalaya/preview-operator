@@ -60,6 +60,14 @@ type Bundle struct {
 	// the in-process collection overhead measured by RQ5.
 	CollectionDuration time.Duration
 
+	// CollectionAllocBytes is the heap-bytes delta during bundle assembly,
+	// from runtime.ReadMemStats TotalAlloc. Measures memory overhead of the
+	// evidence-collection step (RQ5 sub-component).
+	CollectionAllocBytes int64
+	// CollectionAllocCount is the number of malloc operations during bundle
+	// assembly (RQ5 sub-component).
+	CollectionAllocCount int64
+
 	items       map[string]platformv1alpha1.FailureEvidenceItem
 	diagnosis   *platformv1alpha1.FailureDiagnosis
 	diagnosisAt metav1.Time

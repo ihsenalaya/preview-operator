@@ -355,3 +355,70 @@ the published scripts. **No invented measurements, no extrapolation, no
 
 *Drop-in skeleton. Phase 2 (LLM-B + baselines + κ + Claude judge) will
 replace the placeholders in §5, §7, and the relevant rows in §8.*
+
+---
+
+## 10. Multi-application generalization (S2-S5)
+
+The S1 result above answers the within-application question. RQ4 asks whether
+the evidence-grounding effect generalises across applications. We therefore
+run the same C1-C5 × LLM-A/LLM-B matrix on **four additional subjects** built
+from upstream OSS projects with different languages, frameworks, and database
+schemas:
+
+| ID | Subject | Language / Framework | Database | Faults injected |
+|---|---|---|---|---|
+| S2 | `listmonk` (knadh/listmonk v2.5.1) | Go / Chi router | PostgreSQL | F1, F2, F3, F6, F7 |
+| S3 | `healthchecks` (healthchecks/healthchecks v3.6) | Python / Django 5 | PostgreSQL | F1, F2, F3, F6, F7 |
+| S4 | `umami` (umami-software/umami v2.15.1) | TypeScript / Next.js 14 | PostgreSQL | F1, F2, F3, F6, F7 |
+| S5 | `petclinic` (spring-petclinic-rest 3.4.0) | Java / Spring Boot 3 | PostgreSQL | F1, F2, F3, F6, F7 |
+
+The fault scope is the application-agnostic subset of F1-F10 (database,
+configuration, infrastructure, infrastructure, infrastructure — see
+`multi-app-plan.md §2`). F4/F5/F8/F9/F10 are excluded because they depend on
+S1-specific code paths (the in-tree Flask blueprint, the AI seed step, etc.).
+
+### 10.1 Capture completeness
+
+| Subject | Captures (target = 50) | Status |
+|---|---|---|
+| s2-listmonk      | 50 / 50 | ✅ |
+| s3-healthchecks  | 50 / 50 | ✅ |
+| s4-umami         | 50 / 50 | ✅ |
+| s5-petclinic     | 50 / 50 | ✅ |
+| **Total**        | **200 / 200**  | ✅ |
+
+Zero no-report cells. The final F7 injection mechanism uses a meta.yaml-level
+port-mismatch (`services[0].port = 19999`); the original
+post-deploy Service-selector patch was non-deterministic because the operator
+reconciles the Service spec back to the desired state within ~3 s of the
+patch (verified live, see `Q1-COMPLIANCE.md` Section G and PROGRESS.md
+ticks 5–6). The 17 race-condition F7 captures collected with the original
+mechanism were invalidated and re-collected with the deterministic
+port-mismatch mechanism. Every multi-app cell is therefore a clean
+post-fix capture.
+
+### 10.2 Aligned top-1 per subject (RQ2 generalization)
+
+Aligned vocabulary scoring (`17-multiapp-rescore.py`) accounts for the fact
+that the subjects name the same logical role differently — listmonk's
+backend pod is `listmonk`; healthchecks' is `hc-web`; umami's is `umami`;
+petclinic's is `spring-petclinic`. The alias table extends the S1 matcher
+(`08-vocab-rescore.py`) with per-subject synonyms so all four subjects are
+matcher-comparable with each other and with S1.
+
+Detailed per-subject numbers, per-RQ tables, and the Pareto front including
+multi-app cells will be populated once the post-collection diagnose pass
+finishes (work unit W1 in `Q1-COMPLIANCE.md`).
+
+### 10.3 Caveats specific to multi-app
+
+- **No `EVIDENCE_COLLECTION=disabled` paired baseline yet for multi-app**;
+  the S1 RQ5 overhead measurement is the primary observation. Multi-app
+  paired re-run is tracked as W7/W9.
+- **No multi-app baselines yet** (B0, B2a, B2b); only S1 has those. Multi-app
+  extension is tracked as W2/W3.
+- **F4, F5, F8, F9, F10 not in scope on S2-S5** — the application-level
+  faults need per-subject source-code modification which is outside the
+  operator-only evaluation footprint. This is noted in `methodology.md §3b`.
+
