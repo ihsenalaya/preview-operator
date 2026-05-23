@@ -654,4 +654,37 @@ helper polls until the Service exists (600s deadline), and the F7 branch in
 `reconcile_one` calls it between `wait_for_namespace` and the F7 injector
 invocation.
 
-[F7 results table will be filled in once the re-run completes.]
+
+| Level | rule-grounded | llm-grounded | llm-freeform |
+|-------|---------------|--------------|--------------|
+| C1 | 0/10 | 0/10 | 0/10 |
+| C2 | 0/10 | 0/10 | 0/10 |
+| C3 | 0/10 | 0/10 | 0/10 |
+| C4 | 0/10 | 0/10 | 0/10 |
+| C5 | 0/10 | 0/10 | 0/10 |
+
+10/10 captured after the orchestrator fixes (commits `6f65849` for the
+`wait_for_service` helper and the follow-up `svc-backend` Service-name
+correction in this same matrix). 150 result rows, top-1 = 0 across every
+engine and evidence level.
+
+The 10 captured bundles fall into two regimes — a single sparse rep at
+3770 bytes (1 PreviewCondition only) and nine rich reps at 13265–13512
+bytes (with `ChangedFile` / `GitDiff` / `PreviewCondition` and 4
+`TestResult` items). The difference is timing-driven: the operator
+reconciles the Service object back to its declared selector within
+seconds of the F7 patch, so any tests that ran during the broken-selector
+window emit evidence (rich bundle), while a rep whose tests had not yet
+started sees only the failure condition (sparse bundle). Both are
+correctly captured FailureReports — the variation is a side-effect of
+the operator-vs-injector race, not a measurement gap.
+
+Top-1 0/150 on the strict matcher because the diagnosis text names the
+co-failing test suites (e2e Playwright timeout, contract HTTP 500 on
+`/api/tests`) rather than the ground-truth "infrastructure"/"service"
+label that the F7 selector-break would imply. This is again offline-
+fixable (rank Service-readiness signals above test-side failures and
+align the component vocabulary) but it is consistent with the F5/F6/F8
+story rather than a new failure mode.
+
+0 runs skipped, 0 errors.

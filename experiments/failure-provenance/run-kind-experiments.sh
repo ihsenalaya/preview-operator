@@ -296,8 +296,12 @@ cluster_run() {
   if [[ "${scenario}" == "F7" ]]; then
     local ns
     ns="$(wait_for_namespace "${preview}")" || { log "F7: preview namespace never appeared"; return 1; }
-    wait_for_service "${ns}" backend || { log "F7: backend Service never appeared in ${ns}"; return 1; }
-    "${INJECTOR}" --scenario F7 --namespace "${ns}" --service backend --apply || true
+    # The operator names the backend Service `svc-backend` (matching the
+    # Deployment label `app: svc-backend`). The earlier orchestrator hard-
+    # coded `backend`, which was a silent no-op because no such Service
+    # exists in the preview namespace.
+    wait_for_service "${ns}" svc-backend || { log "F7: svc-backend Service never appeared in ${ns}"; return 1; }
+    "${INJECTOR}" --scenario F7 --namespace "${ns}" --service svc-backend --apply || true
   fi
 
   if ! wait_for_report "${preview}-failure"; then
