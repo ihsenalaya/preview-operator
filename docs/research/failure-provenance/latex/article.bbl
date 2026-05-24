@@ -730,7 +730,7 @@
 \tempurl}
 \newblock
 \shownote{35K hallucinated-vs-grounded text pairs; benchmark used to calibrate
-  LLM-as-judge protocols. Complements FaithJudge (tamber_faithjudge_2025).}.
+  LLM-as-judge protocols. Complements FaithJudge.}.
 
 
 \bibitem[Liang et~al\mbox{.}(2023)]%

@@ -96,7 +96,7 @@ Warning--empty address in loghub_2023
 Warning--page numbers missing in both pages and numpages fields in loghub_2023
 You've used 83 entries,
             5981 wiz_defined-function locations,
-            2016 strings with 46840 characters,
+            2016 strings with 46815 characters,
 and the built_in function-call counts, 88574 in all, are:
 = -- 10374
 > -- 3564

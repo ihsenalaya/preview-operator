@@ -18,16 +18,16 @@
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{signadot_preview_envs,okteto_preview_envs,jenkinsx_preview_envs,argocd_cncf}
 \citation{lebo_provo_2013,w3c_prov_dm}
-\citation{kubebuilder_sigs}
-\citation{zhang_microservice_diagnosis_survey_2025}
-\citation{openrca_2025,rcacopilot_2024}
-\citation{microrca_2020,microdiag_2021,causalrca_2023}
 \@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{The problem in one paragraph.}{1}{section*.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Thesis.}{1}{section*.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Contributions.}{1}{section*.6}\protected@file@percent }
+\citation{kubebuilder_sigs}
+\citation{zhang_microservice_diagnosis_survey_2025}
+\citation{openrca_2025,rcacopilot_2024}
+\citation{microrca_2020,microdiag_2021,causalrca_2023}
 \citation{kubernetes_operator_pattern,kubernetes_custom_resources}
 \citation{kubernetes_controller_concepts}
 \citation{kubernetes_finalizers}
@@ -86,12 +86,12 @@
 \@writefile{toc}{\contentsline {section}{\numberline {3}Motivation: a walk-through failure}{2}{section.3}\protected@file@percent }
 \newlabel{sec:motivation}{{3}{2}{Motivation: a walk-through failure}{section.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{What the operator captures, with timestamps.}{2}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{What is otherwise lost.}{2}{section*.10}\protected@file@percent }
 \citation{lebo_provo_2013}
 \citation{w3c_prov_dm}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {System architecture.} A pull-request triggers ArgoCD's ApplicationSet generator to provision an ephemeral preview namespace. The \texttt  {preview-operator} reconciles the deployment, the migration Job, the test suite and the routing; on \texttt  {failureDetected} it runs six evidence collectors and persists a cluster-scoped FailureReport\xspace  {} CR. Because the CR is cluster-scoped, it \emph  {outlives} the namespace teardown by Kubernetes invariant. The diagnostic harness (rule + LLM-A + LLM-B) reads the persisted FailureReport\xspace  {} and emits a JSON \texttt  {diagnosis}. External baselines (B0 vanilla LLM, B2a K8sGPT, B2b Kagent) bypass the operator and consume raw \texttt  {kubectl} output directly --- this is the comparator that distinguishes the operator's contribution from the LLM's intrinsic capability.\relax }}{3}{figure.caption.8}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{fig:architecture}{{1}{3}{\textbf {System architecture.} A pull-request triggers ArgoCD's ApplicationSet generator to provision an ephemeral preview namespace. The \texttt {preview-operator} reconciles the deployment, the migration Job, the test suite and the routing; on \texttt {failureDetected} it runs six evidence collectors and persists a cluster-scoped \fp {} CR. Because the CR is cluster-scoped, it \emph {outlives} the namespace teardown by Kubernetes invariant. The diagnostic harness (rule + LLM-A + LLM-B) reads the persisted \fp {} and emits a JSON \texttt {diagnosis}. External baselines (B0 vanilla LLM, B2a K8sGPT, B2b Kagent) bypass the operator and consume raw \texttt {kubectl} output directly --- this is the comparator that distinguishes the operator's contribution from the LLM's intrinsic capability.\relax }{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{What is otherwise lost.}{3}{section*.10}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{What our captured artefact lets the diagnoser do.}{3}{section*.11}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Approach}{3}{section.4}\protected@file@percent }
 \newlabel{sec:approach}{{4}{3}{Approach}{section.4}{}}
@@ -99,14 +99,14 @@
 \newlabel{sec:approach-evidence}{{4.1}{3}{The failure evidence model}{subsection.4.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}The provenance graph}{3}{subsection.4.2}\protected@file@percent }
 \newlabel{sec:approach-graph}{{4.2}{3}{The provenance graph}{subsection.4.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}The \texttt  {FailureReport} CRD}{3}{subsection.4.3}\protected@file@percent }
-\newlabel{sec:approach-crd}{{4.3}{3}{The \texttt {FailureReport} CRD}{subsection.4.3}{}}
 \citation{basiri_chaos_2016}
 \citation{litmus_chaos_cncf,chaos_mesh_cncf}
 \citation{zeller_delta_2002}
 \citation{kubernetes_finalizers}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Provenance graph schema} (W3C PROV typing). PR/Preview/Namespace and the four evidence classes are \emph  {entities}; \texttt  {EvidenceCollection} is an \emph  {activity} triggered at \texttt  {failureDetectedAt} by the \emph  {agent} \texttt  {preview-operator}; edges instantiate \texttt  {wasDerivedFrom}, \texttt  {used}, \texttt  {wasAssociatedWith}, \texttt  {wasGeneratedBy}. The FailureReport\xspace  {} CR collects all four evidence types and outlives the namespace.\relax }}{4}{figure.caption.12}\protected@file@percent }
 \newlabel{fig:provenance-graph}{{2}{4}{\textbf {Provenance graph schema} (W3C PROV typing). PR/Preview/Namespace and the four evidence classes are \emph {entities}; \texttt {EvidenceCollection} is an \emph {activity} triggered at \texttt {failureDetectedAt} by the \emph {agent} \texttt {preview-operator}; edges instantiate \texttt {wasDerivedFrom}, \texttt {used}, \texttt {wasAssociatedWith}, \texttt {wasGeneratedBy}. The \fp {} CR collects all four evidence types and outlives the namespace.\relax }{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}The \texttt  {FailureReport} CRD}{4}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:approach-crd}{{4.3}{4}{The \texttt {FailureReport} CRD}{subsection.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}The diagnostic harness}{4}{subsection.4.4}\protected@file@percent }
 \newlabel{sec:approach-harness}{{4.4}{4}{The diagnostic harness}{subsection.4.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Evaluation}{4}{section.5}\protected@file@percent }
@@ -117,71 +117,96 @@
 \newlabel{sec:eval-design}{{5.2}{4}{Experimental design}{subsection.5.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3}RQ1\xspace  ---Evidence preservation}{4}{subsection.5.3}\protected@file@percent }
 \newlabel{sec:rq1}{{5.3}{4}{\RQ {1}---Evidence preservation}{subsection.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}RQ2\xspace  ---RCA accuracy}{4}{subsection.5.4}\protected@file@percent }
-\newlabel{sec:rq2}{{5.4}{4}{\RQ {2}---RCA accuracy}{subsection.5.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}RQ2\xspace  ---Diagnostic utility and limits}{4}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:rq2}{{5.4}{4}{\RQ {2}---Diagnostic utility and limits}{subsection.5.4}{}}
 \@writefile{toc}{\contentsline {paragraph}{Strict vs aligned matcher.}{4}{section*.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Per-scenario aligned top-1.}{4}{section*.14}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Per-scenario aligned top-1 on \texttt  {s1-flask-catalog} (LLM-A, $n=50$ per cell pooled across C1\xspace  --C5\xspace  , 10 reps each). Wilson 95\,\% CIs in brackets. Source: \nolinkurl  {analysis-output/07-aggregate/aggregate-summary.json}.\relax }}{5}{table.caption.15}\protected@file@percent }
+\newlabel{tab:rq2-s1}{{1}{5}{Per-scenario aligned top-1 on \texttt {s1-flask-catalog} (LLM-A, $n=50$ per cell pooled across \Cn {1}--\Cn {5}, 10 reps each). Wilson 95\,\% CIs in brackets. Source: \artifactname {analysis-output/07-aggregate/aggregate-summary.json}.\relax }{table.caption.15}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-scenario aligned top-1.}{5}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evidence ladder \emph  {L1--L4} (reviewer-fairness comparison).}{5}{section*.16}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Aligned top-1 on the L1--L4 evidence ladder (S1, Wilson 95\,\% CI). Larger gain crossing L2$\to $L3 than crossing L3$\to $L4: operator-side typing dominates; the PROV graph contributes marginally.\relax }}{5}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:ladder-s1}{{3}{5}{Aligned top-1 on the L1--L4 evidence ladder (S1, Wilson 95\,\% CI). Larger gain crossing L2$\to $L3 than crossing L3$\to $L4: operator-side typing dominates; the PROV graph contributes marginally.\relax }{figure.caption.17}{}}
+\@writefile{toc}{\contentsline {paragraph}{Logistic mixed-effects model (GLMM, L3 primary).}{5}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Linear MixedLM sensitivity check.}{5}{section*.19}\protected@file@percent }
 \citation{vargha_delaney_2000}
 \citation{arcuri_briand_2014}
 \citation{holm_1979}
 \citation{benjamini_hochberg_1995}
 \citation{wilson_score_ci}
+\citation{bates_lme4_2015,baayen_2008}
 \citation{friedman1937}
 \citation{demsar_2006}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Per-scenario aligned top-1 on \texttt  {s1-flask-catalog} (LLM-A, $n=50$ per cell pooled across C1\xspace  --C5\xspace  , 10 reps each). Wilson 95\,\% CIs in brackets. Source: \nolinkurl  {analysis-output/07-aggregate/aggregate-summary.json}.\relax }}{5}{table.caption.15}\protected@file@percent }
-\newlabel{tab:rq2-s1}{{1}{5}{Per-scenario aligned top-1 on \texttt {s1-flask-catalog} (LLM-A, $n=50$ per cell pooled across \Cn {1}--\Cn {5}, 10 reps each). Wilson 95\,\% CIs in brackets. Source: \artifactname {analysis-output/07-aggregate/aggregate-summary.json}.\relax }{table.caption.15}{}}
-\@writefile{toc}{\contentsline {paragraph}{Mixed-effects sensitivity model (L3).}{5}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Tukey HSD pairwise contrasts (L4).}{5}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Pooled comparison across engines.}{5}{section*.18}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Pooled top-1 by engine on S1 ($n=500$ per engine). Gray bars show strict matching; blue bars show vocabulary-aligned matching.\relax }}{5}{figure.caption.19}\protected@file@percent }
-\newlabel{fig:engine-pooled}{{3}{5}{Pooled top-1 by engine on S1 ($n=500$ per engine). Gray bars show strict matching; blue bars show vocabulary-aligned matching.\relax }{figure.caption.19}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Per-scenario aligned top-1 on S1 with Wilson 95\,\% CIs. Each scenario has one row per engine.\relax }}{5}{figure.caption.21}\protected@file@percent }
-\newlabel{fig:forest}{{4}{5}{Per-scenario aligned top-1 on S1 with Wilson 95\,\% CIs. Each scenario has one row per engine.\relax }{figure.caption.21}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-scenario forest plot.}{5}{section*.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{C5 vs C1 contrast.}{5}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Dem{\v {s}}ar critical-difference diagrams.}{5}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Tukey HSD pairwise contrasts (L4).}{6}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Pooled comparison across engines.}{6}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Generalized linear mixed-effects model (logit GLMM).}{6}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Controlled evidence ladder (L1\,$\to $\,L4).}{6}{section*.23}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Evidence ladder for S1, aligned top-1 with Wilson 95\,\% CIs ($n$ = scenario $\times $ rep pairs per cell). All four rungs operate on \textbf  {frozen text} (post-teardown), i.e.\ no live-cluster lookup.\relax }}{6}{table.caption.24}\protected@file@percent }
+\newlabel{tab:ladder}{{2}{6}{Evidence ladder for S1, aligned top-1 with Wilson 95\,\% CIs ($n$ = scenario $\times $ rep pairs per cell). All four rungs operate on \textbf {frozen text} (post-teardown), i.e.\ no live-cluster lookup.\relax }{table.caption.24}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Evidence ladder L1$\to $L4 on S1, aligned top-1 with Wilson 95\,\% CIs. L1 (logs only) and L2 (raw \texttt  {kubectl}) are at the floor; the large jump is to L3 (FailureReport\xspace  {} typed bundle); L4 (+ PROV graph) adds little on top of L3.\relax }}{6}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:ladder}{{4}{6}{Evidence ladder L1$\to $L4 on S1, aligned top-1 with Wilson 95\,\% CIs. L1 (logs only) and L2 (raw \texttt {kubectl}) are at the floor; the large jump is to L3 (\fp {} typed bundle); L4 (+ PROV graph) adds little on top of L3.\relax }{figure.caption.25}{}}
+\@writefile{toc}{\contentsline {paragraph}{Interpretation.}{6}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Per-scenario forest plot.}{6}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{C5 vs C1 contrast.}{6}{section*.30}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Pooled top-1 by engine on S1 ($n=500$ per engine). Gray bars show strict matching; blue bars show vocabulary-aligned matching.\relax }}{7}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:engine-pooled}{{5}{7}{Pooled top-1 by engine on S1 ($n=500$ per engine). Gray bars show strict matching; blue bars show vocabulary-aligned matching.\relax }{figure.caption.27}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Per-scenario aligned top-1 on S1 with Wilson 95\,\% CIs. Each scenario has one row per engine.\relax }}{7}{figure.caption.29}\protected@file@percent }
+\newlabel{fig:forest}{{6}{7}{Per-scenario aligned top-1 on S1 with Wilson 95\,\% CIs. Each scenario has one row per engine.\relax }{figure.caption.29}{}}
+\@writefile{toc}{\contentsline {paragraph}{Dem{\v {s}}ar critical-difference diagrams.}{7}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Pareto frontier of evidence vs accuracy.}{7}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Failure analysis on F5\xspace  , F9\xspace  , F10\xspace  }{7}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:failure-analysis}{{5.5}{7}{Failure analysis on \fn {5}, \fn {9}, \fn {10}}{subsection.5.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Per-scenario C5\xspace  $-$C1\xspace   aligned top-1 gain. Positive points indicate that fuller evidence helps; intervals show bootstrap 95\,\% CIs.\relax }}{7}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:c5c1}{{7}{7}{Per-scenario \Cn {5}$-$\Cn {1} aligned top-1 gain. Positive points indicate that fuller evidence helps; intervals show bootstrap 95\,\% CIs.\relax }{figure.caption.31}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Critical-difference diagram for LLM-A across 30 ranking cells (scenarios $\times $ subjects), $\alpha = 0.05$. C5\xspace   significantly outranks C1\xspace   and C2\xspace  .\relax }}{7}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:cd-llm-a}{{8}{7}{Critical-difference diagram for LLM-A across 30 ranking cells (scenarios $\times $ subjects), $\alpha = 0.05$. \Cn {5} significantly outranks \Cn {1} and \Cn {2}.\relax }{figure.caption.33}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Critical-difference diagram for LLM-B (\texttt  {cohere-command-a}). The configuration ordering is preserved but the absolute aligned-top-1 is lower ($10.4\,\%$ pooled vs $22.4\,\%$ for LLM-A).\relax }}{7}{figure.caption.34}\protected@file@percent }
+\newlabel{fig:cd-llm-b}{{9}{7}{Critical-difference diagram for LLM-B (\texttt {cohere-command-a}). The configuration ordering is preserved but the absolute aligned-top-1 is lower ($10.4\,\%$ pooled vs $22.4\,\%$ for LLM-A).\relax }{figure.caption.34}{}}
+\@writefile{toc}{\contentsline {paragraph}{Family C-a: contract-test shadowing (F5\xspace  ).}{7}{section*.37}\protected@file@percent }
+\citation{zeller_delta_2002}
+\citation{beyer_sre_2016,forsgren_accelerate_2018,bass_devops_2015}
+\citation{w3c_prov_dm,lebo_provo_2013}
 \citation{dapper_2010}
 \citation{ji2023hallucination,manakul_selfcheckgpt_2023,li_halueval_2023}
 \citation{shi_position_bias_2024}
 \citation{tamber_faithjudge_2025}
 \citation{es_ragas_2023}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Pareto frontier: bundle size (B, x-axis) vs aligned top-1 (y-axis). The red point is the cell that no other strictly dominates.\relax }}{8}{figure.caption.36}\protected@file@percent }
+\newlabel{fig:pareto}{{10}{8}{Pareto frontier: bundle size (B, x-axis) vs aligned top-1 (y-axis). The red point is the cell that no other strictly dominates.\relax }{figure.caption.36}{}}
+\@writefile{toc}{\contentsline {paragraph}{Family C-b: vocabulary mismatch (F10\xspace  ).}{8}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Family C-c: symptom-blaming on multi-fault (F9\xspace  ).}{8}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Common pattern.}{8}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evidence preservation is necessary but not sufficient for automated RCA.}{8}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}RQ3\xspace  ---Time to diagnosis (MTTD)}{8}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:rq3}{{5.6}{8}{\RQ {3}---Time to diagnosis (MTTD)}{subsection.5.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Exploratory hallucination control}{8}{subsection.5.7}\protected@file@percent }
+\newlabel{sec:hallu-exploratory}{{5.7}{8}{Exploratory hallucination control}{subsection.5.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{F10 control.}{8}{section*.42}\protected@file@percent }
 \citation{mchugh_kappa_2012,inter_coder_se_2023}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Per-scenario C5\xspace  $-$C1\xspace   aligned top-1 gain. Positive points indicate that fuller evidence helps; intervals show bootstrap 95\,\% CIs.\relax }}{6}{figure.caption.23}\protected@file@percent }
-\newlabel{fig:c5c1}{{5}{6}{Per-scenario \Cn {5}$-$\Cn {1} aligned top-1 gain. Positive points indicate that fuller evidence helps; intervals show bootstrap 95\,\% CIs.\relax }{figure.caption.23}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Critical-difference diagram for LLM-A across 30 ranking cells (scenarios $\times $ subjects), $\alpha = 0.05$. C5\xspace   significantly outranks C1\xspace   and C2\xspace  .\relax }}{6}{figure.caption.25}\protected@file@percent }
-\newlabel{fig:cd-llm-a}{{6}{6}{Critical-difference diagram for LLM-A across 30 ranking cells (scenarios $\times $ subjects), $\alpha = 0.05$. \Cn {5} significantly outranks \Cn {1} and \Cn {2}.\relax }{figure.caption.25}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Critical-difference diagram for LLM-B (\texttt  {cohere-command-a}). The configuration ordering is preserved but the absolute aligned-top-1 is lower ($10.4\,\%$ pooled vs $22.4\,\%$ for LLM-A).\relax }}{6}{figure.caption.26}\protected@file@percent }
-\newlabel{fig:cd-llm-b}{{7}{6}{Critical-difference diagram for LLM-B (\texttt {cohere-command-a}). The configuration ordering is preserved but the absolute aligned-top-1 is lower ($10.4\,\%$ pooled vs $22.4\,\%$ for LLM-A).\relax }{figure.caption.26}{}}
-\@writefile{toc}{\contentsline {paragraph}{Pareto frontier of evidence vs accuracy.}{6}{section*.27}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Pareto frontier: bundle size (B, x-axis) vs aligned top-1 (y-axis). The red point is the cell that no other strictly dominates.\relax }}{6}{figure.caption.28}\protected@file@percent }
-\newlabel{fig:pareto}{{8}{6}{Pareto frontier: bundle size (B, x-axis) vs aligned top-1 (y-axis). The red point is the cell that no other strictly dominates.\relax }{figure.caption.28}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}RQ3\xspace  ---Time to diagnosis (MTTD)}{6}{subsection.5.5}\protected@file@percent }
-\newlabel{sec:rq3}{{5.5}{6}{\RQ {3}---Time to diagnosis (MTTD)}{subsection.5.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}RQ4\xspace  ---Hallucination}{6}{subsection.5.6}\protected@file@percent }
-\newlabel{sec:rq4}{{5.6}{6}{\RQ {4}---Hallucination}{subsection.5.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{F10 control.}{6}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Agreement validation.}{6}{section*.30}\protected@file@percent }
 \citation{beyer_sre_2016,bass_devops_2015}
 \citation{forsgren_accelerate_2018}
+\@writefile{toc}{\contentsline {paragraph}{Agreement validation (inter-rater $\kappa $).}{9}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}RQ4\xspace  ---Runtime overhead}{9}{subsection.5.8}\protected@file@percent }
+\newlabel{sec:rq4-overhead}{{5.8}{9}{\RQ {4}---Runtime overhead}{subsection.5.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.9}RQ5\xspace  ---External baselines and comparability}{9}{subsection.5.9}\protected@file@percent }
+\newlabel{sec:eval-baselines}{{5.9}{9}{\RQ {5}---External baselines and comparability}{subsection.5.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Baseline regimes and comparability. Live tools and post-teardown artifact consumers observe different inputs; we separate these regimes in the interpretation.\relax }}{9}{table.caption.44}\protected@file@percent }
+\newlabel{tab:baseline-regimes}{{3}{9}{Baseline regimes and comparability. Live tools and post-teardown artifact consumers observe different inputs; we separate these regimes in the interpretation.\relax }{table.caption.44}{}}
+\@writefile{toc}{\contentsline {paragraph}{B0---Vanilla LLM on raw \texttt  {kubectl}.}{9}{section*.45}\protected@file@percent }
 \citation{kitchenham_2002}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}RQ5\xspace  ---Runtime overhead}{7}{subsection.5.7}\protected@file@percent }
-\newlabel{sec:rq5}{{5.7}{7}{\RQ {5}---Runtime overhead}{subsection.5.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}External baselines}{7}{subsection.5.8}\protected@file@percent }
-\newlabel{sec:eval-baselines}{{5.8}{7}{External baselines}{subsection.5.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{B0---Vanilla LLM on raw \texttt  {kubectl}.}{7}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{B2a---K8sGPT v0.4.21.}{7}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{B2b---Kagent k8s-agent.}{7}{section*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.9}Multi-app generalisation (S2--S5)}{7}{subsection.5.9}\protected@file@percent }
-\newlabel{sec:multi-app}{{5.9}{7}{Multi-app generalisation (S2--S5)}{subsection.5.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{Capture completeness.}{7}{section*.34}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Aligned top-1, multi-app (full F1--F10 scope).}{7}{section*.35}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.10}Evidence Precision (M6)}{7}{subsection.5.10}\protected@file@percent }
-\newlabel{sec:precision}{{5.10}{7}{Evidence Precision (M6)}{subsection.5.10}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Threats to validity}{7}{section.6}\protected@file@percent }
-\newlabel{sec:threats}{{6}{7}{Threats to validity}{section.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{Internal validity.}{7}{section*.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Construct validity.}{7}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{External validity.}{7}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{B2a---K8sGPT v0.4.21.}{10}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{B2b---Kagent k8s-agent.}{10}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.10}Multi-app generalisation (S2--S5)}{10}{subsection.5.10}\protected@file@percent }
+\newlabel{sec:multi-app}{{5.10}{10}{Multi-app generalisation (S2--S5)}{subsection.5.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{Capture completeness.}{10}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Aligned top-1, multi-app (full F1--F10 scope).}{10}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11}Evidence Precision (M6)}{10}{subsection.5.11}\protected@file@percent }
+\newlabel{sec:precision}{{5.11}{10}{Evidence Precision (M6)}{subsection.5.11}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Threats to validity}{10}{section.6}\protected@file@percent }
+\newlabel{sec:threats}{{6}{10}{Threats to validity}{section.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Internal validity.}{10}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Construct validity.}{10}{section*.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{External validity.}{10}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Baseline comparability.}{10}{section*.53}\protected@file@percent }
 \citation{wilson_score_ci}
 \citation{holm_1979}
 \citation{benjamini_hochberg_1995}
@@ -248,30 +273,27 @@
 \citation{demsar_2006}
 \citation{vargha_delaney_2000}
 \citation{mchugh_kappa_2012}
+\@writefile{toc}{\contentsline {paragraph}{Environment validity.}{11}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Conclusion validity.}{11}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{11}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Future work}{11}{section.7}\protected@file@percent }
+\newlabel{sec:future}{{7}{11}{Future work}{section.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Related work}{11}{section.8}\protected@file@percent }
+\newlabel{sec:related}{{8}{11}{Related work}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Microservice and cloud-incident RCA.}{11}{section*.57}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Preview environments and GitOps.}{11}{section*.58}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Kubernetes diagnostic practitioner tools.}{11}{section*.59}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cluster management and orchestration lineage.}{11}{section*.60}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Observability and tracing.}{11}{section*.61}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Fault injection and chaos engineering.}{11}{section*.62}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{LLM reasoning, tool use, and faithfulness.}{11}{section*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{LLM for software engineering.}{11}{section*.64}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{SE empirical methodology.}{11}{section*.65}\protected@file@percent }
 \citation{lebo_provo_2013}
 \citation{w3c_prov_dm}
 \citation{bass_devops_2015}
 \citation{beyer_sre_2016}
 \citation{forsgren_accelerate_2018}
-\@writefile{toc}{\contentsline {paragraph}{Conclusion validity.}{8}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{8}{section*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Future work}{8}{section.7}\protected@file@percent }
-\newlabel{sec:future}{{7}{8}{Future work}{section.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Related work}{8}{section.8}\protected@file@percent }
-\newlabel{sec:related}{{8}{8}{Related work}{section.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{Microservice and cloud-incident RCA.}{8}{section*.41}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Preview environments and GitOps.}{8}{section*.42}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Kubernetes diagnostic practitioner tools.}{8}{section*.43}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cluster management and orchestration lineage.}{8}{section*.44}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Observability and tracing.}{8}{section*.45}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Fault injection and chaos engineering.}{8}{section*.46}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{LLM reasoning, tool use, and faithfulness.}{8}{section*.47}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{LLM for software engineering.}{8}{section*.48}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{SE empirical methodology.}{8}{section*.49}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Provenance modelling.}{8}{section*.50}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{DevOps and SRE foundations.}{8}{section*.51}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{8}{section.9}\protected@file@percent }
-\newlabel{sec:conclusion}{{9}{8}{Conclusion}{section.9}{}}
 \bibstyle{ACM-Reference-Format}
 \bibdata{bibliography,bibliography-augment}
 \bibcite{arcuri_briand_2014}{{1}{2014}{{Arcuri and Briand}}{{}}}
@@ -291,12 +313,16 @@
 \bibcite{chaos_mesh_cncf}{{15}{2026}{{{Chaos Mesh Authors} and {Cloud Native Computing Foundation}}}{{}}}
 \bibcite{rcacopilot_2024}{{16}{2024}{{Chen et~al\mbox  {.}}}{{}}}
 \bibcite{demsar_2006}{{17}{2006}{{Dem{\v {s}}ar}}{{}}}
+\@writefile{toc}{\contentsline {paragraph}{Provenance modelling.}{12}{section*.66}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{DevOps and SRE foundations.}{12}{section*.67}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{12}{section.9}\protected@file@percent }
+\newlabel{sec:conclusion}{{9}{12}{Conclusion}{section.9}{}}
+\@writefile{toc}{\contentsline {section}{References}{12}{section*.69}\protected@file@percent }
 \bibcite{spell_2016}{{18}{2016}{{Du and Li}}{{}}}
 \bibcite{deeplog_2017}{{19}{2017}{{Du et~al\mbox  {.}}}{{}}}
 \bibcite{es_ragas_2023}{{20}{2023}{{Es et~al\mbox  {.}}}{{}}}
 \bibcite{falco_cncf}{{21}{2026}{{{Falco Authors} and {Cloud Native Computing Foundation}}}{{}}}
 \bibcite{forsgren_accelerate_2018}{{22}{2018}{{Forsgren et~al\mbox  {.}}}{{}}}
-\@writefile{toc}{\contentsline {section}{References}{9}{section*.53}\protected@file@percent }
 \bibcite{friedman1937}{{23}{1937}{{Friedman}}{{}}}
 \bibcite{drain_2017}{{24}{2017}{{He et~al\mbox  {.}}}{{}}}
 \bibcite{mesos_2011}{{25}{2011}{{Hindman et~al\mbox  {.}}}{{}}}
@@ -363,5 +389,5 @@
 \newlabel{tocindent1}{4.625pt}
 \newlabel{tocindent2}{16.4445pt}
 \newlabel{tocindent3}{0pt}
-\newlabel{TotPages}{{12}{12}{}{page.12}{}}
-\gdef \@abspage@last{12}
+\newlabel{TotPages}{{15}{15}{}{page.15}{}}
+\gdef \@abspage@last{15}

@@ -14,16 +14,14 @@
 % (or upload to Overleaf --- figures/, bibliography.bib, and this file
 %  are the only artefacts required).
 
-\documentclass[sigconf, anonymous=false, review=false]{acmart}
+\documentclass[sigconf, nonacm=true, anonymous=false, review=false]{acmart}
 
-%%% ACM-specific metadata. Update for the target venue when ready.
-\acmConference[FSE'26 / ICSE'26]{To Appear}{TBD}{TBD}
-\setcopyright{none}
+%%% Venue metadata is intentionally suppressed (nonacm=true) until the
+%%% target venue is finalised. Re-enable by removing nonacm and setting
+%%% \acmConference / \setcopyright accordingly.
 \copyrightyear{2026}
 \acmYear{2026}
-
-\settopmatter{printacmref=false, printccs=false}
-\renewcommand\footnotetextcopyrightpermission[1]{}
+\settopmatter{printacmref=false, printccs=false, printfolios=true}
 
 %%% Standard packages.
 \usepackage{booktabs}
@@ -101,7 +99,7 @@
   \institution{}
   \country{}
 }
-\email{e7seno@gmail.com}
+\email{ihsen.alaya@outlook.com}
 
 \author{Adel Kouki}
 \affiliation{%
@@ -936,6 +934,39 @@ subject table backing each family is in
 \texttt{analysis-output/31-failure-analysis/failure-analysis.md}.
 We list each family explicitly in \S\ref{sec:future} as a separate
 research direction rather than as a single failure to be patched.
+
+\paragraph{Evidence preservation is necessary but not sufficient
+for automated RCA.} The three families above motivate a key
+re-framing of the artefact's value proposition. When automated
+RCA on the bundle returns a wrong or empty answer (38\,\% of
+cells under rule-grounded, 52\,\% under llm-grounded), the bundle
+itself is not invalidated: the \texttt{ChangedFile},
+\texttt{failingTest}, and upstream \texttt{PodLog} entries on
+which the correct diagnosis depends are all present in the
+captured \texttt{FailureReport} and are reachable from the
+W3C-PROV \texttt{wasInformedBy}/\texttt{used} chain rooted at the
+failing test (\S\ref{sec:approach-graph}). This is the property that
+matters for the use cases the \texttt{FailureReport} CRD was
+designed to serve: post-mortem reconstruction by an on-call
+engineer after the preview namespace has been torn down,
+audit trails for compliance review, and delta-debugging-style
+backward traversal from a failed assertion to the upstream
+cause~\cite{zeller_delta_2002}. SRE practice has long argued
+that the cost of an incident is dominated not by the time to
+detect but by the time to reconstruct what happened across
+ephemeral state~\cite{beyer_sre_2016, forsgren_accelerate_2018,
+bass_devops_2015}; the W3C-PROV
+model~\cite{w3c_prov_dm, lebo_provo_2013} was specifically
+designed to make such reconstructions reproducible and
+machine-traversable. The \emph{evidence-preservation}
+contribution of the operator (RQ1, $500/500$ captures) is
+therefore the load-bearing claim of the paper even where
+automated RCA degrades: the bundle remains a sound substrate
+for human-led forensic analysis on cases the LLM cannot solve
+end-to-end. We do not report a controlled user study quantifying
+this human-side utility — see \S\ref{sec:threats} for the
+explicit limitation and \S\ref{sec:future} for the practitioner
+study proposed as immediate follow-up work.
 
 \subsection{\RQ{3}---Time to diagnosis (MTTD)}
 \label{sec:rq3}
