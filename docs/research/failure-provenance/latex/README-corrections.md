@@ -13,3 +13,12 @@ Main changes:
 - Added threats on baseline comparability and single-cluster environmental validity.
 - Updated future work with symmetric post-teardown baselines and logistic mixed-effects modeling.
 - Rewrote the conclusion to avoid overclaiming RCA performance.
+
+## Layout corrections applied in this pass
+- Fixed the broken baseline-comparability table that overflowed on page 9 by converting it to a two-column `table*` and using controlled `tabularx` column widths.
+- Resized the evidence-ladder tables to avoid overfull columns in ACM two-column layout.
+- Added safer breakable artifact-path formatting for long analysis paths.
+- Replaced raw section-symbol characters with LaTeX `\S` references.
+- Increased `\headheight` to remove the ACM/fancyhdr header warning.
+- Added figure descriptions for ACM accessibility warnings.
+- Recompiled successfully to `article.pdf` and visually checked the repaired page 9.

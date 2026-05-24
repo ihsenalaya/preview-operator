@@ -192,3 +192,48 @@ S1 has B0 (vanilla LLM raw kubectl), B2a (K8sGPT v0.4.21), and B2b
 (Kagent k8s-agent). Multi-app extension is pending; symmetry between S1
 and multi-app baselines is required for the cross-application
 generalisation claim. Tracked as W2 + W3.
+
+---
+
+## 8. Scaling and retention
+
+The evaluation produces approximately **100 `FailureReport`s** across all
+scenarios and repetitions — comfortably within etcd's capacity. The
+evaluated implementation writes every report to etcd and applies
+**no retention policy**: it deliberately keeps every report for the
+duration of the campaign to avoid confounding the runtime measurements
+with archival activity.
+
+**This is not a deployment configuration.** At realistic CI scale the
+in-etcd-only, no-retention design does not hold:
+
+| Quantity | Value |
+|---|---|
+| Typical `FailureReport` size | 10 – 100 kB (`evidenceItems` + provenance graph + diagnosis) |
+| etcd default storage budget | 2 – 8 GB per cluster |
+| Practical in-cluster ceiling | ≈ 10⁴ – 10⁵ reports |
+| LIST performance degradation | well before that ceiling |
+
+**What the article specifies (and does NOT evaluate):**
+the CRD reserves `status.storageRef` for an external object store, the
+lifecycle is specified as four phases (`Captured` → `Persisted` →
+`Archived` → `Expired`), and a dedicated retention controller is
+sketched (see `failure-evidence-model.md §11`). The full two-tier
+deployment and the controller implementation are deployment concerns
+**out of scope** for this evaluation; they are listed as future work in
+`article-outline.md` (and the article LaTeX `§ Future work`).
+
+**Why this does not invalidate the present claims.** RQ1 (preservation)
+is measured on individual reports, not aggregates. RQ2–RQ5 are
+per-report metrics that do not depend on the total number of reports
+in etcd. The scaling limit affects deployability, not the validity of
+the per-report measurements presented here. The honest claim is:
+*"The capture mechanism works; the in-cluster-only storage choice
+caps the deployment scale at ~10⁴ – 10⁵ reports, and the tiered design
+that lifts this cap is specified but not yet implemented."*
+
+**Mitigation in the article.** The scaling limit is acknowledged
+explicitly in the Threats to validity section of the LaTeX article
+(*Scaling and retention* paragraph) and the tiered storage design is
+introduced in §`sec:approach-storage`. Reviewers asking about scale are
+directed to those two locations.

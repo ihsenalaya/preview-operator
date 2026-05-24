@@ -232,3 +232,101 @@ Mapping the model onto PROV gives three concrete benefits for the article:
 3. **Interoperability.** Because the model is PROV-aligned, a `FailureReport` can in
    principle be exported to any PROV-compatible tooling — noted as future work, not
    claimed as implemented.
+
+---
+
+## 11. Storage, lifetime, and retention
+
+`FailureReport` is persisted as a standard Kubernetes object: a **cluster-scoped
+Custom Resource** served by the apiserver and stored in **etcd**. Three deliberate
+consequences follow.
+
+### Survival
+
+Being cluster-scoped, a `FailureReport` is independent of the (namespace-scoped)
+preview namespace — the central mechanism behind RQ1. The artifact carries no
+`ownerReference` back to its `Preview` either, so deleting the `Preview` (for
+example when cleaning up old PRs) does not garbage-collect the report; the audit
+trail outlives both the namespace and the `Preview` CR.
+
+### Access
+
+Reports are retrievable through the standard Kubernetes API:
+
+```bash
+kubectl get failurereports                              # short name: fr
+kubectl get failurereport/<preview>-failure -o yaml     # full bundle + graph
+```
+
+Tools that already read Kubernetes resources (Argo CD, Prometheus, the kagent
+agents, custom dashboards) read `FailureReport`s through the same path — no
+special storage layer is introduced.
+
+### Deterministic naming
+
+The report name is derived from the `Preview` name (`<preview>-failure`), so
+repeated reconciliation creates-or-updates the same object: at most one
+`FailureReport` per `Preview`, no duplicates, no churn (Reconcile Idempotency
+metric, `metrics.md` §11).
+
+### Lifecycle phases
+
+The `status.phase` field tracks the report through four phases:
+
+| Phase | Meaning | Storage |
+|-------|---------|---------|
+| `Captured` | just created by the operator on failure detection | etcd (complete) |
+| `Persisted` | post-teardown survival confirmed | etcd (complete) |
+| `Archived` | bulk moved to external storage; only a stub remains in etcd | etcd (stub) + `status.storageRef` (bulk) |
+| `Expired` | removed from etcd | external storage only, or fully deleted |
+
+### Retention and tiered storage
+
+The implementation evaluated in this article writes every `FailureReport` to etcd
+and applies **no retention** — adequate for the ~100-report evaluation and
+deliberately so to avoid confounding the runtime measurements. **At deployment
+scale this is _not_ sufficient.**
+
+- A typical `FailureReport` ranges **10–100 kB** (evidence items + provenance
+  graph + diagnosis sub-document).
+- etcd's default budget is **2–8 GB** per cluster → practical capacity caps
+  around **10⁴–10⁵ reports**.
+- `kubectl get failurereports` (LIST) performance degrades long before that
+  limit is reached.
+
+The CRD therefore reserves **`status.storageRef`** — a URL pointing to an
+external object store — to enable a **two-tier deployment**:
+
+| Tier | Storage | Holds | Accessed via |
+|------|---------|-------|--------------|
+| **Hot** | etcd (in-cluster) | recent and pinned reports, in full | `kubectl get fr` |
+| **Cold** | object store (S3, Azure Blob, GCS, …) | older bulk; stub remains in etcd | URL in `status.storageRef` |
+
+A **dedicated retention controller** watches `FailureReport` resources with a
+configurable policy. Typical rules:
+
+- *Keep the last K reports per pull request* (e.g. K = 3 or 5).
+- *Archive after N days* (e.g. N = 30).
+- *Expire M days after archive* (e.g. M = 365).
+- *Never expire reports annotated `keep=true`* (escalated incidents).
+- *Per-team policies* (different K/N/M per repository or namespace label).
+
+Kubernetes provides a native TTL mechanism for `Job`
+(`spec.ttlSecondsAfterFinished`) but **not** for custom resources; the retention
+controller is written for `FailureReport` specifically. It drives the
+`Captured` → `Persisted` → `Archived` → `Expired` transitions.
+
+### Status of this design in the article
+
+| Component | Status |
+|---|---|
+| Cluster-scoped CRD + etcd persistence | **implemented and evaluated** |
+| `status.storageRef` field on the CRD | **reserved, unused** in the evaluated implementation |
+| `Captured` / `Persisted` phases | **implemented** |
+| `Archived` / `Expired` phases | **specified, not implemented** |
+| Two-tier deployment (cold storage) | **design only** |
+| Retention controller | **design only** |
+| At-scale operational study | **future work** |
+
+The scaling limit is acknowledged explicitly in `threats-to-validity.md`; the
+full implementation and the operational study are listed as future work.
