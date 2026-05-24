@@ -1032,18 +1032,35 @@ Primary target regime: reusable artifact after namespace deletion. \\
 \end{table}
 
 \paragraph{B0---Vanilla LLM on raw \texttt{kubectl}.} For each rep, we
-synthesise a kubectl-equivalent bundle from the operator-captured
-\fp{} \texttt{evidenceItems} (events + pod logs + job logs only;
-operator-derived \texttt{TestResult} and \texttt{PreviewCondition}
-excluded) and ask \texttt{gpt-4o-mini} for a single-component
-diagnosis with no grounding constraint. On S1 (n=100):
-$0/100$ strict, $4/100$ aligned, $23/100$ category-correct top-1.
-On multi-app pooled (n=200): $43\%$ aligned top-1. This exceeds
-the proposed LLM-grounded diagnoser on the multi-app scope and is therefore
-reported as a negative/qualifying result, not as support for diagnostic
-superiority. It is also an \emph{upper bound} because the input is an
-operator-curated kubectl-equivalent bundle; the comparability threat is
-discussed in \S\ref{sec:threats}.
+synthesise a kubectl-equivalent bundle (events + pod logs + job logs)
+and ask \texttt{gpt-4o-mini} for a single-component diagnosis with no
+grounding constraint. Two B0 variants are reported:
+
+\begin{itemize}
+  \item \textbf{Regime-symmetric (raw \texttt{kubectl} from
+    \texttt{artifacts/})}: the diagnoser sees the \texttt{collect-results.sh}
+    dumps captured live before namespace teardown.
+    On S1 ($n=100$): $0/100$ strict, $\mathbf{4/100}$ aligned, $23/100$
+    category-correct top-1.
+    On multi-app pooled ($n=40$, S2--S5 across \fn{1}/\fn{2}/\fn{3}/\fn{6}/\fn{7}):
+    $0/40$ strict, $\mathbf{3/40 = 7.5\,\%}$ aligned,
+    $19/40 = 47.5\,\%$ category-correct. The multi-app B0 was re-collected
+    after patching \texttt{run-matrix.py} to invoke
+    \texttt{collect-results.sh} before teardown
+    (analysis: \texttt{30-evidence-ladder.py}, \texttt{29-b0-multiapp-fair.py}).
+  \item \textbf{Upper bound (operator-curated kubectl-equivalent)}: the
+    earlier pass fed B0 the operator's \fp{} \texttt{evidenceItems}
+    re-formatted as kubectl text, which retains semantic categorisation
+    the raw dumps do not. On multi-app pooled ($n=200$): $43\,\%$
+    aligned top-1. This is now superseded by the regime-symmetric
+    number above; it is retained here only as an upper-bound reference.
+\end{itemize}
+
+Reading: the regime-symmetric B0 ($7.5\,\%$) confirms that operator-side
+typing and provenance, not raw \texttt{kubectl} volume, drive the
+multi-app accuracy gap. The proposed LLM-grounded diagnoser at $22.4\,\%$
+(§\ref{sec:multi-app}) is $\sim 3\times$ B0 on the same substrate,
+restoring the operator's value proposition on the multi-app scope.
 
 \paragraph{B2a---K8sGPT v0.4.21.} Same input substrate (live
 preview namespace), \texttt{azureopenai} backend, scored with the
