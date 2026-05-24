@@ -36,6 +36,10 @@ import time
 
 import yaml
 
+# Repo root for invoking the kubectl-artifact collector script.
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
+COLLECT_RESULTS_SH = REPO_ROOT / "experiments" / "failure-provenance" / "collect-results.sh"
+
 ROOT = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 from harness import config as hconfig          # noqa: E402  vendored
@@ -153,6 +157,23 @@ def run_unit(subject: dict, subject_idx: int, fault: str, rep: int, cfg: dict,
     with (run_dir / "report.json").open("w") as fh:
         _kubectl("get", "failurereport", f"{name}-failure", "-o", "json", stdout=fh)
     row["status"] = "captured"
+
+    # 4.5 collect raw kubectl artefacts BEFORE teardown (Option-A reviewer
+    # fairness fix). Powers the fair B0 multi-app baseline (script
+    # `analysis/29-b0-multiapp-fair.py`), which needs raw events/pods/logs
+    # rather than the operator-curated evidenceItems.
+    art_dir = run_dir / "artifacts"
+    art_dir.mkdir(exist_ok=True)
+    if COLLECT_RESULTS_SH.is_file():
+        try:
+            subprocess.run(
+                [str(COLLECT_RESULTS_SH),
+                 "--preview", name,
+                 "--output-dir", str(art_dir)],
+                timeout=180, check=False, capture_output=True,
+            )
+        except subprocess.TimeoutExpired:
+            pass  # best-effort; teardown still proceeds
 
     # 5. teardown
     pf.delete(name, pf.runtime_namespace(pr_number), wait=False)
