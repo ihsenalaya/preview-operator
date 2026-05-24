@@ -1,0 +1,39 @@
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:           top1_aligned   No. Observations:                 1500
+Model:                            GLM   Df Residuals:                     1476
+Model Family:                Binomial   Df Model:                           23
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -438.33
+Date:                Sun, 24 May 2026   Deviance:                       876.67
+Time:                        02:17:58   Pearson chi2:                 1.12e+03
+No. Iterations:                    25   Pseudo R-squ. (CS):             0.4869
+Covariance Type:            nonrobust                                         
+=====================================================================================================================
+                                                        coef    std err          z      P>|z|      [0.025      0.975]
+---------------------------------------------------------------------------------------------------------------------
+Intercept                                             1.4019      0.462      3.037      0.002       0.497       2.307
+C(configuration)[T.C2]                               -0.4882      0.573     -0.852      0.394      -1.612       0.636
+C(configuration)[T.C3]                                1.0483      0.495      2.117      0.034       0.078       2.019
+C(configuration)[T.C4]                                2.1185      0.479      4.420      0.000       1.179       3.058
+C(configuration)[T.C5]                                1.8884      0.480      3.935      0.000       0.948       2.829
+C(engine)[T.llm-grounded]                          1.105e-14      0.543   2.03e-14      1.000      -1.064       1.064
+C(engine)[T.rule-grounded]                           -0.6737      0.586     -1.150      0.250      -1.822       0.474
+C(scenario_id)[T.F10]                               -30.4425   2.51e+04     -0.001      0.999   -4.92e+04    4.92e+04
+C(scenario_id)[T.F2]                                 -3.4536      0.384     -8.998      0.000      -4.206      -2.701
+C(scenario_id)[T.F3]                                 -4.6086      0.406    -11.360      0.000      -5.404      -3.813
+C(scenario_id)[T.F4]                                 -3.4100      0.383     -8.901      0.000      -4.161      -2.659
+C(scenario_id)[T.F5]                                -30.4425   2.51e+04     -0.001      0.999   -4.92e+04    4.92e+04
+C(scenario_id)[T.F6]                                 -3.3665      0.382     -8.803      0.000      -4.116      -2.617
+C(scenario_id)[T.F7]                                 -5.3185      0.426    -12.495      0.000      -6.153      -4.484
+C(scenario_id)[T.F8]                                 -2.8923      0.376     -7.702      0.000      -3.628      -2.156
+C(scenario_id)[T.F9]                                -30.4425   2.51e+04     -0.001      0.999   -4.92e+04    4.92e+04
+C(configuration)[T.C2]:C(engine)[T.llm-grounded]      0.6312      0.785      0.804      0.421      -0.907       2.169
+C(configuration)[T.C3]:C(engine)[T.llm-grounded]      1.0702      0.683      1.567      0.117      -0.269       2.409
+C(configuration)[T.C4]:C(engine)[T.llm-grounded]      0.6151      0.671      0.916      0.359      -0.701       1.931
+C(configuration)[T.C5]:C(engine)[T.llm-grounded]      1.1708      0.677      1.730      0.084      -0.156       2.497
+C(configuration)[T.C2]:C(engine)[T.rule-grounded]     1.9095      0.805      2.372      0.018       0.332       3.487
+C(configuration)[T.C3]:C(engine)[T.rule-grounded]     3.6615      0.754      4.859      0.000       2.185       5.138
+C(configuration)[T.C4]:C(engine)[T.rule-grounded]     2.5913      0.737      3.515      0.000       1.146       4.036
+C(configuration)[T.C5]:C(engine)[T.rule-grounded]     2.8214      0.739      3.818      0.000       1.373       4.270
+=====================================================================================================================

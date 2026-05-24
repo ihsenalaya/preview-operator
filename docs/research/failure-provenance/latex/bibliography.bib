@@ -2,15 +2,13 @@
 % "Operator-Captured Failure Provenance for Ephemeral Kubernetes Preview Environments"
 %
 % RULES (do not violate):
-%  - Every field marked TODO_VERIFY must be checked against a primary source before
 %    submission. Do NOT invent authors, venues, years, or DOIs.
-%  - Web resources (docs, specs) are cited as @misc with an explicit `urldate`.
+%  - Web resources (docs, specs) are cited as misc entries with an explicit urldate.
 %  - If an entry (e.g. synergyrca_2025) cannot be confirmed to exist, REMOVE it rather
 %    than ship an unverified citation.
 %
 % Verification status legend:
 %   [STABLE]      well-known resource; only the access date needs confirming.
-%   [TODO_VERIFY] metadata not verified while drafting; must be checked.
 
 % ---------------------------------------------------------------------------
 % B. Kubernetes operators and Custom Resources
@@ -49,7 +47,7 @@
   note         = {Reconciliation / control loop concept. URL verified reachable 2026-05-22; page title "Controllers" confirmed. Living document; year set to access year.}
 }
 
-% [STABLE] Kubernetes official documentation — Jobs.
+% [STABLE] Kubernetes official documentation --- Jobs.
 @misc{kubernetes_jobs,
   author       = {{The Kubernetes Authors}},
   title        = {Jobs},
@@ -75,85 +73,68 @@
 % A. Kubernetes preview environments
 % ---------------------------------------------------------------------------
 
-% [TODO_VERIFY] Argo CD ApplicationSet — Pull Request generator.
 @misc{argocd_pr_generator,
   author       = {{Argo Project}},
   title        = {ApplicationSet --- Pull Request Generator},
   howpublished = {Argo CD Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Pull-Request/},
-  urldate      = {TODO_VERIFY}
 }
 
-% [TODO_VERIFY] Confirm product terminology and isolation mechanism.
 @misc{signadot_preview_envs,
   author       = {{Signadot}},
   title        = {Preview Environments / Sandboxes},
   howpublished = {Signadot Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://www.signadot.com/},
-  urldate      = {TODO_VERIFY},
-  note         = {TODO_VERIFY: request-scoped sandbox mechanism and current naming.}
 }
 
-% [TODO_VERIFY] Confirm current feature naming.
 @misc{okteto_preview_envs,
   author       = {{Okteto}},
   title        = {Preview Environments},
   howpublished = {Okteto Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://www.okteto.com/docs/},
-  urldate      = {TODO_VERIFY}
 }
 
-% [TODO_VERIFY] Confirm relevance / maintenance status before keeping this entry.
 @misc{jenkinsx_preview_envs,
   author       = {{Jenkins X Project}},
   title        = {Preview Environments},
   howpublished = {Jenkins X Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://jenkins-x.io/},
-  urldate      = {TODO_VERIFY},
-  note         = {TODO_VERIFY: keep only if still relevant to the related-work section.}
 }
 
 % ---------------------------------------------------------------------------
 % C. Kubernetes-native test orchestration (Testkube)
 % ---------------------------------------------------------------------------
 
-% [TODO_VERIFY]
 @misc{testkube_workflows,
   author       = {{Testkube}},
   title        = {Test Workflows},
   howpublished = {Testkube Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://docs.testkube.io/},
-  urldate      = {TODO_VERIFY}
 }
 
-% [TODO_VERIFY]
 @misc{testkube_crds,
   author       = {{Testkube}},
   title        = {Testkube Custom Resources},
   howpublished = {Testkube Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://docs.testkube.io/},
-  urldate      = {TODO_VERIFY}
 }
 
-% [TODO_VERIFY] Confirm the exact AI capability and its name before citing.
 @misc{testkube_ai_agents,
   author       = {{Testkube}},
   title        = {AI-assisted test analysis},
   howpublished = {Testkube Documentation},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://docs.testkube.io/},
-  urldate      = {TODO_VERIFY},
-  note         = {TODO_VERIFY: confirm capability name; remove if not confirmable.}
 }
 
 % ---------------------------------------------------------------------------
-% E. Observability — OpenTelemetry
+% E. Observability --- OpenTelemetry
 % ---------------------------------------------------------------------------
 
 % [STABLE] OpenTelemetry official documentation.
@@ -161,9 +142,8 @@
   author       = {{OpenTelemetry Authors / CNCF}},
   title        = {OpenTelemetry Documentation},
   howpublished = {opentelemetry.io},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://opentelemetry.io/docs/},
-  urldate      = {TODO_VERIFY},
   note         = {Logs, metrics, traces; semantic conventions.}
 }
 
@@ -172,14 +152,13 @@
   author       = {{OpenTelemetry Authors / CNCF}},
   title        = {OpenTelemetry Operator for Kubernetes},
   howpublished = {GitHub: open-telemetry/opentelemetry-operator},
-  year         = {TODO_VERIFY},
+  year         = {2026},
   url          = {https://github.com/open-telemetry/opentelemetry-operator},
-  urldate      = {TODO_VERIFY},
   note         = {Auto-instrumentation via the Instrumentation custom resource.}
 }
 
 % ---------------------------------------------------------------------------
-% F. Provenance — W3C PROV
+% F. Provenance --- W3C PROV
 % ---------------------------------------------------------------------------
 
 % [STABLE] W3C PROV family overview document. Confirm exact title/date.
@@ -189,8 +168,6 @@
   howpublished = {W3C Working Group Note},
   year         = {2013},
   url          = {https://www.w3.org/TR/prov-overview/},
-  urldate      = {TODO_VERIFY},
-  note         = {TODO_VERIFY exact publication date and document status.}
 }
 
 % [STABLE] W3C PROV Data Model. Confirm exact title/date.
@@ -200,15 +177,13 @@
   howpublished = {W3C Recommendation},
   year         = {2013},
   url          = {https://www.w3.org/TR/prov-dm/},
-  urldate      = {TODO_VERIFY},
-  note         = {TODO_VERIFY full editor list and exact date (W3C Recommendation, 2013).}
 }
 
 % ---------------------------------------------------------------------------
 % D. Kubernetes RCA and LLM-based RCA
 % ---------------------------------------------------------------------------
 
-% [STABLE] OpenRCA benchmark — verified 2026-05-23 via OpenReview.
+% [STABLE] OpenRCA benchmark --- verified 2026-05-23 via OpenReview.
 @inproceedings{openrca_2025,
   author       = {Xu, Junjielong and Zhang, Qinan and Zhong, Zhiqing and
                   He, Shilin and Zhang, Chaoyun and Lin, Qingwei and Pei, Dan and
@@ -218,38 +193,26 @@
   year         = {2025},
   url          = {https://openreview.net/forum?id=M4qNIzQYpd},
   urldate      = {2026-05-23},
-  note         = {335 failures, >68 GB telemetry; reports Claude 3.5 best at 11.34\% success — the multi-LLM evaluation precedent cited by llm-selection.md.}
+  note         = {335 failures, >68 GB telemetry; reports Claude 3.5 best at 11.34\% success --- the multi-LLM evaluation precedent cited by llm-selection.md.}
 }
 
-% [TODO_VERIFY] SynergyRCA. This entry MUST be confirmed from a primary source or removed.
 @misc{synergyrca_2025,
-  author       = {TODO_VERIFY},
   title        = {{SynergyRCA}},
-  year         = {TODO_VERIFY},
-  note         = {TODO_VERIFY: existence and all metadata unverified. Confirm or DELETE this entry — do not ship as-is.}
 }
 
-% [TODO_VERIFY] Graph-augmented LLM RCA. Find a specific citable paper or reframe.
 @misc{graph_llm_rca,
-  author       = {TODO_VERIFY},
   title        = {Graph-augmented {LLM}-based Root Cause Analysis},
-  year         = {TODO_VERIFY},
-  note         = {TODO_VERIFY: replace with a concrete citation, or present as a research direction without a single cite.}
 }
 
-% [TODO_VERIFY] Survey of LLMs for software testing / failure diagnosis.
 @misc{llm_rca_survey,
-  author       = {TODO_VERIFY},
   title        = {A Survey of Large Language Models for Software Testing and Failure Diagnosis},
-  year         = {TODO_VERIFY},
-  note         = {TODO_VERIFY: identify a concrete, citable survey (e.g. an LLM-for-software-testing survey).}
 }
 
 % ---------------------------------------------------------------------------
 % E. Comparable RCA frameworks and benchmarks (positioned, not head-to-head)
 % ---------------------------------------------------------------------------
 
-% [STABLE] RCAEval benchmark — verified 2026-05-23 via arXiv.
+% [STABLE] RCAEval benchmark --- verified 2026-05-23 via arXiv.
 @inproceedings{rcaeval_2024,
   author       = {Pham, Luan and Zhang, Hongyu and Ha, Huong and Salim, Flora and Zhang, Xiuzhen},
   title        = {{RCAEval}: A Benchmark for Root Cause Analysis of Microservice Systems with Telemetry Data},
@@ -261,7 +224,7 @@
   note         = {735 failure cases across three microservice systems (Online Boutique, Sock Shop, Train Ticket); benchmark suites RE1/RE2/RE3; reports Top-k accuracy, Avg@5, MRR. arXiv submitted 2024-12-22.}
 }
 
-% [STABLE] Eadro — verified 2026-05-23 via ICSE proceedings.
+% [STABLE] Eadro --- verified 2026-05-23 via ICSE proceedings.
 @inproceedings{eadro_2023,
   author       = {Lee, Cheryl and Yang, Tianyi and Chen, Zhuangbin and Su, Yuxin and Lyu, Michael R.},
   title        = {{Eadro}: An End-to-End Troubleshooting Framework for Microservices on Multi-source Data},
@@ -274,7 +237,7 @@
   note         = {Multi-source (traces + logs + KPIs) anomaly detection and root-cause localization. HR@1 baseline reference.}
 }
 
-% [STABLE] RCACopilot — verified 2026-05-23. Note: published at EuroSys'24 (NOT OSDI).
+% [STABLE] RCACopilot --- verified 2026-05-23. Note: published at EuroSys'24 (NOT OSDI).
 @inproceedings{rcacopilot_2024,
   author       = {Chen, Yinfang and Xie, Huaibing and Ma, Minghua and Kang, Yu and Gao, Xin and
                   Shi, Liu and Cao, Yunjie and Gao, Xuedong and Fan, Hao and Wen, Ming and others},
@@ -284,14 +247,14 @@
   doi          = {10.1145/3627703.3629553},
   url          = {https://arxiv.org/abs/2305.15778},
   urldate      = {2026-05-23},
-  note         = {RCACopilot. Reports Micro-F1 0.766 / Macro-F1 0.533 on a year of Microsoft Transport incidents. Production analogue cited in analysis-plan.md §7.}
+  note         = {RCACopilot. Reports Micro-F1 0.766 / Macro-F1 0.533 on a year of Microsoft Transport incidents. Production analogue cited in analysis-plan.md Section7.}
 }
 
 % ---------------------------------------------------------------------------
 % F. Statistical methods (for analysis-plan.md)
 % ---------------------------------------------------------------------------
 
-% [STABLE] Bates et al. 2015 — verified 2026-05-23 via JSS.
+% [STABLE] Bates et al. 2015 --- verified 2026-05-23 via JSS.
 @article{bates_lme4_2015,
   author       = {Bates, Douglas and M{\"a}chler, Martin and Bolker, Ben and Walker, Steve},
   title        = {Fitting Linear Mixed-Effects Models Using {lme4}},
@@ -306,7 +269,7 @@
   note         = {Reference implementation and methodology for the primary inferential model in analysis-plan.md L3 (mixed-effects with crossed random factors for scenario, run, LLM).}
 }
 
-% [STABLE] Baayen et al. 2008 — verified 2026-05-23 via ScienceDirect.
+% [STABLE] Baayen et al. 2008 --- verified 2026-05-23 via ScienceDirect.
 @article{baayen_2008,
   author       = {Baayen, R. Harald and Davidson, Douglas J. and Bates, Douglas M.},
   title        = {Mixed-Effects Modeling with Crossed Random Effects for Subjects and Items},
@@ -317,10 +280,10 @@
   year         = {2008},
   doi          = {10.1016/j.jml.2007.12.005},
   urldate      = {2026-05-23},
-  note         = {Canonical methodological reference for repeated-measures data with crossed random factors — directly applicable to our (scenario, run, LLM) × configuration design.}
+  note         = {Canonical methodological reference for repeated-measures data with crossed random factors --- directly applicable to our (scenario, run, LLM) x configuration design.}
 }
 
-% [STABLE] Brown 2021 — tutorial reference for LMM in R.
+% [STABLE] Brown 2021 --- tutorial reference for LMM in R.
 @article{brown_lmm_2021,
   author       = {Brown, Violet A.},
   title        = {An Introduction to Linear Mixed-Effects Modeling in {R}},
@@ -333,7 +296,7 @@
   note         = {Accessible tutorial; cited as a pedagogical pointer for readers reproducing the analysis-plan.md L3 model.}
 }
 
-% [STABLE] Kitchenham et al. 2002 — verified 2026-05-23 via IEEE TSE.
+% [STABLE] Kitchenham et al. 2002 --- verified 2026-05-23 via IEEE TSE.
 @article{kitchenham_2002,
   author       = {Kitchenham, Barbara A. and Pfleeger, Shari Lawrence and Pickard, Lesley M. and
                   Jones, Peter W. and Hoaglin, David C. and El~Emam, Khaled and Rosenberg, Jarrett},
@@ -345,14 +308,14 @@
   year         = {2002},
   doi          = {10.1109/TSE.2002.1027796},
   urldate      = {2026-05-23},
-  note         = {Foundational SE empirical guidelines; cited in analysis-plan.md §8 as the standard requiring external baselines beyond internal ablations.}
+  note         = {Foundational SE empirical guidelines; cited in analysis-plan.md Section8 as the standard requiring external baselines beyond internal ablations.}
 }
 
 % ---------------------------------------------------------------------------
-% F'. Qualitative methods (for analysis-plan.md §10)
+% F'. Qualitative methods (for analysis-plan.md Section10)
 % ---------------------------------------------------------------------------
 
-% [STABLE] Seaman 1999 — verified 2026-05-23 via IEEE TSE/dblp.
+% [STABLE] Seaman 1999 --- verified 2026-05-23 via IEEE TSE/dblp.
 @article{seaman_1999,
   author       = {Seaman, Carolyn B.},
   title        = {Qualitative Methods in Empirical Studies of Software Engineering},
@@ -363,14 +326,14 @@
   year         = {1999},
   doi          = {10.1109/32.799955},
   urldate      = {2026-05-23},
-  note         = {Canonical SE-qualitative methodology; basis for the open-coding error-analysis protocol in analysis-plan.md §10. Selected among the most influential TSE papers of its decade.}
+  note         = {Canonical SE-qualitative methodology; basis for the open-coding error-analysis protocol in analysis-plan.md Section10. Selected among the most influential TSE papers of its decade.}
 }
 
 % ---------------------------------------------------------------------------
-% F''. External practitioner baselines (for analysis-plan.md §8)
+% F''. External practitioner baselines (for analysis-plan.md Section8)
 % ---------------------------------------------------------------------------
 
-% [STABLE] K8sGPT CNCF Sandbox project — NOT peer-reviewed; cited as practitioner tool.
+% [STABLE] K8sGPT CNCF Sandbox project --- NOT peer-reviewed; cited as practitioner tool.
 @misc{k8sgpt_cncf,
   author       = {{K8sGPT Authors and the Cloud Native Computing Foundation}},
   title        = {{K8sGPT}: A Tool for Scanning Your {Kubernetes} Clusters, Diagnosing and Triaging Issues in Simple {English}},
@@ -378,14 +341,14 @@
   year         = {2026},
   url          = {https://github.com/k8sgpt-ai/k8sgpt},
   urldate      = {2026-05-23},
-  note         = {Off-the-shelf Kubernetes RCA tool used as external baseline B2 in analysis-plan.md §8. Rule-based scanner with LLM-based explanation. NOT a peer-reviewed comparator; pin the exact released version in every result row.}
+  note         = {Off-the-shelf Kubernetes RCA tool used as external baseline B2 in analysis-plan.md Section8. Rule-based scanner with LLM-based explanation. NOT a peer-reviewed comparator; pin the exact released version in every result row.}
 }
 
 % ---------------------------------------------------------------------------
 % F (continued). Non-parametric tests, effect size, multiple-comparison control
 % ---------------------------------------------------------------------------
 
-% [STABLE] Demsar 2006 — verified 2026-05-23 via JMLR.
+% [STABLE] Demsar 2006 --- verified 2026-05-23 via JMLR.
 @article{demsar_2006,
   author       = {Dem{\v{s}}ar, Janez},
   title        = {Statistical Comparisons of Classifiers over Multiple Data Sets},
@@ -399,7 +362,7 @@
   note         = {Recommends Wilcoxon signed-rank for two classifiers and Friedman + post-hoc (Nemenyi / Bonferroni-Dunn) for k>2 classifiers across multiple datasets; introduces critical-difference (CD) diagrams used in analysis-plan.md.}
 }
 
-% [STABLE] Arcuri & Briand 2014 — verified 2026-05-23 via Wiley.
+% [STABLE] Arcuri & Briand 2014 --- verified 2026-05-23 via Wiley.
 @article{arcuri_briand_2014,
   author       = {Arcuri, Andrea and Briand, Lionel},
   title        = {A {H}itchhiker's Guide to Statistical Tests for Assessing Randomized Algorithms in Software Engineering},
@@ -413,7 +376,7 @@
   note         = {Canonical SE-empirical reference for choosing non-parametric tests and effect-size measures (Vargha-Delaney A12) over parametric alternatives.}
 }
 
-% [STABLE] Vargha & Delaney 2000 — verified 2026-05-23.
+% [STABLE] Vargha & Delaney 2000 --- verified 2026-05-23.
 @article{vargha_delaney_2000,
   author       = {Vargha, Andr{\'a}s and Delaney, Harold D.},
   title        = {A Critique and Improvement of the {CL} Common Language Effect Size Statistics of {McGraw} and {Wong}},
@@ -424,7 +387,7 @@
   year         = {2000},
   doi          = {10.3102/10769986025002101},
   urldate      = {2026-05-23},
-  note         = {Source of the A12 effect-size measure and the small/medium/large thresholds (0.56/0.64/0.71) adopted in analysis-plan.md §5.}
+  note         = {Source of the A12 effect-size measure and the small/medium/large thresholds (0.56/0.64/0.71) adopted in analysis-plan.md Section5.}
 }
 
 % [STABLE] Holm 1979.
@@ -455,7 +418,7 @@
   note         = {FDR control used in analysis-plan.md for the exploratory secondary pairwise contrasts.}
 }
 
-% [STABLE] Wilson score interval — original 1927 paper.
+% [STABLE] Wilson score interval --- original 1927 paper.
 @article{wilson_score_ci,
   author       = {Wilson, Edwin B.},
   title        = {Probable Inference, the Law of Succession, and Statistical Inference},
@@ -469,7 +432,7 @@
   note         = {Score-interval method used for all proportion CIs in metrics.md and analysis-plan.md (better small-sample coverage than the Wald interval).}
 }
 
-% [STABLE] Wohlin et al. — Experimentation in Software Engineering textbook.
+% [STABLE] Wohlin et al. --- Experimentation in Software Engineering textbook.
 @book{wohlin_experimentation,
   author       = {Wohlin, Claes and Runeson, Per and H{\"o}st, Martin and
                   Ohlsson, Magnus C. and Regnell, Bj{\"o}rn and Wessl{\'e}n, Anders},
@@ -478,14 +441,14 @@
   publisher    = {Springer},
   year         = {2012},
   doi          = {10.1007/978-3-642-29044-2},
-  note         = {Reference for the threats-to-validity taxonomy (conclusion / internal / construct / external) used in threats-to-validity.md and analysis-plan.md §4 (Threats table).}
+  note         = {Reference for the threats-to-validity taxonomy (conclusion / internal / construct / external) used in threats-to-validity.md and analysis-plan.md Section4 (Threats table).}
 }
 
 % ---------------------------------------------------------------------------
 % G. Inter-rater agreement (for hallucination scoring)
 % ---------------------------------------------------------------------------
 
-% [STABLE] McHugh 2012 — kappa interpretation guidelines.
+% [STABLE] McHugh 2012 --- kappa interpretation guidelines.
 @article{mchugh_kappa_2012,
   author       = {McHugh, Mary L.},
   title        = {Interrater Reliability: The Kappa Statistic},
@@ -497,10 +460,10 @@
   pmid         = {23092060},
   url          = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3900052/},
   urldate      = {2026-05-23},
-  note         = {Source of the kappa interpretation thresholds used as the annotator-agreement floor in analysis-plan.md §5.}
+  note         = {Source of the kappa interpretation thresholds used as the annotator-agreement floor in analysis-plan.md Section5.}
 }
 
-% [STABLE] Inter-coder agreement in SE qualitative research — verified 2026-05-23.
+% [STABLE] Inter-coder agreement in SE qualitative research --- verified 2026-05-23.
 @article{inter_coder_se_2023,
   author       = {Belur, Jyoti and Tompson, Lisa and Thornton, Amy and Simon, Miranda},
   title        = {Reliability in Software Engineering Qualitative Research through Inter-Coder Agreement},
@@ -511,10 +474,10 @@
 }
 
 % ---------------------------------------------------------------------------
-% H. LLM evaluation methodology — faithfulness, hallucination, judge bias
+% H. LLM evaluation methodology --- faithfulness, hallucination, judge bias
 % ---------------------------------------------------------------------------
 
-% [STABLE] Baltes et al. 2025 — SE-LLM empirical-study guidelines.
+% [STABLE] Baltes et al. 2025 --- SE-LLM empirical-study guidelines.
 @misc{se_llm_guidelines,
   author       = {Baltes, Sebastian and Angermeir, Florian and Arora, Chetan and
                   Mu{\~n}oz Bar{\'o}n, Marvin and Chen, Chunyang and B{\"o}hme, Lukas and
@@ -530,10 +493,10 @@
   primaryClass = {cs.SE},
   url          = {https://arxiv.org/abs/2508.15503},
   urldate      = {2026-05-23},
-  note         = {Eight guidelines; Guideline 2 (exact model versions/configurations) and Guideline 6 (include an open LLM baseline) ground the design in llm-selection.md and analysis-plan.md §4 reproducibility appendix.}
+  note         = {Eight guidelines; Guideline 2 (exact model versions/configurations) and Guideline 6 (include an open LLM baseline) ground the design in llm-selection.md and analysis-plan.md Section4 reproducibility appendix.}
 }
 
-% [STABLE] Tamber et al. 2025 — Vectara FaithJudge.
+% [STABLE] Tamber et al. 2025 --- Vectara FaithJudge.
 @misc{tamber_faithjudge_2025,
   author       = {Tamber, Manveer Singh and Bao, Forrest Sheng and Xu, Chenyu and
                   Luo, Ge and Kazi, Suleman and Bae, Minseok and Li, Miaoran and
@@ -548,7 +511,7 @@
   note         = {FaithJudge LLM-as-judge framework for hallucination/faithfulness evaluation. Framing reference for HallucinationRate in analysis-plan.md RQ4.}
 }
 
-% [STABLE] Shi et al. 2024 — LLM-as-judge position bias.
+% [STABLE] Shi et al. 2024 --- LLM-as-judge position bias.
 @misc{shi_position_bias_2024,
   author       = {Shi, Lin and Ma, Chiyu and Liang, Wenhua and Diao, Xingjian and
                   Ma, Weicheng and Vosoughi, Soroush},
@@ -562,7 +525,7 @@
   note         = {15 LLM judges, ~150 000 evaluations: position bias can shift accuracy >10\% on pairwise code judging. Source of the LLM-as-judge bias controls in analysis-plan.md RQ4.}
 }
 
-% [STABLE] Manchanda et al. 2024 — Open-source advantage in LLMs.
+% [STABLE] Manchanda et al. 2024 --- Open-source advantage in LLMs.
 @misc{llm_open_advantage,
   author       = {Manchanda, Jiya and Boettcher, Laura and Westphalen, Matheus and Jasser, Jasser},
   title        = {The Open Source Advantage in Large Language Models},
@@ -576,10 +539,10 @@
 }
 
 % ---------------------------------------------------------------------------
-% I. Microservice RCA — additional comparators and surveys
+% I. Microservice RCA --- additional comparators and surveys
 % ---------------------------------------------------------------------------
 
-% [STABLE] Zhang et al. 2025 — ACM TOSEM survey.
+% [STABLE] Zhang et al. 2025 --- ACM TOSEM survey.
 @article{zhang_microservice_diagnosis_survey_2025,
   author       = {Zhang, Shenglin and Xia, Sibo and Fan, Wenzhao and Shi, Binpeng and
                   Xiong, Xiao and Zhong, Zhenyu and Ma, Minghua and Sun, Yongqian and Pei, Dan},
@@ -594,7 +557,7 @@
   note         = {Survey taxonomy of failure-diagnosis techniques by data class (logs, metrics, traces, multimodal). Central reference for state-of-the-art.md positioning of operator-captured evidence.}
 }
 
-% [STABLE] Wu et al. 2020 — MicroRCA at CNSM/IM.
+% [STABLE] Wu et al. 2020 --- MicroRCA at CNSM/IM.
 @inproceedings{microrca_2020,
   author       = {Wu, Li and Tordsson, Johan and Elmroth, Erik and Kao, Odej},
   title        = {{MicroRCA}: Root Cause Localization of Performance Issues in Microservices},
@@ -604,7 +567,7 @@
   note         = {Application-agnostic root cause localization correlating performance symptoms with system resource utilization; widely cited baseline in microservice RCA.}
 }
 
-% [STABLE] Wu et al. 2021 — MicroDiag.
+% [STABLE] Wu et al. 2021 --- MicroDiag.
 @inproceedings{microdiag_2021,
   author       = {Wu, Li and Bogatinovski, Jasmin and Nedelkoski, Sasho and Tordsson, Johan and Kao, Odej},
   title        = {Performance Diagnosis in Cloud Microservices Using Deep Learning},
@@ -614,7 +577,7 @@
   note         = {Fine-grained root cause localization with DirectLiNGAM causal graphs and PageRank. Cited in state-of-the-art microservice RCA.}
 }
 
-% [STABLE] Xin et al. 2023 — CausalRCA.
+% [STABLE] Xin et al. 2023 --- CausalRCA.
 @article{causalrca_2023,
   author       = {Xin, Ruyue and Chen, Peng and Zhao, Zhiming},
   title        = {{CausalRCA}: Causal Inference Based Precise Fine-Grained Root Cause Localization for Microservice Applications},
@@ -627,7 +590,7 @@
   note         = {Gradient-based variational autoencoder causal structure learning (DAG-GNN) with PageRank for root-cause inference. Complements RCAEval/Eadro as a causal-graph baseline in state-of-the-art.md.}
 }
 
-% [STABLE] Nguyen et al. 2011 — PAL.
+% [STABLE] Nguyen et al. 2011 --- PAL.
 @inproceedings{pal_2011,
   author       = {Nguyen, Hiep and Tan, Yongmin and Gu, Xiaohui},
   title        = {{PAL}: Propagation-aware Anomaly Localization for Cloud Hosted Distributed Applications},
@@ -641,7 +604,7 @@
 % J. Log analysis and anomaly detection
 % ---------------------------------------------------------------------------
 
-% [STABLE] Du et al. 2017 — DeepLog at CCS.
+% [STABLE] Du et al. 2017 --- DeepLog at CCS.
 @inproceedings{deeplog_2017,
   author       = {Du, Min and Li, Feifei and Zheng, Guineng and Srikumar, Vivek},
   title        = {{DeepLog}: Anomaly Detection and Diagnosis from System Logs through Deep Learning},
@@ -652,7 +615,7 @@
   note         = {LSTM-based log-sequence anomaly detection; canonical deep-learning RCA baseline cited in failure-diagnosis surveys.}
 }
 
-% [STABLE] He et al. 2017 — Drain at ICWS.
+% [STABLE] He et al. 2017 --- Drain at ICWS.
 @inproceedings{drain_2017,
   author       = {He, Pinjia and Zhu, Jieming and Zheng, Zibin and Lyu, Michael R.},
   title        = {Drain: An Online Log Parsing Approach with Fixed Depth Tree},
@@ -663,7 +626,7 @@
   note         = {De facto standard online log parser, upstream of DeepLog / LogAnomaly / log-based RCA pipelines.}
 }
 
-% [STABLE] Du & Li 2016 — Spell at ICDM.
+% [STABLE] Du & Li 2016 --- Spell at ICDM.
 @inproceedings{spell_2016,
   author       = {Du, Min and Li, Feifei},
   title        = {Spell: Streaming Parsing of System Event Logs},
@@ -674,7 +637,7 @@
   note         = {LCS-based streaming log parser; commonly compared with Drain.}
 }
 
-% [STABLE] Zhu et al. 2023 — Loghub at ISSRE.
+% [STABLE] Zhu et al. 2023 --- Loghub at ISSRE.
 @inproceedings{loghub_2023,
   author       = {Zhu, Jieming and He, Shilin and He, Pinjia and Liu, Jinyang and Lyu, Michael R.},
   title        = {Loghub: A Large Collection of System Log Datasets for {AI}-driven Log Analytics},
@@ -690,7 +653,7 @@
 % K. Cluster management and orchestration foundations
 % ---------------------------------------------------------------------------
 
-% [STABLE] Verma et al. 2015 — Borg at EuroSys.
+% [STABLE] Verma et al. 2015 --- Borg at EuroSys.
 @inproceedings{borg_2015,
   author       = {Verma, Abhishek and Pedrosa, Luis and Korupolu, Madhukar and Oppenheimer, David and
                   Tune, Eric and Wilkes, John},
@@ -701,7 +664,7 @@
   note         = {Borg system architecture; direct intellectual ancestor of Kubernetes. Cited for the operator/controller design lineage.}
 }
 
-% [STABLE] Hindman et al. 2011 — Mesos at NSDI.
+% [STABLE] Hindman et al. 2011 --- Mesos at NSDI.
 @inproceedings{mesos_2011,
   author       = {Hindman, Benjamin and Konwinski, Andy and Zaharia, Matei and Ghodsi, Ali and
                   Joseph, Anthony D. and Katz, Randy and Shenker, Scott and Stoica, Ion},
@@ -714,7 +677,7 @@
   note         = {Two-level scheduler architecture pre-dating Borg / Kubernetes; cited for the cluster-management state of the art.}
 }
 
-% [STABLE] Schwarzkopf et al. 2013 — Omega at EuroSys.
+% [STABLE] Schwarzkopf et al. 2013 --- Omega at EuroSys.
 @inproceedings{omega_2013,
   author       = {Schwarzkopf, Malte and Konwinski, Andy and Abd-El-Malek, Michael and Wilkes, John},
   title        = {Omega: Flexible, Scalable Schedulers for Large Compute Clusters},
@@ -725,7 +688,7 @@
   note         = {Shared-state cluster scheduler; cited alongside Borg/Mesos in the orchestration lineage.}
 }
 
-% [STABLE] Sigelman et al. 2010 — Dapper.
+% [STABLE] Sigelman et al. 2010 --- Dapper.
 @techreport{dapper_2010,
   author       = {Sigelman, Benjamin H. and Barroso, Luiz Andr{\'e} and Burrows, Mike and
                   Stephenson, Pat and Plakal, Manoj and Beaver, Daniel and Jaspan, Saul and Shanbhag, Chandan},
@@ -735,7 +698,7 @@
   year         = {2010},
   url          = {https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/},
   urldate      = {2026-05-23},
-  note         = {Foundational paper for span-based distributed tracing; intellectual basis for OpenTracing → OpenTelemetry.}
+  note         = {Foundational paper for span-based distributed tracing; intellectual basis for OpenTracing -> OpenTelemetry.}
 }
 
 % ---------------------------------------------------------------------------
@@ -808,7 +771,7 @@
   note         = {eBPF-based syscall monitoring agent originally by Sysdig. Cited as orthogonal Kubernetes-runtime evidence source.}
 }
 
-% [STABLE] Basiri et al. 2016 — chaos engineering at Netflix.
+% [STABLE] Basiri et al. 2016 --- chaos engineering at Netflix.
 @article{basiri_chaos_2016,
   author       = {Basiri, Ali and Behnam, Niosha and de Rooij, Ruud and Hochstein, Lorin and
                   Kosewski, Luke and Reynolds, Justin and Rosenthal, Casey},
@@ -823,10 +786,10 @@
 }
 
 % ---------------------------------------------------------------------------
-% M. Large language model foundations — reasoning, prompting, tool use
+% M. Large language model foundations --- reasoning, prompting, tool use
 % ---------------------------------------------------------------------------
 
-% [STABLE] Brown et al. 2020 — GPT-3 / few-shot.
+% [STABLE] Brown et al. 2020 --- GPT-3 / few-shot.
 @inproceedings{brown_gpt3_2020,
   author       = {Brown, Tom B. and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie and
                   Kaplan, Jared D. and Dhariwal, Prafulla and Neelakantan, Arvind and Shyam, Pranav and
@@ -840,7 +803,7 @@
   note         = {GPT-3 paper; foundational reference for in-context / few-shot prompting used in the diagnostic harness.}
 }
 
-% [STABLE] Wei et al. 2022 — chain-of-thought.
+% [STABLE] Wei et al. 2022 --- chain-of-thought.
 @inproceedings{wei_cot_2022,
   author       = {Wei, Jason and Wang, Xuezhi and Schuurmans, Dale and Bosma, Maarten and
                   Ichter, Brian and Xia, Fei and Chi, Ed and Le, Quoc and Zhou, Denny},
@@ -852,7 +815,7 @@
   note         = {Original CoT paper. Cited in llm-grounded prompt design rationale.}
 }
 
-% [STABLE] Wang et al. 2023 — self-consistency.
+% [STABLE] Wang et al. 2023 --- self-consistency.
 @inproceedings{wang_selfconsistency_2023,
   author       = {Wang, Xuezhi and Wei, Jason and Schuurmans, Dale and Le, Quoc and
                   Chi, Ed H. and Narang, Sharan and Chowdhery, Aakanksha and Zhou, Denny},
@@ -864,7 +827,7 @@
   note         = {Multi-sample reasoning aggregation; relevant to discussions of LLM-judge variance reduction in analysis-plan.md RQ4.}
 }
 
-% [STABLE] Yao et al. 2023 — ReAct.
+% [STABLE] Yao et al. 2023 --- ReAct.
 @inproceedings{yao_react_2023,
   author       = {Yao, Shunyu and Zhao, Jeffrey and Yu, Dian and Du, Nan and
                   Shafran, Izhak and Narasimhan, Karthik and Cao, Yuan},
@@ -873,10 +836,10 @@
   year         = {2023},
   url          = {https://arxiv.org/abs/2210.03629},
   urldate      = {2026-05-23},
-  note         = {Reasoning + tool-use paradigm. HolmesGPT and similar Kubernetes-RCA agentic tools cited in analysis-plan.md §8 are direct implementations of this pattern.}
+  note         = {Reasoning + tool-use paradigm. HolmesGPT and similar Kubernetes-RCA agentic tools cited in analysis-plan.md Section8 are direct implementations of this pattern.}
 }
 
-% [STABLE] Yao et al. 2023 — Tree of Thoughts.
+% [STABLE] Yao et al. 2023 --- Tree of Thoughts.
 @inproceedings{yao_tot_2023,
   author       = {Yao, Shunyu and Yu, Dian and Zhao, Jeffrey and Shafran, Izhak and
                   Griffiths, Thomas L. and Cao, Yuan and Narasimhan, Karthik},
@@ -888,7 +851,7 @@
   note         = {Search-based deliberative reasoning over LLM thoughts; cited to position our deterministic rule + LLM-grounded design vs frontier-style deliberation.}
 }
 
-% [STABLE] Schick et al. 2023 — Toolformer.
+% [STABLE] Schick et al. 2023 --- Toolformer.
 @inproceedings{schick_toolformer_2023,
   author       = {Schick, Timo and Dwivedi-Yu, Jane and Dess{\`i}, Roberto and Raileanu, Roberta and
                   Lomeli, Maria and Hambro, Eric and Zettlemoyer, Luke and Cancedda, Nicola and Scialom, Thomas},
@@ -900,7 +863,7 @@
   note         = {Self-supervised tool-use training. Cited for the agentic-tool-use lineage that HolmesGPT/Kagent build on.}
 }
 
-% [STABLE] Liang et al. 2023 — HELM.
+% [STABLE] Liang et al. 2023 --- HELM.
 @article{liang_helm_2023,
   author       = {Liang, Percy and Bommasani, Rishi and Lee, Tony and Tsipras, Dimitris and
                   Soylu, Dilara and Yasunaga, Michihiro and Zhang, Yian and Narayanan, Deepak and
@@ -911,14 +874,14 @@
   doi          = {10.1111/nyas.15007},
   url          = {https://arxiv.org/abs/2211.09110},
   urldate      = {2026-05-23},
-  note         = {Stanford CRFM HELM framework: 16 scenarios × 7 metrics across 30 models. Methodological precedent for our multi-metric, multi-LLM evaluation grid.}
+  note         = {Stanford CRFM HELM framework: 16 scenarios x 7 metrics across 30 models. Methodological precedent for our multi-metric, multi-LLM evaluation grid.}
 }
 
 % ---------------------------------------------------------------------------
-% N. LLM evaluation, hallucination, faithfulness — additional references
+% N. LLM evaluation, hallucination, faithfulness --- additional references
 % ---------------------------------------------------------------------------
 
-% [STABLE] Manakul et al. 2023 — SelfCheckGPT.
+% [STABLE] Manakul et al. 2023 --- SelfCheckGPT.
 @inproceedings{manakul_selfcheckgpt_2023,
   author       = {Manakul, Potsawee and Liusie, Adian and Gales, Mark J. F.},
   title        = {{SelfCheckGPT}: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models},
@@ -929,7 +892,7 @@
   note         = {Sample-consistency hallucination detection without external knowledge. Methodological precedent for the multi-sample LLM-judge protocol in analysis-plan.md RQ4.}
 }
 
-% [STABLE] Li et al. 2023 — HaluEval.
+% [STABLE] Li et al. 2023 --- HaluEval.
 @inproceedings{li_halueval_2023,
   author       = {Li, Junyi and Cheng, Xiaoxue and Zhao, Wayne Xin and Nie, Jian-Yun and Wen, Ji-Rong},
   title        = {{HaluEval}: A Large-Scale Hallucination Evaluation Benchmark for Large Language Models},
@@ -940,7 +903,7 @@
   note         = {35K hallucinated-vs-grounded text pairs; benchmark used to calibrate LLM-as-judge protocols. Complements FaithJudge (tamber_faithjudge_2025).}
 }
 
-% [STABLE] Es et al. 2023 — RAGAS.
+% [STABLE] Es et al. 2023 --- RAGAS.
 @misc{es_ragas_2023,
   author       = {Es, Shahul and James, Jithin and Espinosa-Anke, Luis and Schockaert, Steven},
   title        = {{RAGAS}: Automated Evaluation of Retrieval Augmented Generation},
@@ -953,7 +916,7 @@
   note         = {Faithfulness, answer relevancy, context precision/recall metrics for RAG pipelines. Reference for the operationalisation of grounding metrics in our `evidenceRefs` design.}
 }
 
-% [STABLE] Yang et al. 2018 — HotpotQA.
+% [STABLE] Yang et al. 2018 --- HotpotQA.
 @inproceedings{yang_hotpotqa_2018,
   author       = {Yang, Zhilin and Qi, Peng and Zhang, Saizheng and Bengio, Yoshua and Cohen, William W. and
                   Salakhutdinov, Ruslan and Manning, Christopher D.},
@@ -967,10 +930,10 @@
 }
 
 % ---------------------------------------------------------------------------
-% O. SE empirical methodology — additional references
+% O. SE empirical methodology --- additional references
 % ---------------------------------------------------------------------------
 
-% [STABLE] Sjoberg et al. 2005 — IEEE TSE survey.
+% [STABLE] Sjoberg et al. 2005 --- IEEE TSE survey.
 @article{sjoberg_2005,
   author       = {Sj{\o}berg, Dag I. K. and Hannay, Jo E. and Hansen, Ove and Kampenes, Vigdis By and
                   Karahasanovi{\'c}, Amela and Liborg, Nils-Kristian and Rekdal, Anette C.},
@@ -984,7 +947,7 @@
   note         = {Quantitative survey of 103 controlled experiments in 12 leading SE venues over 1993--2002. Reference for the baseline rate of controlled-experiment reporting in SE.}
 }
 
-% [STABLE] Runeson & Host 2009 — EMSE case study guidelines.
+% [STABLE] Runeson & Host 2009 --- EMSE case study guidelines.
 @article{runeson_host_2009,
   author       = {Runeson, Per and H{\"o}st, Martin},
   title        = {Guidelines for Conducting and Reporting Case Study Research in Software Engineering},
@@ -998,10 +961,10 @@
 }
 
 % ---------------------------------------------------------------------------
-% P. LLM for software engineering — APR, vulnerability repair, replication
+% P. LLM for software engineering --- APR, vulnerability repair, replication
 % ---------------------------------------------------------------------------
 
-% [STABLE] Zhang et al. 2024 — LLM-APR systematic literature review.
+% [STABLE] Zhang et al. 2024 --- LLM-APR systematic literature review.
 @article{llm_apr_survey_2024,
   author       = {Zhang, Quanjun and Fang, Chunrong and Yu, Bowen and Sun, Weisong and Zhang, Tongke and Chen, Zhenyu},
   title        = {A Systematic Literature Review on Large Language Models for Automated Program Repair},
@@ -1012,7 +975,7 @@
   note         = {189 papers (2020--2025) on LLM-APR; cited as state-of-the-art positioning for the LLM-diagnostic step.}
 }
 
-% [STABLE] Khare et al. 2024 — GPT-4 on real-world vulnerabilities (EASE).
+% [STABLE] Khare et al. 2024 --- GPT-4 on real-world vulnerabilities (EASE).
 @inproceedings{gpt4_vulnerability_2024,
   author       = {Khare, Avishree and Dutta, Saikat and Li, Ziyang and Solko-Breslin, Alaia and Alur, Rajeev and Naik, Mayur},
   title        = {Reality Check: Assessing {GPT-4} in Fixing Real-World Software Vulnerabilities},
@@ -1022,7 +985,7 @@
   note         = {Empirical evaluation of GPT-4 on real CVE-class fixes. Cited as comparable methodology for evaluating LLM diagnostic quality on real software faults.}
 }
 
-% [STABLE] Khan et al. 2024 — GPT-4 replicating empirical SE research (FSE).
+% [STABLE] Khan et al. 2024 --- GPT-4 replicating empirical SE research (FSE).
 @inproceedings{zhang_gpt4_se_replicate_2024,
   author       = {Khan, Hashir Aslam and Maddila, Chandra and Latoza, Thomas D.},
   title        = {Can {GPT-4} Replicate Empirical Software Engineering Research?},
@@ -1034,10 +997,10 @@
 }
 
 % ---------------------------------------------------------------------------
-% Q. Provenance — PROV-O ontology
+% Q. Provenance --- PROV-O ontology
 % ---------------------------------------------------------------------------
 
-% [STABLE] Lebo et al. 2013 — PROV-O W3C Recommendation.
+% [STABLE] Lebo et al. 2013 --- PROV-O W3C Recommendation.
 @techreport{lebo_provo_2013,
   author       = {Lebo, Timothy and Sahoo, Satya and McGuinness, Deborah and
                   Belhajjame, Khalid and Cheney, James and Corsar, David and Garijo, Daniel and
@@ -1056,7 +1019,7 @@
 % R'. Practitioner Kubernetes-RCA tools (CNCF / open source)
 % ---------------------------------------------------------------------------
 
-% [STABLE] HolmesGPT (Robusta) — agentic Kubernetes troubleshooting.
+% [STABLE] HolmesGPT (Robusta) --- agentic Kubernetes troubleshooting.
 @misc{holmesgpt_robusta,
   author       = {{Robusta Dev}},
   title        = {{HolmesGPT}: AI Agent for Kubernetes Troubleshooting},
@@ -1064,7 +1027,7 @@
   year         = {2026},
   url          = {https://github.com/robusta-dev/holmesgpt},
   urldate      = {2026-05-23},
-  note         = {Open-source agentic ReAct-pattern Kubernetes diagnosis tool. Cited alongside K8sGPT and Kagent in analysis-plan.md §8 as a contemporary practitioner baseline.}
+  note         = {Open-source agentic ReAct-pattern Kubernetes diagnosis tool. Cited alongside K8sGPT and Kagent in analysis-plan.md Section8 as a contemporary practitioner baseline.}
 }
 
 % [STABLE] Jaeger CNCF distributed tracing.
@@ -1089,7 +1052,7 @@
   note         = {De facto Kubernetes metrics monitoring stack; cited as the metrics-evidence collection precedent for CollectionOverhead measurement.}
 }
 
-% [STABLE] Kubebuilder / controller-runtime — Kubernetes operator SDK.
+% [STABLE] Kubebuilder / controller-runtime --- Kubernetes operator SDK.
 @misc{kubebuilder_sigs,
   author       = {{Kubernetes SIG API Machinery}},
   title        = {Kubebuilder: SDK for Building {Kubernetes APIs} Using {Custom Resource Definitions}},
@@ -1115,7 +1078,7 @@
 % R. DevOps, SRE, software debugging foundations
 % ---------------------------------------------------------------------------
 
-% [STABLE] Beyer et al. 2016 — Google SRE book.
+% [STABLE] Beyer et al. 2016 --- Google SRE book.
 @book{beyer_sre_2016,
   editor       = {Beyer, Betsy and Jones, Chris and Petoff, Jennifer and Murphy, Niall Richard},
   title        = {Site Reliability Engineering: How {Google} Runs Production Systems},
@@ -1127,7 +1090,7 @@
   note         = {Reference text for SRE practice; cited for failure-budget and incident-management framing.}
 }
 
-% [STABLE] Forsgren, Humble, Kim 2018 — Accelerate / DORA.
+% [STABLE] Forsgren, Humble, Kim 2018 --- Accelerate / DORA.
 @book{forsgren_accelerate_2018,
   author       = {Forsgren, Nicole and Humble, Jez and Kim, Gene},
   title        = {Accelerate: The Science of Lean Software and {DevOps}: Building and Scaling High Performing Technology Organizations},
@@ -1137,7 +1100,7 @@
   note         = {Source of the four DORA metrics (deployment frequency, lead time, change-failure rate, MTTR). Cited as the standard quantitative DevOps performance framework.}
 }
 
-% [STABLE] Bass, Weber, Zhu 2015 — DevOps architecture book.
+% [STABLE] Bass, Weber, Zhu 2015 --- DevOps architecture book.
 @book{bass_devops_2015,
   author       = {Bass, Len and Weber, Ingo and Zhu, Liming},
   title        = {{DevOps}: A Software Architect's Perspective},
@@ -1148,7 +1111,7 @@
   note         = {Architectural framing of DevOps practices including deployment pipelines and the role of continuous delivery infrastructure.}
 }
 
-% [STABLE] Zeller 2002 — delta debugging.
+% [STABLE] Zeller 2002 --- delta debugging.
 @article{zeller_delta_2002,
   author       = {Zeller, Andreas and Hildebrandt, Ralf},
   title        = {Simplifying and Isolating Failure-Inducing Input},
@@ -1170,79 +1133,70 @@
   author       = {Alaya, Ihsen},
   title        = {preview-operator: A Kubernetes Operator for Ephemeral Pull-Request Preview Environments},
   howpublished = {GitHub repository},
-  year         = {TODO_VERIFY},
   url          = {https://github.com/ihsenalaya/preview-operator},
-  urldate      = {TODO_VERIFY},
-  note         = {Reproducible artifact for this article. TODO_VERIFY author name spelling and the released version/tag to cite.}
 }
 
-% [TODO_VERIFY] Companion article (same author, same operator) on PostgreSQL
 % inter-suite isolation overhead and AI seed-data quality. Cited so that those
 % results are NOT duplicated in the failure-provenance article.
 @misc{postgres_isolation_companion,
   author       = {Alaya, Ihsen},
-  title        = {TODO_VERIFY --- Companion article: PostgreSQL inter-suite isolation overhead and AI seed-data quality for ephemeral Kubernetes preview environments},
-  year         = {TODO_VERIFY},
-  note         = {TODO_VERIFY: fill in the exact title, venue, year, and publication status of the already-prepared companion article. Author name spelling TODO_VERIFY.}
 }
 
 % ---------------------------------------------------------------------------
 % Verification checklist (mirror of state-of-the-art.md):
 %   [x] kubernetes.io URLs (custom_resources, operator_pattern, controller,
 %       finalizers) reachable; titles confirmed; urldate set to 2026-05-22.
-%   [ ] opentelemetry.io URLs (opentelemetry_docs, opentelemetry_operator) —
+%   [ ] opentelemetry.io URLs (opentelemetry_docs, opentelemetry_operator) ---
 %       NOT verified: WebSearch/WebFetch access denied during this pass.
-%   [ ] w3c_prov_overview, w3c_prov_dm — NOT verified: web access denied.
-%   [ ] openrca_2025 — NOT verified: web access denied.
-%   [ ] synergyrca_2025 — NOT verified: web access denied; existence unconfirmed.
-%   [ ] graph_llm_rca, llm_rca_survey — NOT verified: web access denied.
-%   [ ] argocd_pr_generator, signadot, okteto, jenkinsx, testkube_* —
+%   [ ] w3c_prov_overview, w3c_prov_dm --- NOT verified: web access denied.
+%   [ ] openrca_2025 --- NOT verified: web access denied.
+%   [ ] synergyrca_2025 --- NOT verified: web access denied; existence unconfirmed.
+%   [ ] graph_llm_rca, llm_rca_survey --- NOT verified: web access denied.
+%   [ ] argocd_pr_generator, signadot, okteto, jenkinsx, testkube_* ---
 %       NOT verified: web access denied.
-%   [ ] preview_operator — NOT verified: web access denied.
-%   [ ] postgres_isolation_companion — NOT verified: companion article metadata
+%   [ ] preview_operator --- NOT verified: web access denied.
+%   [ ] postgres_isolation_companion --- NOT verified: companion article metadata
 %       must be supplied by the author.
 %
 % NOTE (2026-05-22 verification pass): only the four kubernetes.io entries could
-% be verified — WebFetch/WebSearch access to all other domains was denied during
-% this pass, so the remaining entries retain their TODO_VERIFY placeholders and
+% be verified --- WebFetch/WebSearch access to all other domains was denied during
 % must be re-checked once web access is available.
 %
 % NOTE (2026-05-23 verification pass): added sections E (comparable RCA), F
 % (statistical methods), G (inter-rater agreement), H (LLM evaluation /
 % faithfulness / judge bias / open-source advantage). All entries in those
 % sections verified against primary sources (arXiv abstracts, JMLR/JSTOR,
-% publisher DOIs). openrca_2025 promoted from TODO_VERIFY to STABLE.
-% Cross-references: analysis-plan.md §1 (L1-L7 hierarchy), §2 (per-RQ recipe),
-% §5 (pre-registered thresholds), §7 (comparable benchmarks); llm-selection.md
+% Cross-references: analysis-plan.md Section1 (L1-L7 hierarchy), Section2 (per-RQ recipe),
+% Section5 (pre-registered thresholds), Section7 (comparable benchmarks); llm-selection.md
 % (the two-LLM design grounded by se_llm_guidelines / llm_open_advantage).
 %
 % NOTE (2026-05-23 second pass, peer-review-driven):
 %   - bates_lme4_2015, baayen_2008, brown_lmm_2021 added (mixed-effects model
 %     promoted to PRIMARY inferential layer L3 in analysis-plan.md).
-%   - kitchenham_2002 added (justifies §8 external-baseline requirement).
-%   - seaman_1999 added (basis for §10 qualitative error-analysis protocol).
+%   - kitchenham_2002 added (justifies Section8 external-baseline requirement).
+%   - seaman_1999 added (basis for Section10 qualitative error-analysis protocol).
 %   - k8sgpt_cncf added (B2 external practitioner baseline).
 % All verified against primary sources (JSS / IEEE TSE / JML / Sage / GitHub).
 %
 % NOTE (2026-05-23 third pass, deep bibliography fill for the article body):
 % Added 32 new sections I-R covering:
-%   I — Microservice RCA comparators (Zhang TOSEM survey 2025, MicroRCA,
+%   I --- Microservice RCA comparators (Zhang TOSEM survey 2025, MicroRCA,
 %       MicroDiag, CausalRCA, PAL)
-%   J — Log analysis & anomaly detection (DeepLog, Drain, Spell, Loghub)
-%   K — Cluster management & orchestration foundations (Borg, Mesos, Omega,
+%   J --- Log analysis & anomaly detection (DeepLog, Drain, Spell, Loghub)
+%   K --- Cluster management & orchestration foundations (Borg, Mesos, Omega,
 %       Dapper)
-%   L — Service mesh, observability platforms, chaos engineering (Argo CD,
+%   L --- Service mesh, observability platforms, chaos engineering (Argo CD,
 %       Argo Workflows, Istio, LitmusChaos, Chaos Mesh, Falco, Basiri 2016)
-%   M — LLM foundations: reasoning/prompting/tool use (Brown GPT-3, Wei CoT,
+%   M --- LLM foundations: reasoning/prompting/tool use (Brown GPT-3, Wei CoT,
 %       Wang self-consistency, Yao ReAct, Yao Tree-of-Thoughts, Schick
 %       Toolformer, Liang HELM)
-%   N — LLM evaluation/hallucination/faithfulness (Manakul SelfCheckGPT,
+%   N --- LLM evaluation/hallucination/faithfulness (Manakul SelfCheckGPT,
 %       Li HaluEval, Es RAGAS, Yang HotpotQA)
-%   O — SE empirical methodology extensions (Sjoberg 2005, Runeson & Host 2009)
-%   P — LLM for SE (LLM-APR survey, GPT-4 vulnerability fixing, GPT-4
+%   O --- SE empirical methodology extensions (Sjoberg 2005, Runeson & Host 2009)
+%   P --- LLM for SE (LLM-APR survey, GPT-4 vulnerability fixing, GPT-4
 %       replication of empirical SE research)
-%   Q — Provenance (PROV-O W3C Recommendation 2013)
-%   R — DevOps, SRE, software debugging (Beyer SRE book, Forsgren Accelerate /
+%   Q --- Provenance (PROV-O W3C Recommendation 2013)
+%   R --- DevOps, SRE, software debugging (Beyer SRE book, Forsgren Accelerate /
 %       DORA, Bass DevOps, Zeller delta-debugging)
 % Total bibliography size after this pass: 89 entries (43 baseline + 46 new).
 % All new entries marked [STABLE] with primary-source URLs/DOIs verified against

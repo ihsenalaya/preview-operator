@@ -1,0 +1,23 @@
+                                   Binomial Mixed GLM Results
+================================================================================================
+                                                  Type Post. Mean Post. SD   SD  SD (LB) SD (UB)
+------------------------------------------------------------------------------------------------
+Intercept                                            M    -3.1831   0.0832                      
+C(configuration)[T.C2]                               M    -0.3044   0.2095                      
+C(configuration)[T.C3]                               M     1.2027   0.1737                      
+C(configuration)[T.C4]                               M     2.2225   0.1690                      
+C(configuration)[T.C5]                               M     2.0093   0.1711                      
+C(engine)[T.llm-grounded]                            M     0.1834   0.1382                      
+C(engine)[T.rule-grounded]                           M    -0.1789   0.1531                      
+C(configuration)[T.C2]:C(engine)[T.llm-grounded]     M     0.3140   0.3629                      
+C(configuration)[T.C3]:C(engine)[T.llm-grounded]     M     0.8139   0.2748                      
+C(configuration)[T.C4]:C(engine)[T.llm-grounded]     M     0.4279   0.2787                      
+C(configuration)[T.C5]:C(engine)[T.llm-grounded]     M     0.9593   0.2863                      
+C(configuration)[T.C2]:C(engine)[T.rule-grounded]    M     1.2609   0.3237                      
+C(configuration)[T.C3]:C(engine)[T.rule-grounded]    M     3.0398   0.3281                      
+C(configuration)[T.C4]:C(engine)[T.rule-grounded]    M     2.0477   0.3298                      
+C(configuration)[T.C5]:C(engine)[T.rule-grounded]    M     2.2551   0.3294                      
+scenario                                             V     1.3511   0.2054 3.862   2.561   5.824
+================================================================================================
+Parameter types are mean structure (M) and variance structure (V)
+Variance parameters are modeled as log standard deviations

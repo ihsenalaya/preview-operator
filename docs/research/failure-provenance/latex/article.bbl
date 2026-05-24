@@ -1,0 +1,1553 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{83}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{}, \showDOI{}, and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showDOI}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showDOI #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showDOI      \undefined \def \showDOI       #1{#1}\fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Arcuri and Briand(2014)]%
+        {arcuri_briand_2014}
+\bibfield{author}{\bibinfo{person}{Andrea Arcuri} {and} \bibinfo{person}{Lionel
+  Briand}.} \bibinfo{year}{2014}\natexlab{}.
+\newblock \showarticletitle{A {H}itchhiker's Guide to Statistical Tests for
+  Assessing Randomized Algorithms in Software Engineering}.
+\newblock \bibinfo{journal}{\emph{Software Testing, Verification and
+  Reliability (STVR)}} \bibinfo{volume}{24}, \bibinfo{number}{3}
+  (\bibinfo{year}{2014}), \bibinfo{pages}{219--250}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1002/stvr.1486}
+\showDOI{\tempurl}
+\newblock
+\shownote{Canonical SE-empirical reference for choosing non-parametric tests
+  and effect-size measures (Vargha-Delaney A12) over parametric alternatives.}.
+
+
+\bibitem[{Argo Project}(2026)]%
+        {argocd_pr_generator}
+\bibfield{author}{\bibinfo{person}{{Argo Project}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{ApplicationSet --- Pull Request Generator}.
+\newblock \bibinfo{howpublished}{Argo CD Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Pull-Request/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[{Argo Project} and {Cloud Native Computing Foundation}(2026a)]%
+        {argocd_cncf}
+\bibfield{author}{\bibinfo{person}{{Argo Project}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{a}.
+\newblock \bibinfo{title}{Argo {CD} --- Declarative {GitOps} Continuous
+  Delivery for {Kubernetes}}.
+\newblock \bibinfo{howpublished}{CNCF graduated project}.
+\newblock
+\urldef\tempurl%
+\url{https://github.com/argoproj/argo-cd}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{GitOps continuous-delivery tool originally open-sourced by Intuit;
+  cited for the PR-preview deployment workflow.}.
+
+
+\bibitem[{Argo Project} and {Cloud Native Computing Foundation}(2026b)]%
+        {argo_workflows_cncf}
+\bibfield{author}{\bibinfo{person}{{Argo Project}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{b}.
+\newblock \bibinfo{title}{Argo Workflows --- The Workflow Engine for
+  {Kubernetes}}.
+\newblock \bibinfo{howpublished}{CNCF graduated project}.
+\newblock
+\urldef\tempurl%
+\url{https://argoproj.github.io/workflows/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Kubernetes-native CRD-based workflow engine; common substrate for
+  CI/CD pipelines in cloud-native environments.}.
+
+
+\bibitem[Baayen et~al\mbox{.}(2008)]%
+        {baayen_2008}
+\bibfield{author}{\bibinfo{person}{R.~Harald Baayen},
+  \bibinfo{person}{Douglas~J. Davidson}, {and} \bibinfo{person}{Douglas~M.
+  Bates}.} \bibinfo{year}{2008}\natexlab{}.
+\newblock \showarticletitle{Mixed-Effects Modeling with Crossed Random Effects
+  for Subjects and Items}.
+\newblock \bibinfo{journal}{\emph{Journal of Memory and Language}}
+  \bibinfo{volume}{59}, \bibinfo{number}{4} (\bibinfo{year}{2008}),
+  \bibinfo{pages}{390--412}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1016/j.jml.2007.12.005}
+\showDOI{\tempurl}
+\newblock
+\shownote{Canonical methodological reference for repeated-measures data with
+  crossed random factors --- directly applicable to our (scenario, run, LLM) x
+  configuration design.}.
+
+
+\bibitem[Baltes et~al\mbox{.}(2025)]%
+        {se_llm_guidelines}
+\bibfield{author}{\bibinfo{person}{Sebastian Baltes}, \bibinfo{person}{Florian
+  Angermeir}, \bibinfo{person}{Chetan Arora}, \bibinfo{person}{Marvin
+  Mu{\~n}oz~Bar{\'o}n}, \bibinfo{person}{Chunyang Chen}, \bibinfo{person}{Lukas
+  B{\"o}hme}, \bibinfo{person}{Fabio Calefato}, \bibinfo{person}{Neil Ernst},
+  \bibinfo{person}{Davide Falessi}, \bibinfo{person}{Brian Fitzgerald},
+  \bibinfo{person}{Davide Fucci}, \bibinfo{person}{Junda He},
+  \bibinfo{person}{Christoph Treude}, \bibinfo{person}{Marcos Kalinowski},
+  \bibinfo{person}{Stefano Lambiase}, \bibinfo{person}{Daniel Russo},
+  \bibinfo{person}{Mircea Lungu}, \bibinfo{person}{Cristina Martinez~Montes},
+  \bibinfo{person}{Lutz Prechelt}, \bibinfo{person}{Paul Ralph},
+  \bibinfo{person}{Rijnard van Tonder}, {and} \bibinfo{person}{Stefan Wagner}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Guidelines for Empirical Studies in Software
+  Engineering involving Large Language Models}.
+\newblock
+\newblock
+\showeprint[arxiv]{2508.15503}~[cs.SE]
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2508.15503}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Eight guidelines; Guideline 2 (exact model versions/configurations)
+  and Guideline 6 (include an open LLM baseline) ground the design in
+  llm-selection.md and analysis-plan.md Section4 reproducibility appendix.}.
+
+
+\bibitem[Basiri et~al\mbox{.}(2016)]%
+        {basiri_chaos_2016}
+\bibfield{author}{\bibinfo{person}{Ali Basiri}, \bibinfo{person}{Niosha
+  Behnam}, \bibinfo{person}{Ruud de Rooij}, \bibinfo{person}{Lorin Hochstein},
+  \bibinfo{person}{Luke Kosewski}, \bibinfo{person}{Justin Reynolds}, {and}
+  \bibinfo{person}{Casey Rosenthal}.} \bibinfo{year}{2016}\natexlab{}.
+\newblock \showarticletitle{Chaos Engineering}.
+\newblock \bibinfo{journal}{\emph{IEEE Software}} \bibinfo{volume}{33},
+  \bibinfo{number}{3} (\bibinfo{year}{2016}), \bibinfo{pages}{35--41}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/MS.2016.60}
+\showDOI{\tempurl}
+\newblock
+\shownote{Canonical reference defining chaos engineering principles and the
+  steady-state hypothesis methodology.}.
+
+
+\bibitem[Bass et~al\mbox{.}(2015)]%
+        {bass_devops_2015}
+\bibfield{author}{\bibinfo{person}{Len Bass}, \bibinfo{person}{Ingo Weber},
+  {and} \bibinfo{person}{Liming Zhu}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{{DevOps}: A Software Architect's
+  Perspective}}.
+\newblock \bibinfo{publisher}{Addison-Wesley Professional}.
+\newblock
+\showISBNx{978-0134049847}
+\newblock
+\shownote{Architectural framing of DevOps practices including deployment
+  pipelines and the role of continuous delivery infrastructure.}.
+
+
+\bibitem[Bates et~al\mbox{.}(2015)]%
+        {bates_lme4_2015}
+\bibfield{author}{\bibinfo{person}{Douglas Bates}, \bibinfo{person}{Martin
+  M{\"a}chler}, \bibinfo{person}{Ben Bolker}, {and} \bibinfo{person}{Steve
+  Walker}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Fitting Linear Mixed-Effects Models Using {lme4}}.
+\newblock \bibinfo{journal}{\emph{Journal of Statistical Software}}
+  \bibinfo{volume}{67}, \bibinfo{number}{1} (\bibinfo{year}{2015}),
+  \bibinfo{pages}{1--48}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.18637/jss.v067.i01}
+\showDOI{\tempurl}
+\newblock
+\shownote{Reference implementation and methodology for the primary inferential
+  model in analysis-plan.md L3 (mixed-effects with crossed random factors for
+  scenario, run, LLM).}.
+
+
+\bibitem[Belur et~al\mbox{.}(2023)]%
+        {inter_coder_se_2023}
+\bibfield{author}{\bibinfo{person}{Jyoti Belur}, \bibinfo{person}{Lisa
+  Tompson}, \bibinfo{person}{Amy Thornton}, {and} \bibinfo{person}{Miranda
+  Simon}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Reliability in Software Engineering Qualitative
+  Research through Inter-Coder Agreement}.
+\newblock \bibinfo{journal}{\emph{Journal of Systems and Software}}
+  (\bibinfo{year}{2023}).
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1016/j.jss.2023.111752}
+\showDOI{\tempurl}
+\newblock
+\shownote{SE-specific evidence and protocol for inter-coder agreement; basis
+  for the two-annotator subsample design in analysis-plan.md RQ4.}.
+
+
+\bibitem[Benjamini and Hochberg(1995)]%
+        {benjamini_hochberg_1995}
+\bibfield{author}{\bibinfo{person}{Yoav Benjamini} {and} \bibinfo{person}{Yosef
+  Hochberg}.} \bibinfo{year}{1995}\natexlab{}.
+\newblock \showarticletitle{Controlling the False Discovery Rate: A Practical
+  and Powerful Approach to Multiple Testing}.
+\newblock \bibinfo{journal}{\emph{Journal of the Royal Statistical Society,
+  Series B (Methodological)}} \bibinfo{volume}{57}, \bibinfo{number}{1}
+  (\bibinfo{year}{1995}), \bibinfo{pages}{289--300}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1111/j.2517-6161.1995.tb02031.x}
+\showDOI{\tempurl}
+\newblock
+\shownote{FDR control used in analysis-plan.md for the exploratory secondary
+  pairwise contrasts.}.
+
+
+\bibitem[Beyer et~al\mbox{.}(2016)]%
+        {beyer_sre_2016}
+\bibfield{editor}{\bibinfo{person}{Betsy Beyer}, \bibinfo{person}{Chris Jones},
+  \bibinfo{person}{Jennifer Petoff}, {and} \bibinfo{person}{Niall~Richard
+  Murphy}} (Eds.). \bibinfo{year}{2016}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{Site Reliability Engineering: How {Google}
+  Runs Production Systems}}.
+\newblock \bibinfo{publisher}{O'Reilly Media}.
+\newblock
+\showISBNx{978-1491929124}
+\urldef\tempurl%
+\url{https://sre.google/books/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Reference text for SRE practice; cited for failure-budget and
+  incident-management framing.}.
+
+
+\bibitem[Brown et~al\mbox{.}(2020)]%
+        {brown_gpt3_2020}
+\bibfield{author}{\bibinfo{person}{Tom~B. Brown}, \bibinfo{person}{Benjamin
+  Mann}, \bibinfo{person}{Nick Ryder}, \bibinfo{person}{Melanie Subbiah},
+  \bibinfo{person}{Jared~D. Kaplan}, \bibinfo{person}{Prafulla Dhariwal},
+  \bibinfo{person}{Arvind Neelakantan}, \bibinfo{person}{Pranav Shyam},
+  \bibinfo{person}{Girish Sastry}, \bibinfo{person}{Amanda Askell},
+  {et~al\mbox{.}}} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{Language Models are Few-Shot Learners}. In
+  \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems
+  33 (NeurIPS)}}. \bibinfo{pages}{1877--1901}.
+\newblock
+\urldef\tempurl%
+\url{https://papers.nips.cc/paper/2020/hash/1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{GPT-3 paper; foundational reference for in-context / few-shot
+  prompting used in the diagnostic harness.}.
+
+
+\bibitem[Brown(2021)]%
+        {brown_lmm_2021}
+\bibfield{author}{\bibinfo{person}{Violet~A. Brown}.}
+  \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{An Introduction to Linear Mixed-Effects Modeling in
+  {R}}.
+\newblock \bibinfo{journal}{\emph{Advances in Methods and Practices in
+  Psychological Science}} \bibinfo{volume}{4}, \bibinfo{number}{1}
+  (\bibinfo{year}{2021}).
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1177/2515245920960351}
+\showDOI{\tempurl}
+\newblock
+\shownote{Accessible tutorial; cited as a pedagogical pointer for readers
+  reproducing the analysis-plan.md L3 model.}.
+
+
+\bibitem[{Chaos Mesh Authors} and {Cloud Native Computing Foundation}(2026)]%
+        {chaos_mesh_cncf}
+\bibfield{author}{\bibinfo{person}{{Chaos Mesh Authors}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Chaos Mesh --- A Chaos Engineering Platform for
+  {Kubernetes}}.
+\newblock \bibinfo{howpublished}{CNCF incubating project}.
+\newblock
+\urldef\tempurl%
+\url{https://chaos-mesh.org/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Kubernetes operator-based chaos injection; cited as adjacent
+  fault-injection prior art to our F1--F10 harness.}.
+
+
+\bibitem[Chen et~al\mbox{.}(2024)]%
+        {rcacopilot_2024}
+\bibfield{author}{\bibinfo{person}{Yinfang Chen}, \bibinfo{person}{Huaibing
+  Xie}, \bibinfo{person}{Minghua Ma}, \bibinfo{person}{Yu Kang},
+  \bibinfo{person}{Xin Gao}, \bibinfo{person}{Liu Shi}, \bibinfo{person}{Yunjie
+  Cao}, \bibinfo{person}{Xuedong Gao}, \bibinfo{person}{Hao Fan},
+  \bibinfo{person}{Ming Wen}, {et~al\mbox{.}}} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Automatic Root Cause Analysis via Large Language
+  Models for Cloud Incidents}. In \bibinfo{booktitle}{\emph{Proceedings of the
+  Nineteenth European Conference on Computer Systems (EuroSys)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3627703.3629553}
+\showDOI{\tempurl}
+\newblock
+\shownote{RCACopilot. Reports Micro-F1 0.766 / Macro-F1 0.533 on a year of
+  Microsoft Transport incidents. Production analogue cited in analysis-plan.md
+  Section7.}.
+
+
+\bibitem[Dem{\v{s}}ar(2006)]%
+        {demsar_2006}
+\bibfield{author}{\bibinfo{person}{Janez Dem{\v{s}}ar}.}
+  \bibinfo{year}{2006}\natexlab{}.
+\newblock \showarticletitle{Statistical Comparisons of Classifiers over
+  Multiple Data Sets}.
+\newblock \bibinfo{journal}{\emph{Journal of Machine Learning Research}}
+  \bibinfo{volume}{7}, \bibinfo{number}{1} (\bibinfo{year}{2006}),
+  \bibinfo{pages}{1--30}.
+\newblock
+\urldef\tempurl%
+\url{https://www.jmlr.org/papers/v7/demsar06a.html}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Recommends Wilcoxon signed-rank for two classifiers and Friedman +
+  post-hoc (Nemenyi / Bonferroni-Dunn) for k>2 classifiers across multiple
+  datasets; introduces critical-difference (CD) diagrams used in
+  analysis-plan.md.}.
+
+
+\bibitem[Du and Li(2016)]%
+        {spell_2016}
+\bibfield{author}{\bibinfo{person}{Min Du} {and} \bibinfo{person}{Feifei Li}.}
+  \bibinfo{year}{2016}\natexlab{}.
+\newblock \showarticletitle{Spell: Streaming Parsing of System Event Logs}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the IEEE 16th International
+  Conference on Data Mining (ICDM)}}. \bibinfo{pages}{859--864}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ICDM.2016.0103}
+\showDOI{\tempurl}
+\newblock
+\shownote{LCS-based streaming log parser; commonly compared with Drain.}.
+
+
+\bibitem[Du et~al\mbox{.}(2017)]%
+        {deeplog_2017}
+\bibfield{author}{\bibinfo{person}{Min Du}, \bibinfo{person}{Feifei Li},
+  \bibinfo{person}{Guineng Zheng}, {and} \bibinfo{person}{Vivek Srikumar}.}
+  \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{{DeepLog}: Anomaly Detection and Diagnosis from
+  System Logs through Deep Learning}. In \bibinfo{booktitle}{\emph{Proceedings
+  of the 2017 ACM SIGSAC Conference on Computer and Communications Security
+  (CCS)}}. \bibinfo{pages}{1285--1298}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3133956.3134015}
+\showDOI{\tempurl}
+\newblock
+\shownote{LSTM-based log-sequence anomaly detection; canonical deep-learning
+  RCA baseline cited in failure-diagnosis surveys.}.
+
+
+\bibitem[Es et~al\mbox{.}(2023)]%
+        {es_ragas_2023}
+\bibfield{author}{\bibinfo{person}{Shahul Es}, \bibinfo{person}{Jithin James},
+  \bibinfo{person}{Luis Espinosa-Anke}, {and} \bibinfo{person}{Steven
+  Schockaert}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \bibinfo{title}{{RAGAS}: Automated Evaluation of Retrieval Augmented
+  Generation}.
+\newblock
+\newblock
+\showeprint[arxiv]{2309.15217}~[cs.CL]
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2309.15217}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Faithfulness, answer relevancy, context precision/recall metrics for
+  RAG pipelines. Reference for the operationalisation of grounding metrics in
+  our `evidenceRefs` design.}.
+
+
+\bibitem[{Falco Authors} and {Cloud Native Computing Foundation}(2026)]%
+        {falco_cncf}
+\bibfield{author}{\bibinfo{person}{{Falco Authors}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Falco --- Cloud Native Runtime Security}.
+\newblock \bibinfo{howpublished}{CNCF graduated project}.
+\newblock
+\urldef\tempurl%
+\url{https://falco.org/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{eBPF-based syscall monitoring agent originally by Sysdig. Cited as
+  orthogonal Kubernetes-runtime evidence source.}.
+
+
+\bibitem[Forsgren et~al\mbox{.}(2018)]%
+        {forsgren_accelerate_2018}
+\bibfield{author}{\bibinfo{person}{Nicole Forsgren}, \bibinfo{person}{Jez
+  Humble}, {and} \bibinfo{person}{Gene Kim}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{Accelerate: The Science of Lean Software
+  and {DevOps}: Building and Scaling High Performing Technology
+  Organizations}}.
+\newblock \bibinfo{publisher}{IT Revolution Press}.
+\newblock
+\showISBNx{978-1942788331}
+\newblock
+\shownote{Source of the four DORA metrics (deployment frequency, lead time,
+  change-failure rate, MTTR). Cited as the standard quantitative DevOps
+  performance framework.}.
+
+
+\bibitem[Friedman(1937)]%
+        {friedman1937}
+\bibfield{author}{\bibinfo{person}{Milton Friedman}.}
+  \bibinfo{year}{1937}\natexlab{}.
+\newblock \showarticletitle{The Use of Ranks to Avoid the Assumption of
+  Normality Implicit in the Analysis of Variance}.
+\newblock \bibinfo{journal}{\emph{J. Amer. Statist. Assoc.}}
+  \bibinfo{volume}{32}, \bibinfo{number}{200} (\bibinfo{year}{1937}),
+  \bibinfo{pages}{675--701}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1080/01621459.1937.10503522}
+\showDOI{\tempurl}
+
+
+\bibitem[He et~al\mbox{.}(2017)]%
+        {drain_2017}
+\bibfield{author}{\bibinfo{person}{Pinjia He}, \bibinfo{person}{Jieming Zhu},
+  \bibinfo{person}{Zibin Zheng}, {and} \bibinfo{person}{Michael~R. Lyu}.}
+  \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{Drain: An Online Log Parsing Approach with Fixed
+  Depth Tree}. In \bibinfo{booktitle}{\emph{Proceedings of the IEEE
+  International Conference on Web Services (ICWS)}}. \bibinfo{pages}{33--40}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ICWS.2017.13}
+\showDOI{\tempurl}
+\newblock
+\shownote{De facto standard online log parser, upstream of DeepLog / LogAnomaly
+  / log-based RCA pipelines.}.
+
+
+\bibitem[Hindman et~al\mbox{.}(2011)]%
+        {mesos_2011}
+\bibfield{author}{\bibinfo{person}{Benjamin Hindman}, \bibinfo{person}{Andy
+  Konwinski}, \bibinfo{person}{Matei Zaharia}, \bibinfo{person}{Ali Ghodsi},
+  \bibinfo{person}{Anthony~D. Joseph}, \bibinfo{person}{Randy Katz},
+  \bibinfo{person}{Scott Shenker}, {and} \bibinfo{person}{Ion Stoica}.}
+  \bibinfo{year}{2011}\natexlab{}.
+\newblock \showarticletitle{Mesos: A Platform for Fine-grained Resource Sharing
+  in the Data Center}. In \bibinfo{booktitle}{\emph{Proceedings of the 8th
+  USENIX Conference on Networked Systems Design and Implementation (NSDI)}}.
+  \bibinfo{pages}{295--308}.
+\newblock
+\urldef\tempurl%
+\url{https://www.usenix.org/conference/nsdi11/mesos-platform-fine-grained-resource-sharing-data-center}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Two-level scheduler architecture pre-dating Borg / Kubernetes; cited
+  for the cluster-management state of the art.}.
+
+
+\bibitem[Holm(1979)]%
+        {holm_1979}
+\bibfield{author}{\bibinfo{person}{Sture Holm}.}
+  \bibinfo{year}{1979}\natexlab{}.
+\newblock \showarticletitle{A Simple Sequentially Rejective Multiple Test
+  Procedure}.
+\newblock \bibinfo{journal}{\emph{Scandinavian Journal of Statistics}}
+  \bibinfo{volume}{6}, \bibinfo{number}{2} (\bibinfo{year}{1979}),
+  \bibinfo{pages}{65--70}.
+\newblock
+\urldef\tempurl%
+\url{https://www.jstor.org/stable/4615733}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Step-down FWER correction adopted as the primary multiple-comparison
+  control in analysis-plan.md.}.
+
+
+\bibitem[{Jaeger Authors} and {Cloud Native Computing Foundation}(2026)]%
+        {jaeger_cncf}
+\bibfield{author}{\bibinfo{person}{{Jaeger Authors}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Jaeger --- End-to-End Distributed Tracing}.
+\newblock \bibinfo{howpublished}{CNCF graduated project}.
+\newblock
+\urldef\tempurl%
+\url{https://www.jaegertracing.io/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Originally Uber, donated to CNCF;
+  OpenTracing/OpenTelemetry-compatible trace backend deployed alongside our
+  operator on the AKS cluster.}.
+
+
+\bibitem[{Jenkins X Project}(2026)]%
+        {jenkinsx_preview_envs}
+\bibfield{author}{\bibinfo{person}{{Jenkins X Project}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Preview Environments}.
+\newblock \bibinfo{howpublished}{Jenkins X Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://jenkins-x.io/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Ji et~al\mbox{.}(2023)]%
+        {ji2023hallucination}
+\bibfield{author}{\bibinfo{person}{Ziwei Ji}, \bibinfo{person}{Nayeon Lee},
+  \bibinfo{person}{Rita Frieske}, \bibinfo{person}{Tiezheng Yu},
+  \bibinfo{person}{Dan Su}, \bibinfo{person}{Yan Xu}, \bibinfo{person}{Etsuko
+  Ishii}, \bibinfo{person}{Ye~Jin Bang}, \bibinfo{person}{Andrea Madotto},
+  {and} \bibinfo{person}{Pascale Fung}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Survey of Hallucination in Natural Language
+  Generation}.
+\newblock \bibinfo{journal}{\emph{Comput. Surveys}} \bibinfo{volume}{55},
+  \bibinfo{number}{12}, Article \bibinfo{articleno}{248}
+  (\bibinfo{year}{2023}), \bibinfo{numpages}{38}~pages.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3571730}
+\showDOI{\tempurl}
+
+
+\bibitem[{K8sGPT Authors and the Cloud Native Computing Foundation}(2026)]%
+        {k8sgpt_cncf}
+\bibfield{author}{\bibinfo{person}{{K8sGPT Authors and the Cloud Native
+  Computing Foundation}}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{{K8sGPT}: A Tool for Scanning Your {Kubernetes}
+  Clusters, Diagnosing and Triaging Issues in Simple {English}}.
+\newblock \bibinfo{howpublished}{CNCF Sandbox project}.
+\newblock
+\urldef\tempurl%
+\url{https://github.com/k8sgpt-ai/k8sgpt}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Off-the-shelf Kubernetes RCA tool used as external baseline B2 in
+  analysis-plan.md Section8. Rule-based scanner with LLM-based explanation. NOT
+  a peer-reviewed comparator; pin the exact released version in every result
+  row.}.
+
+
+\bibitem[{Kagent Authors}(2025)]%
+        {kagent}
+\bibfield{author}{\bibinfo{person}{{Kagent Authors}}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Kagent: Bringing Agentic {AI} to Cloud Native}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://kagent.dev/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{CNCF Sandbox Project (accepted May 2025)}.
+
+
+\bibitem[Khan et~al\mbox{.}(2024)]%
+        {zhang_gpt4_se_replicate_2024}
+\bibfield{author}{\bibinfo{person}{Hashir~Aslam Khan}, \bibinfo{person}{Chandra
+  Maddila}, {and} \bibinfo{person}{Thomas~D. Latoza}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Can {GPT-4} Replicate Empirical Software
+  Engineering Research?}. In \bibinfo{booktitle}{\emph{Proceedings of the ACM
+  International Conference on the Foundations of Software Engineering (FSE)}}.
+\newblock
+\urldef\tempurl%
+\url{https://2024.esec-fse.org/details/fse-2024-research-papers/7/Can-GPT-4-Replicate-Empirical-Software-Engineering-Research-}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Reports that GPT-4 struggles to encode SE-common-knowledge
+  assumptions; relevant caveat for any LLM-as-judge analytical role.}.
+
+
+\bibitem[Khare et~al\mbox{.}(2024)]%
+        {gpt4_vulnerability_2024}
+\bibfield{author}{\bibinfo{person}{Avishree Khare}, \bibinfo{person}{Saikat
+  Dutta}, \bibinfo{person}{Ziyang Li}, \bibinfo{person}{Alaia Solko-Breslin},
+  \bibinfo{person}{Rajeev Alur}, {and} \bibinfo{person}{Mayur Naik}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Reality Check: Assessing {GPT-4} in Fixing
+  Real-World Software Vulnerabilities}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 28th International Conference on
+  Evaluation and Assessment in Software Engineering (EASE)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3661167.3661207}
+\showDOI{\tempurl}
+\newblock
+\shownote{Empirical evaluation of GPT-4 on real CVE-class fixes. Cited as
+  comparable methodology for evaluating LLM diagnostic quality on real software
+  faults.}.
+
+
+\bibitem[Kitchenham et~al\mbox{.}(2002)]%
+        {kitchenham_2002}
+\bibfield{author}{\bibinfo{person}{Barbara~A. Kitchenham},
+  \bibinfo{person}{Shari~Lawrence Pfleeger}, \bibinfo{person}{Lesley~M.
+  Pickard}, \bibinfo{person}{Peter~W. Jones}, \bibinfo{person}{David~C.
+  Hoaglin}, \bibinfo{person}{Khaled El~Emam}, {and} \bibinfo{person}{Jarrett
+  Rosenberg}.} \bibinfo{year}{2002}\natexlab{}.
+\newblock \showarticletitle{Preliminary Guidelines for Empirical Research in
+  Software Engineering}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Software Engineering}}
+  \bibinfo{volume}{28}, \bibinfo{number}{8} (\bibinfo{year}{2002}),
+  \bibinfo{pages}{721--734}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/TSE.2002.1027796}
+\showDOI{\tempurl}
+\newblock
+\shownote{Foundational SE empirical guidelines; cited in analysis-plan.md
+  Section8 as the standard requiring external baselines beyond internal
+  ablations.}.
+
+
+\bibitem[{Kubernetes SIG API Machinery}(2026)]%
+        {kubebuilder_sigs}
+\bibfield{author}{\bibinfo{person}{{Kubernetes SIG API Machinery}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Kubebuilder: SDK for Building {Kubernetes APIs} Using
+  {Custom Resource Definitions}}.
+\newblock \bibinfo{howpublished}{Kubernetes special-interest group project}.
+\newblock
+\urldef\tempurl%
+\url{https://book.kubebuilder.io/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Reference implementation framework for the operator pattern; the
+  preview-operator artifact is built on Kubebuilder + controller-runtime.}.
+
+
+\bibitem[Lebo et~al\mbox{.}(2013)]%
+        {lebo_provo_2013}
+\bibfield{author}{\bibinfo{person}{Timothy Lebo}, \bibinfo{person}{Satya
+  Sahoo}, \bibinfo{person}{Deborah McGuinness}, \bibinfo{person}{Khalid
+  Belhajjame}, \bibinfo{person}{James Cheney}, \bibinfo{person}{David Corsar},
+  \bibinfo{person}{Daniel Garijo}, \bibinfo{person}{Stian Soiland-Reyes},
+  \bibinfo{person}{Stephan Zednik}, {and} \bibinfo{person}{Jun Zhao}.}
+  \bibinfo{year}{2013}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{{PROV-O}: The {PROV} Ontology}}.
+\newblock \bibinfo{type}{W3C Recommendation}. \bibinfo{institution}{World Wide
+  Web Consortium ({W3C})}.
+\newblock
+\urldef\tempurl%
+\url{https://www.w3.org/TR/prov-o/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{OWL2 encoding of the PROV data model; the schema target for our
+  provenance graph (failure-evidence-model.md).}.
+
+
+\bibitem[Lee et~al\mbox{.}(2023)]%
+        {eadro_2023}
+\bibfield{author}{\bibinfo{person}{Cheryl Lee}, \bibinfo{person}{Tianyi Yang},
+  \bibinfo{person}{Zhuangbin Chen}, \bibinfo{person}{Yuxin Su}, {and}
+  \bibinfo{person}{Michael~R. Lyu}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{Eadro}: An End-to-End Troubleshooting Framework
+  for Microservices on Multi-source Data}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 45th International Conference on
+  Software Engineering (ICSE)}}. \bibinfo{pages}{1750--1762}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ICSE48619.2023.00150}
+\showDOI{\tempurl}
+\newblock
+\shownote{Multi-source (traces + logs + KPIs) anomaly detection and root-cause
+  localization. HR@1 baseline reference.}.
+
+
+\bibitem[Li et~al\mbox{.}(2023)]%
+        {li_halueval_2023}
+\bibfield{author}{\bibinfo{person}{Junyi Li}, \bibinfo{person}{Xiaoxue Cheng},
+  \bibinfo{person}{Wayne~Xin Zhao}, \bibinfo{person}{Jian-Yun Nie}, {and}
+  \bibinfo{person}{Ji-Rong Wen}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{HaluEval}: A Large-Scale Hallucination Evaluation
+  Benchmark for Large Language Models}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 2023 Conference on Empirical
+  Methods in Natural Language Processing (EMNLP)}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2305.11747}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{35K hallucinated-vs-grounded text pairs; benchmark used to calibrate
+  LLM-as-judge protocols. Complements FaithJudge (tamber_faithjudge_2025).}.
+
+
+\bibitem[Liang et~al\mbox{.}(2023)]%
+        {liang_helm_2023}
+\bibfield{author}{\bibinfo{person}{Percy Liang}, \bibinfo{person}{Rishi
+  Bommasani}, \bibinfo{person}{Tony Lee}, \bibinfo{person}{Dimitris Tsipras},
+  \bibinfo{person}{Dilara Soylu}, \bibinfo{person}{Michihiro Yasunaga},
+  \bibinfo{person}{Yian Zhang}, \bibinfo{person}{Deepak Narayanan},
+  \bibinfo{person}{Yuhuai Wu}, \bibinfo{person}{Ananya Kumar}, {et~al\mbox{.}}}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Holistic Evaluation of Language Models}.
+\newblock \bibinfo{journal}{\emph{Annals of the New York Academy of Sciences}}
+  (\bibinfo{year}{2023}).
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1111/nyas.15007}
+\showDOI{\tempurl}
+\newblock
+\shownote{Stanford CRFM HELM framework: 16 scenarios x 7 metrics across 30
+  models. Methodological precedent for our multi-metric, multi-LLM evaluation
+  grid.}.
+
+
+\bibitem[{LitmusChaos Authors} and {Cloud Native Computing Foundation}(2026)]%
+        {litmus_chaos_cncf}
+\bibfield{author}{\bibinfo{person}{{LitmusChaos Authors}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Litmus --- Cloud-Native Chaos Engineering Platform}.
+\newblock \bibinfo{howpublished}{CNCF incubating project}.
+\newblock
+\urldef\tempurl%
+\url{https://litmuschaos.io/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Kubernetes-native chaos engineering via CRDs; relevant prior art for
+  fault injection in cloud-native environments.}.
+
+
+\bibitem[Manakul et~al\mbox{.}(2023)]%
+        {manakul_selfcheckgpt_2023}
+\bibfield{author}{\bibinfo{person}{Potsawee Manakul}, \bibinfo{person}{Adian
+  Liusie}, {and} \bibinfo{person}{Mark J.~F. Gales}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{SelfCheckGPT}: Zero-Resource Black-Box
+  Hallucination Detection for Generative Large Language Models}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 2023 Conference on Empirical
+  Methods in Natural Language Processing (EMNLP)}}.
+\newblock
+\urldef\tempurl%
+\url{https://aclanthology.org/2023.emnlp-main.557/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Sample-consistency hallucination detection without external
+  knowledge. Methodological precedent for the multi-sample LLM-judge protocol
+  in analysis-plan.md RQ4.}.
+
+
+\bibitem[Manchanda et~al\mbox{.}(2024)]%
+        {llm_open_advantage}
+\bibfield{author}{\bibinfo{person}{Jiya Manchanda}, \bibinfo{person}{Laura
+  Boettcher}, \bibinfo{person}{Matheus Westphalen}, {and}
+  \bibinfo{person}{Jasser Jasser}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \bibinfo{title}{The Open Source Advantage in Large Language Models}.
+\newblock
+\newblock
+\showeprint[arxiv]{2412.12004}~[cs.CL]
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2412.12004}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Reproducibility argument for including an open-weights LLM (Llama
+  3.3) alongside the closed-source baseline. Cited in llm-selection.md.}.
+
+
+\bibitem[McHugh(2012)]%
+        {mchugh_kappa_2012}
+\bibfield{author}{\bibinfo{person}{Mary~L. McHugh}.}
+  \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{Interrater Reliability: The Kappa Statistic}.
+\newblock \bibinfo{journal}{\emph{Biochemia Medica}} \bibinfo{volume}{22},
+  \bibinfo{number}{3} (\bibinfo{year}{2012}), \bibinfo{pages}{276--282}.
+\newblock
+\urldef\tempurl%
+\url{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3900052/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Source of the kappa interpretation thresholds used as the
+  annotator-agreement floor in analysis-plan.md Section5.}.
+
+
+\bibitem[Moreau et~al\mbox{.}(2013)]%
+        {w3c_prov_dm}
+\bibfield{author}{\bibinfo{person}{Luc Moreau}, \bibinfo{person}{Paolo
+  Missier}, {et~al\mbox{.}}} \bibinfo{year}{2013}\natexlab{}.
+\newblock \bibinfo{title}{{PROV-DM}: The {PROV} Data Model}.
+\newblock \bibinfo{howpublished}{W3C Recommendation}.
+\newblock
+\urldef\tempurl%
+\url{https://www.w3.org/TR/prov-dm/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Nguyen et~al\mbox{.}(2011)]%
+        {pal_2011}
+\bibfield{author}{\bibinfo{person}{Hiep Nguyen}, \bibinfo{person}{Yongmin Tan},
+  {and} \bibinfo{person}{Xiaohui Gu}.} \bibinfo{year}{2011}\natexlab{}.
+\newblock \showarticletitle{{PAL}: Propagation-aware Anomaly Localization for
+  Cloud Hosted Distributed Applications}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the Managing Large-scale Systems via
+  the Analysis of System Logs and the Application of Machine Learning
+  Techniques workshop (SLAML)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/2038633.2038634}
+\showDOI{\tempurl}
+\newblock
+\shownote{Application-agnostic anomaly localization via critical change point
+  ordering across components; classical reference in distributed-system RCA
+  literature.}.
+
+
+\bibitem[{Okteto}(2026)]%
+        {okteto_preview_envs}
+\bibfield{author}{\bibinfo{person}{{Okteto}}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Preview Environments}.
+\newblock \bibinfo{howpublished}{Okteto Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://www.okteto.com/docs/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[{OpenTelemetry Authors / CNCF}(2026a)]%
+        {opentelemetry_docs}
+\bibfield{author}{\bibinfo{person}{{OpenTelemetry Authors / CNCF}}.}
+  \bibinfo{year}{2026}\natexlab{a}.
+\newblock \bibinfo{title}{OpenTelemetry Documentation}.
+\newblock \bibinfo{howpublished}{opentelemetry.io}.
+\newblock
+\urldef\tempurl%
+\url{https://opentelemetry.io/docs/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Logs, metrics, traces; semantic conventions.}.
+
+
+\bibitem[{OpenTelemetry Authors / CNCF}(2026b)]%
+        {opentelemetry_operator}
+\bibfield{author}{\bibinfo{person}{{OpenTelemetry Authors / CNCF}}.}
+  \bibinfo{year}{2026}\natexlab{b}.
+\newblock \bibinfo{title}{OpenTelemetry Operator for Kubernetes}.
+\newblock \bibinfo{howpublished}{GitHub:
+  open-telemetry/opentelemetry-operator}.
+\newblock
+\urldef\tempurl%
+\url{https://github.com/open-telemetry/opentelemetry-operator}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Auto-instrumentation via the Instrumentation custom resource.}.
+
+
+\bibitem[{Operator Framework Maintainers} and {Cloud Native Computing
+  Foundation}(2026)]%
+        {operator_sdk_cncf}
+\bibfield{author}{\bibinfo{person}{{Operator Framework Maintainers}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Operator Framework / Operator {SDK}}.
+\newblock \bibinfo{howpublished}{CNCF incubating project}.
+\newblock
+\urldef\tempurl%
+\url{https://operatorframework.io/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Red Hat / CoreOS-originated framework for operator-pattern Kubernetes
+  extensions; cited alongside Kubebuilder in the operator-pattern lineage.}.
+
+
+\bibitem[Pham et~al\mbox{.}(2025)]%
+        {rcaeval_2024}
+\bibfield{author}{\bibinfo{person}{Luan Pham}, \bibinfo{person}{Hongyu Zhang},
+  \bibinfo{person}{Huong Ha}, \bibinfo{person}{Flora Salim}, {and}
+  \bibinfo{person}{Xiuzhen Zhang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{RCAEval}: A Benchmark for Root Cause Analysis of
+  Microservice Systems with Telemetry Data}. In
+  \bibinfo{booktitle}{\emph{Companion Proceedings of the ACM Web Conference
+  (WWW Companion)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3701716.3715290}
+\showDOI{\tempurl}
+\newblock
+\shownote{735 failure cases across three microservice systems (Online Boutique,
+  Sock Shop, Train Ticket); benchmark suites RE1/RE2/RE3; reports Top-k
+  accuracy, Avg@5, MRR. arXiv submitted 2024-12-22.}.
+
+
+\bibitem[{Prometheus Authors} and {Cloud Native Computing Foundation}(2026)]%
+        {prometheus_cncf}
+\bibfield{author}{\bibinfo{person}{{Prometheus Authors}} {and}
+  \bibinfo{person}{{Cloud Native Computing Foundation}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Prometheus --- Monitoring System and Time-Series
+  Database}.
+\newblock \bibinfo{howpublished}{CNCF graduated project}.
+\newblock
+\urldef\tempurl%
+\url{https://prometheus.io/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{De facto Kubernetes metrics monitoring stack; cited as the
+  metrics-evidence collection precedent for CollectionOverhead measurement.}.
+
+
+\bibitem[{Robusta Dev}(2026)]%
+        {holmesgpt_robusta}
+\bibfield{author}{\bibinfo{person}{{Robusta Dev}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{{HolmesGPT}: AI Agent for Kubernetes
+  Troubleshooting}.
+\newblock \bibinfo{howpublished}{Open-source project}.
+\newblock
+\urldef\tempurl%
+\url{https://github.com/robusta-dev/holmesgpt}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Open-source agentic ReAct-pattern Kubernetes diagnosis tool. Cited
+  alongside K8sGPT and Kagent in analysis-plan.md Section8 as a contemporary
+  practitioner baseline.}.
+
+
+\bibitem[Runeson and H{\"o}st(2009)]%
+        {runeson_host_2009}
+\bibfield{author}{\bibinfo{person}{Per Runeson} {and} \bibinfo{person}{Martin
+  H{\"o}st}.} \bibinfo{year}{2009}\natexlab{}.
+\newblock \showarticletitle{Guidelines for Conducting and Reporting Case Study
+  Research in Software Engineering}.
+\newblock \bibinfo{journal}{\emph{Empirical Software Engineering}}
+  \bibinfo{volume}{14}, \bibinfo{number}{2} (\bibinfo{year}{2009}),
+  \bibinfo{pages}{131--164}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/s10664-008-9102-8}
+\showDOI{\tempurl}
+\newblock
+\shownote{Companion to Kitchenham 2002 for case-study methodology; cited in
+  threats-to-validity.md.}.
+
+
+\bibitem[Schick et~al\mbox{.}(2023)]%
+        {schick_toolformer_2023}
+\bibfield{author}{\bibinfo{person}{Timo Schick}, \bibinfo{person}{Jane
+  Dwivedi-Yu}, \bibinfo{person}{Roberto Dess{\`i}}, \bibinfo{person}{Roberta
+  Raileanu}, \bibinfo{person}{Maria Lomeli}, \bibinfo{person}{Eric Hambro},
+  \bibinfo{person}{Luke Zettlemoyer}, \bibinfo{person}{Nicola Cancedda}, {and}
+  \bibinfo{person}{Thomas Scialom}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Toolformer: Language Models Can Teach Themselves to
+  Use Tools}. In \bibinfo{booktitle}{\emph{Advances in Neural Information
+  Processing Systems 36 (NeurIPS)}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2302.04761}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Self-supervised tool-use training. Cited for the agentic-tool-use
+  lineage that HolmesGPT/Kagent build on.}.
+
+
+\bibitem[Schwarzkopf et~al\mbox{.}(2013)]%
+        {omega_2013}
+\bibfield{author}{\bibinfo{person}{Malte Schwarzkopf}, \bibinfo{person}{Andy
+  Konwinski}, \bibinfo{person}{Michael Abd-El-Malek}, {and}
+  \bibinfo{person}{John Wilkes}.} \bibinfo{year}{2013}\natexlab{}.
+\newblock \showarticletitle{Omega: Flexible, Scalable Schedulers for Large
+  Compute Clusters}. In \bibinfo{booktitle}{\emph{Proceedings of the 8th
+  European Conference on Computer Systems (EuroSys)}}.
+  \bibinfo{pages}{351--364}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/2465351.2465386}
+\showDOI{\tempurl}
+\newblock
+\shownote{Shared-state cluster scheduler; cited alongside Borg/Mesos in the
+  orchestration lineage.}.
+
+
+\bibitem[Shi et~al\mbox{.}(2024)]%
+        {shi_position_bias_2024}
+\bibfield{author}{\bibinfo{person}{Lin Shi}, \bibinfo{person}{Chiyu Ma},
+  \bibinfo{person}{Wenhua Liang}, \bibinfo{person}{Xingjian Diao},
+  \bibinfo{person}{Weicheng Ma}, {and} \bibinfo{person}{Soroush Vosoughi}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \bibinfo{title}{Judging the Judges: A Systematic Study of Position
+  Bias in {LLM}-as-a-Judge}.
+\newblock
+\newblock
+\showeprint[arxiv]{2406.07791}~[cs.CL]
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2406.07791}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{15 LLM judges, ~150 000 evaluations: position bias can shift accuracy
+  >10\% on pairwise code judging. Source of the LLM-as-judge bias controls in
+  analysis-plan.md RQ4.}.
+
+
+\bibitem[Sigelman et~al\mbox{.}(2010)]%
+        {dapper_2010}
+\bibfield{author}{\bibinfo{person}{Benjamin~H. Sigelman},
+  \bibinfo{person}{Luiz~Andr{\'e} Barroso}, \bibinfo{person}{Mike Burrows},
+  \bibinfo{person}{Pat Stephenson}, \bibinfo{person}{Manoj Plakal},
+  \bibinfo{person}{Daniel Beaver}, \bibinfo{person}{Saul Jaspan}, {and}
+  \bibinfo{person}{Chandan Shanbhag}.} \bibinfo{year}{2010}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{Dapper, a Large-Scale Distributed Systems
+  Tracing Infrastructure}}.
+\newblock \bibinfo{type}{{T}echnical {R}eport} dapper-2010-1.
+  \bibinfo{institution}{Google}.
+\newblock
+\urldef\tempurl%
+\url{https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Foundational paper for span-based distributed tracing; intellectual
+  basis for OpenTracing -> OpenTelemetry.}.
+
+
+\bibitem[{Signadot}(2026)]%
+        {signadot_preview_envs}
+\bibfield{author}{\bibinfo{person}{{Signadot}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Preview Environments / Sandboxes}.
+\newblock \bibinfo{howpublished}{Signadot Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://www.signadot.com/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Sj{\o}berg et~al\mbox{.}(2005)]%
+        {sjoberg_2005}
+\bibfield{author}{\bibinfo{person}{Dag I.~K. Sj{\o}berg},
+  \bibinfo{person}{Jo~E. Hannay}, \bibinfo{person}{Ove Hansen},
+  \bibinfo{person}{Vigdis~By Kampenes}, \bibinfo{person}{Amela
+  Karahasanovi{\'c}}, \bibinfo{person}{Nils-Kristian Liborg}, {and}
+  \bibinfo{person}{Anette~C. Rekdal}.} \bibinfo{year}{2005}\natexlab{}.
+\newblock \showarticletitle{A Survey of Controlled Experiments in Software
+  Engineering}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Software Engineering}}
+  \bibinfo{volume}{31}, \bibinfo{number}{9} (\bibinfo{year}{2005}),
+  \bibinfo{pages}{733--753}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/TSE.2005.97}
+\showDOI{\tempurl}
+\newblock
+\shownote{Quantitative survey of 103 controlled experiments in 12 leading SE
+  venues over 1993--2002. Reference for the baseline rate of
+  controlled-experiment reporting in SE.}.
+
+
+\bibitem[Tamber et~al\mbox{.}(2025)]%
+        {tamber_faithjudge_2025}
+\bibfield{author}{\bibinfo{person}{Manveer~Singh Tamber},
+  \bibinfo{person}{Forrest~Sheng Bao}, \bibinfo{person}{Chenyu Xu},
+  \bibinfo{person}{Ge Luo}, \bibinfo{person}{Suleman Kazi},
+  \bibinfo{person}{Minseok Bae}, \bibinfo{person}{Miaoran Li},
+  \bibinfo{person}{Ofer Mendelevitch}, \bibinfo{person}{Renyi Qu}, {and}
+  \bibinfo{person}{Jimmy Lin}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Benchmarking {LLM} Faithfulness in {RAG} with
+  Evolving Leaderboards}.
+\newblock
+\newblock
+\showeprint[arxiv]{2505.04847}~[cs.CL]
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2505.04847}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{FaithJudge LLM-as-judge framework for hallucination/faithfulness
+  evaluation. Framing reference for HallucinationRate in analysis-plan.md
+  RQ4.}.
+
+
+\bibitem[{The Istio Authors}(2026)]%
+        {istio_service_mesh}
+\bibfield{author}{\bibinfo{person}{{The Istio Authors}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Istio --- An Open Source Service Mesh}.
+\newblock \bibinfo{howpublished}{Open-source project (Google, IBM, Lyft)}.
+\newblock
+\urldef\tempurl%
+\url{https://istio.io/latest/about/service-mesh/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Sidecar-based service mesh with traffic management, security, and
+  observability for microservices. Cited as the observability substrate
+  available to the preview-operator in AKS deployments.}.
+
+
+\bibitem[{The Kubernetes Authors}(2026a)]%
+        {kubernetes_controller_concepts}
+\bibfield{author}{\bibinfo{person}{{The Kubernetes Authors}}.}
+  \bibinfo{year}{2026}\natexlab{a}.
+\newblock \bibinfo{title}{Controllers}.
+\newblock \bibinfo{howpublished}{Kubernetes Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://kubernetes.io/docs/concepts/architecture/controller/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Reconciliation / control loop concept. URL verified reachable
+  2026-05-22; page title "Controllers" confirmed. Living document; year set to
+  access year.}.
+
+
+\bibitem[{The Kubernetes Authors}(2026b)]%
+        {kubernetes_custom_resources}
+\bibfield{author}{\bibinfo{person}{{The Kubernetes Authors}}.}
+  \bibinfo{year}{2026}\natexlab{b}.
+\newblock \bibinfo{title}{Custom Resources}.
+\newblock \bibinfo{howpublished}{Kubernetes Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Concepts: Custom Resource Definitions (CRDs). URL verified reachable
+  2026-05-22; page title "Custom Resources" confirmed. Living document; year
+  set to access year.}.
+
+
+\bibitem[{The Kubernetes Authors}(2026c)]%
+        {kubernetes_finalizers}
+\bibfield{author}{\bibinfo{person}{{The Kubernetes Authors}}.}
+  \bibinfo{year}{2026}\natexlab{c}.
+\newblock \bibinfo{title}{Finalizers}.
+\newblock \bibinfo{howpublished}{Kubernetes Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Pre-deletion cleanup hook used to sequence evidence persistence. URL
+  verified reachable 2026-05-22; page title "Finalizers" confirmed. Living
+  document; year set to access year.}.
+
+
+\bibitem[{The Kubernetes Authors}(2026d)]%
+        {kubernetes_jobs}
+\bibfield{author}{\bibinfo{person}{{The Kubernetes Authors}}.}
+  \bibinfo{year}{2026}\natexlab{d}.
+\newblock \bibinfo{title}{Jobs}.
+\newblock \bibinfo{howpublished}{Kubernetes Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://kubernetes.io/docs/concepts/workloads/controllers/job/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Run-to-completion workload pattern; standard for migration / seed /
+  test jobs in the preview pipeline.}.
+
+
+\bibitem[{The Kubernetes Authors}(2026e)]%
+        {kubernetes_operator_pattern}
+\bibfield{author}{\bibinfo{person}{{The Kubernetes Authors}}.}
+  \bibinfo{year}{2026}\natexlab{e}.
+\newblock \bibinfo{title}{Operator pattern}.
+\newblock \bibinfo{howpublished}{Kubernetes Documentation}.
+\newblock
+\urldef\tempurl%
+\url{https://kubernetes.io/docs/concepts/extend-kubernetes/operator/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{URL verified reachable 2026-05-22; page title "Operator pattern"
+  confirmed. Living document; year set to access year.}.
+
+
+\bibitem[Vargha and Delaney(2000)]%
+        {vargha_delaney_2000}
+\bibfield{author}{\bibinfo{person}{Andr{\'a}s Vargha} {and}
+  \bibinfo{person}{Harold~D. Delaney}.} \bibinfo{year}{2000}\natexlab{}.
+\newblock \showarticletitle{A Critique and Improvement of the {CL} Common
+  Language Effect Size Statistics of {McGraw} and {Wong}}.
+\newblock \bibinfo{journal}{\emph{Journal of Educational and Behavioral
+  Statistics}} \bibinfo{volume}{25}, \bibinfo{number}{2}
+  (\bibinfo{year}{2000}), \bibinfo{pages}{101--132}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.3102/10769986025002101}
+\showDOI{\tempurl}
+\newblock
+\shownote{Source of the A12 effect-size measure and the small/medium/large
+  thresholds (0.56/0.64/0.71) adopted in analysis-plan.md Section5.}.
+
+
+\bibitem[Verma et~al\mbox{.}(2015)]%
+        {borg_2015}
+\bibfield{author}{\bibinfo{person}{Abhishek Verma}, \bibinfo{person}{Luis
+  Pedrosa}, \bibinfo{person}{Madhukar Korupolu}, \bibinfo{person}{David
+  Oppenheimer}, \bibinfo{person}{Eric Tune}, {and} \bibinfo{person}{John
+  Wilkes}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Large-scale Cluster Management at {Google} with
+  {Borg}}. In \bibinfo{booktitle}{\emph{Proceedings of the Tenth European
+  Conference on Computer Systems (EuroSys)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/2741948.2741964}
+\showDOI{\tempurl}
+\newblock
+\shownote{Borg system architecture; direct intellectual ancestor of Kubernetes.
+  Cited for the operator/controller design lineage.}.
+
+
+\bibitem[Wang et~al\mbox{.}(2023)]%
+        {wang_selfconsistency_2023}
+\bibfield{author}{\bibinfo{person}{Xuezhi Wang}, \bibinfo{person}{Jason Wei},
+  \bibinfo{person}{Dale Schuurmans}, \bibinfo{person}{Quoc Le},
+  \bibinfo{person}{Ed~H. Chi}, \bibinfo{person}{Sharan Narang},
+  \bibinfo{person}{Aakanksha Chowdhery}, {and} \bibinfo{person}{Denny Zhou}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Self-Consistency Improves Chain of Thought
+  Reasoning in Language Models}. In \bibinfo{booktitle}{\emph{Proceedings of
+  the Eleventh International Conference on Learning Representations (ICLR)}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2203.11171}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Multi-sample reasoning aggregation; relevant to discussions of
+  LLM-judge variance reduction in analysis-plan.md RQ4.}.
+
+
+\bibitem[Wei et~al\mbox{.}(2022)]%
+        {wei2022cot}
+\bibfield{author}{\bibinfo{person}{Jason Wei}, \bibinfo{person}{Xuezhi Wang},
+  \bibinfo{person}{Dale Schuurmans}, \bibinfo{person}{Maarten Bosma},
+  \bibinfo{person}{Brian Ichter}, \bibinfo{person}{Fei Xia},
+  \bibinfo{person}{Ed~H. Chi}, \bibinfo{person}{Quoc~V. Le}, {and}
+  \bibinfo{person}{Denny Zhou}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Chain-of-Thought Prompting Elicits Reasoning in
+  Large Language Models}. In \bibinfo{booktitle}{\emph{Advances in Neural
+  Information Processing Systems 35 ({NeurIPS})}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2201.11903}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Wilson(1927)]%
+        {wilson_score_ci}
+\bibfield{author}{\bibinfo{person}{Edwin~B. Wilson}.}
+  \bibinfo{year}{1927}\natexlab{}.
+\newblock \showarticletitle{Probable Inference, the Law of Succession, and
+  Statistical Inference}.
+\newblock \bibinfo{journal}{\emph{J. Amer. Statist. Assoc.}}
+  \bibinfo{volume}{22}, \bibinfo{number}{158} (\bibinfo{year}{1927}),
+  \bibinfo{pages}{209--212}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1080/01621459.1927.10502953}
+\showDOI{\tempurl}
+\newblock
+\shownote{Score-interval method used for all proportion CIs in metrics.md and
+  analysis-plan.md (better small-sample coverage than the Wald interval).}.
+
+
+\bibitem[Wohlin et~al\mbox{.}(2012)]%
+        {wohlin_experimentation}
+\bibfield{author}{\bibinfo{person}{Claes Wohlin}, \bibinfo{person}{Per
+  Runeson}, \bibinfo{person}{Martin H{\"o}st}, \bibinfo{person}{Magnus~C.
+  Ohlsson}, \bibinfo{person}{Bj{\"o}rn Regnell}, {and} \bibinfo{person}{Anders
+  Wessl{\'e}n}.} \bibinfo{year}{2012}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{Experimentation in Software Engineering}
+  (\bibinfo{edition}{2nd} ed.)}.
+\newblock \bibinfo{publisher}{Springer}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/978-3-642-29044-2}
+\showDOI{\tempurl}
+\newblock
+\shownote{Reference for the threats-to-validity taxonomy (conclusion / internal
+  / construct / external) used in threats-to-validity.md and analysis-plan.md
+  Section4 (Threats table).}.
+
+
+\bibitem[Wu et~al\mbox{.}(2021)]%
+        {microdiag_2021}
+\bibfield{author}{\bibinfo{person}{Li Wu}, \bibinfo{person}{Jasmin
+  Bogatinovski}, \bibinfo{person}{Sasho Nedelkoski}, \bibinfo{person}{Johan
+  Tordsson}, {and} \bibinfo{person}{Odej Kao}.}
+  \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Performance Diagnosis in Cloud Microservices Using
+  Deep Learning}. In \bibinfo{booktitle}{\emph{Service-Oriented Computing
+  (ICSOC) Workshops}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/978-3-030-76352-7_13}
+\showDOI{\tempurl}
+\newblock
+\shownote{Fine-grained root cause localization with DirectLiNGAM causal graphs
+  and PageRank. Cited in state-of-the-art microservice RCA.}.
+
+
+\bibitem[Wu et~al\mbox{.}(2020)]%
+        {microrca_2020}
+\bibfield{author}{\bibinfo{person}{Li Wu}, \bibinfo{person}{Johan Tordsson},
+  \bibinfo{person}{Erik Elmroth}, {and} \bibinfo{person}{Odej Kao}.}
+  \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{{MicroRCA}: Root Cause Localization of Performance
+  Issues in Microservices}. In \bibinfo{booktitle}{\emph{Proceedings of the
+  IEEE/IFIP Network Operations and Management Symposium (NOMS)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/NOMS47738.2020.9110353}
+\showDOI{\tempurl}
+\newblock
+\shownote{Application-agnostic root cause localization correlating performance
+  symptoms with system resource utilization; widely cited baseline in
+  microservice RCA.}.
+
+
+\bibitem[Xin et~al\mbox{.}(2023)]%
+        {causalrca_2023}
+\bibfield{author}{\bibinfo{person}{Ruyue Xin}, \bibinfo{person}{Peng Chen},
+  {and} \bibinfo{person}{Zhiming Zhao}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{CausalRCA}: Causal Inference Based Precise
+  Fine-Grained Root Cause Localization for Microservice Applications}.
+\newblock \bibinfo{journal}{\emph{Journal of Systems and Software}}
+  \bibinfo{volume}{203} (\bibinfo{year}{2023}).
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1016/j.jss.2023.111724}
+\showDOI{\tempurl}
+\newblock
+\shownote{Gradient-based variational autoencoder causal structure learning
+  (DAG-GNN) with PageRank for root-cause inference. Complements RCAEval/Eadro
+  as a causal-graph baseline in state-of-the-art.md.}.
+
+
+\bibitem[Xu et~al\mbox{.}(2025)]%
+        {openrca_2025}
+\bibfield{author}{\bibinfo{person}{Junjielong Xu}, \bibinfo{person}{Qinan
+  Zhang}, \bibinfo{person}{Zhiqing Zhong}, \bibinfo{person}{Shilin He},
+  \bibinfo{person}{Chaoyun Zhang}, \bibinfo{person}{Qingwei Lin},
+  \bibinfo{person}{Dan Pei}, \bibinfo{person}{Pinjia He},
+  \bibinfo{person}{Dongmei Zhang}, {and} \bibinfo{person}{Qi Zhang}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{OpenRCA}: Can Large Language Models Locate the
+  Root Cause of Software Failures?}. In \bibinfo{booktitle}{\emph{Proceedings
+  of the Thirteenth International Conference on Learning Representations
+  (ICLR)}}.
+\newblock
+\urldef\tempurl%
+\url{https://openreview.net/forum?id=M4qNIzQYpd}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{335 failures, >68 GB telemetry; reports Claude 3.5 best at 11.34\%
+  success --- the multi-LLM evaluation precedent cited by llm-selection.md.}.
+
+
+\bibitem[Yang et~al\mbox{.}(2018)]%
+        {yang_hotpotqa_2018}
+\bibfield{author}{\bibinfo{person}{Zhilin Yang}, \bibinfo{person}{Peng Qi},
+  \bibinfo{person}{Saizheng Zhang}, \bibinfo{person}{Yoshua Bengio},
+  \bibinfo{person}{William~W. Cohen}, \bibinfo{person}{Ruslan Salakhutdinov},
+  {and} \bibinfo{person}{Christopher~D. Manning}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{{HotpotQA}: A Dataset for Diverse, Explainable
+  Multi-hop Question Answering}. In \bibinfo{booktitle}{\emph{Proceedings of
+  the 2018 Conference on Empirical Methods in Natural Language Processing
+  (EMNLP)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.18653/v1/D18-1259}
+\showDOI{\tempurl}
+\newblock
+\shownote{Multi-hop QA dataset with required supporting-fact annotations; the
+  supporting-fact pattern is the QA-side analogue of our evidence-grounding
+  constraint.}.
+
+
+\bibitem[Yao et~al\mbox{.}(2023a)]%
+        {yao_tot_2023}
+\bibfield{author}{\bibinfo{person}{Shunyu Yao}, \bibinfo{person}{Dian Yu},
+  \bibinfo{person}{Jeffrey Zhao}, \bibinfo{person}{Izhak Shafran},
+  \bibinfo{person}{Thomas~L. Griffiths}, \bibinfo{person}{Yuan Cao}, {and}
+  \bibinfo{person}{Karthik Narasimhan}.} \bibinfo{year}{2023}\natexlab{a}.
+\newblock \showarticletitle{Tree of Thoughts: Deliberate Problem Solving with
+  Large Language Models}. In \bibinfo{booktitle}{\emph{Advances in Neural
+  Information Processing Systems 36 (NeurIPS)}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2305.10601}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Search-based deliberative reasoning over LLM thoughts; cited to
+  position our deterministic rule + LLM-grounded design vs frontier-style
+  deliberation.}.
+
+
+\bibitem[Yao et~al\mbox{.}(2023b)]%
+        {yao2023react}
+\bibfield{author}{\bibinfo{person}{Shunyu Yao}, \bibinfo{person}{Jeffrey Zhao},
+  \bibinfo{person}{Dian Yu}, \bibinfo{person}{Nan Du}, \bibinfo{person}{Izhak
+  Shafran}, \bibinfo{person}{Karthik~R. Narasimhan}, {and}
+  \bibinfo{person}{Yuan Cao}.} \bibinfo{year}{2023}\natexlab{b}.
+\newblock \showarticletitle{{ReAct}: Synergizing Reasoning and Acting in
+  Language Models}. In \bibinfo{booktitle}{\emph{The Eleventh International
+  Conference on Learning Representations ({ICLR})}}.
+\newblock
+\urldef\tempurl%
+\url{https://openreview.net/forum?id=WE_vluYUL-X}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Zeller and Hildebrandt(2002)]%
+        {zeller_delta_2002}
+\bibfield{author}{\bibinfo{person}{Andreas Zeller} {and} \bibinfo{person}{Ralf
+  Hildebrandt}.} \bibinfo{year}{2002}\natexlab{}.
+\newblock \showarticletitle{Simplifying and Isolating Failure-Inducing Input}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Software Engineering}}
+  \bibinfo{volume}{28}, \bibinfo{number}{2} (\bibinfo{year}{2002}),
+  \bibinfo{pages}{183--200}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/32.988498}
+\showDOI{\tempurl}
+\newblock
+\shownote{Delta debugging algorithm; intellectual ancestor of automated
+  bisecting failure-isolation techniques in software engineering.}.
+
+
+\bibitem[Zhang et~al\mbox{.}(2026)]%
+        {llm_apr_survey_2024}
+\bibfield{author}{\bibinfo{person}{Quanjun Zhang}, \bibinfo{person}{Chunrong
+  Fang}, \bibinfo{person}{Bowen Yu}, \bibinfo{person}{Weisong Sun},
+  \bibinfo{person}{Tongke Zhang}, {and} \bibinfo{person}{Zhenyu Chen}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{A Systematic Literature Review on Large Language
+  Models for Automated Program Repair}.
+\newblock \bibinfo{journal}{\emph{ACM Transactions on Software Engineering and
+  Methodology (TOSEM)}} (\bibinfo{year}{2026}).
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2405.01466}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{189 papers (2020--2025) on LLM-APR; cited as state-of-the-art
+  positioning for the LLM-diagnostic step.}.
+
+
+\bibitem[Zhang et~al\mbox{.}(2025)]%
+        {zhang_microservice_diagnosis_survey_2025}
+\bibfield{author}{\bibinfo{person}{Shenglin Zhang}, \bibinfo{person}{Sibo Xia},
+  \bibinfo{person}{Wenzhao Fan}, \bibinfo{person}{Binpeng Shi},
+  \bibinfo{person}{Xiao Xiong}, \bibinfo{person}{Zhenyu Zhong},
+  \bibinfo{person}{Minghua Ma}, \bibinfo{person}{Yongqian Sun}, {and}
+  \bibinfo{person}{Dan Pei}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Failure Diagnosis in Microservice Systems: A
+  Comprehensive Survey and Analysis}.
+\newblock \bibinfo{journal}{\emph{ACM Transactions on Software Engineering and
+  Methodology}} \bibinfo{volume}{35}, \bibinfo{number}{1}
+  (\bibinfo{year}{2025}), \bibinfo{pages}{1--55}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3715005}
+\showDOI{\tempurl}
+\newblock
+\shownote{Survey taxonomy of failure-diagnosis techniques by data class (logs,
+  metrics, traces, multimodal). Central reference for state-of-the-art.md
+  positioning of operator-captured evidence.}.
+
+
+\bibitem[Zhu et~al\mbox{.}(2023)]%
+        {loghub_2023}
+\bibfield{author}{\bibinfo{person}{Jieming Zhu}, \bibinfo{person}{Shilin He},
+  \bibinfo{person}{Pinjia He}, \bibinfo{person}{Jinyang Liu}, {and}
+  \bibinfo{person}{Michael~R. Lyu}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Loghub: A Large Collection of System Log Datasets
+  for {AI}-driven Log Analytics}. In \bibinfo{booktitle}{\emph{Proceedings of
+  the IEEE 34th International Symposium on Software Reliability Engineering
+  (ISSRE)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ISSRE59848.2023.00071}
+\showDOI{\tempurl}
+\newblock
+\shownote{HDFS, BGL, Thunderbird and other benchmark log datasets used by every
+  modern log-anomaly paper.}.
+
+
+\end{thebibliography}
