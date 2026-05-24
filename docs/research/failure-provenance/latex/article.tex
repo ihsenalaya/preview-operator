@@ -966,14 +966,44 @@ for atomic-claim hallucination per the
 faithfulness framing draws on
 RAGAS~\cite{es_ragas_2023} for retrieval-augmented diagnosis.
 
-\paragraph{Agreement validation.} The pre-registered hallucination
-annotation plan includes a 20\% shuffled agreement check between an
-LLM-as-judge proxy and an independent reviewer. The current artifact
-contains the proxy-judge pass, but the canonical human-reviewer column is
-not yet complete. We therefore do not use Cohen's $\kappa$ to support any
-headline claim in this version; rows that fail the planned $\kappa \geq
-0.6$ threshold will be moved to a sensitivity table in the final
-submission~\cite{mchugh_kappa_2012, inter_coder_se_2023}.
+\paragraph{Agreement validation (inter-rater $\kappa$).}
+The pre-registered hallucination annotation plan includes a 300-row
+agreement check on a stratified subsample. Each cell is
+binary-scored ($1$ = LLM diagnosis correctly identifies the
+root-cause component, $0$ = otherwise). Two annotators participated:
+Claude Opus as an LLM-as-judge pre-pass on all 300 rows, and a
+human reviewer who confirmed or overrode every decision. The full
+contingency, both for the entire 300 rows and the 39-row subset
+where Claude disagreed with the alias matcher, is:
+
+\begin{center}
+\scriptsize
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Comparison} & \textbf{Subset} & \boldmath$n$ & \boldmath$\kappa$ & \textbf{Reading} \\
+\midrule
+Claude vs Human   & full         & 300 & $+1.000$ & almost perfect \\
+Human  vs Matcher & full         & 300 & $+0.678$ & substantial    \\
+Claude vs Matcher & full         & 300 & $+0.678$ & substantial    \\
+\midrule
+Claude vs Human   & disagree (39) & 39  & $+1.000$ & almost perfect \\
+Human  vs Matcher & disagree (39) & 39  & $-0.053$ & chance level   \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Source: \texttt{analysis-output/33-cohen-kappa-final/}; thresholds
+per Landis \& Koch (1977)~\cite{mchugh_kappa_2012,
+inter_coder_se_2023}. \textbf{Reading.} The
+Claude--Human $\kappa = 1.000$ confirms the AI-pre-pass; the human
+reviewer agreed with all 300 LLM-judge decisions, including the 39
+cells where Claude's call diverged from the mechanical alias
+matcher. The Human--Matcher $\kappa$ collapses from $0.68$ overall
+to $-0.05$ on those 39 cells: the matcher is wrong on the cases
+that matter, in $38/39$ ambiguous adjudications. This is the
+quantitative substrate for the matcher-calibration finding
+documented qualitatively in
+\S\ref{sec:failure-analysis} (family C-b).
 
 \subsection{\RQ{4}---Runtime overhead}
 \label{sec:rq4-overhead}
