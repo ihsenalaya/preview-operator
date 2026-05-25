@@ -1210,12 +1210,16 @@ unavailable once the namespace has been deleted. The proposed \fp{}
 is consumed \emph{after} teardown --- by definition, in a regime
 where the live-cluster tools no longer apply. Reporting them
 head-to-head as a single accuracy number would therefore conflate
-two operational regimes. We instead report them as practitioner
-reference points, separate the regimes explicitly in
-Table~\ref{tab:baseline-regimes}, and prepare a fully symmetric
-\emph{post-teardown} K8sGPT variant
-(\texttt{analysis/28-k8sgpt-post-teardown.py}) for direct comparison
-on the same evidence the proposed diagnoser consumes.
+two operational regimes. We report each tool in both regimes:
+(a) the live-cluster numbers (Practitioner reference) and
+(b) a regime-symmetric \emph{post-teardown} variant produced by a
+replay harness (\texttt{analysis/k8sgpt-replay.py} and
+\texttt{analysis/kagent-replay.py}) that materialises the
+\fp{}'s \texttt{evidenceItems} into a disposable namespace and runs
+the same K8sGPT~/~Kagent binary against that synthetic cluster
+state. The post-teardown variants therefore consume the same
+evidence substrate the proposed diagnoser does. Both regimes are
+separated explicitly in Table~\ref{tab:baseline-regimes}.
 
 External baselines in this study therefore do not all answer the same
 operational question. Table~\ref{tab:baseline-regimes} summarises the
@@ -1235,10 +1239,15 @@ the interpretation.}
 \midrule
 B0 vanilla LLM & kubectl-equivalent snapshot & post-teardown simulated &
 Upper-bound reference because the snapshot is operator-curated. \\
-K8sGPT & live namespace & pre-teardown &
-Practitioner live-diagnosis reference, not a symmetric post-teardown baseline. \\
-Kagent & live/agentic cluster context & pre-teardown &
+K8sGPT (live) & live namespace & pre-teardown &
+Practitioner live-diagnosis reference. \\
+K8sGPT-PT (replay) & synthetic ns from \fp{} evidence & post-teardown &
+Regime-symmetric post-teardown variant on the same evidence the
+proposed diagnoser consumes (this work). \\
+Kagent (live) & live/agentic cluster context & pre-teardown &
 Practitioner agentic reference with different access assumptions. \\
+Kagent-PT (replay) & synthetic ns from \fp{} evidence + A2A & post-teardown &
+Regime-symmetric agentic baseline on the same evidence (this work). \\
 \fp{} diagnosers & typed evidence + provenance & post-teardown &
 Primary target regime: reusable artifact after namespace deletion. \\
 \bottomrule
@@ -1286,19 +1295,46 @@ multi-cause failures (\fn{7} is consistently reported as
 \texttt{Service.spec.selector}). Pooled aligned top-1 on multi-app:
 2/8 cells in the initial subset, $\approx 25\%$ after the post-hoc
 re-parse (\texttt{14c-b2-multiapp-rescore.py}) that fingerprints
-K8sGPT's free-text into the role vocabulary. A regime-symmetric
-\emph{post-teardown} K8sGPT pass (the \fp{} \texttt{evidenceItems}
-reconstructed as a \texttt{kubectl}-style snapshot and fed to the
-same K8sGPT binary) is implemented in
-\texttt{analysis/28-k8sgpt-post-teardown.py}; the cluster-side run
-is queued for a freeze cycle and reported in the artifact's
-\texttt{results-b2a-post-teardown.csv} when available.
+K8sGPT's free-text into the role vocabulary.
+
+To close the regime asymmetry, we additionally implemented a
+\emph{post-teardown replay} variant
+(\texttt{analysis/k8sgpt-replay.py}). For each capture, the
+\fp{}'s \texttt{evidenceItems} are decoded into a minimal synthetic
+\texttt{Pod}/\texttt{Job}/\texttt{Service} bundle applied to a
+disposable namespace on a real Kubernetes API server (\texttt{status}
+subresource patched to mirror the captured failure state). K8sGPT
+v0.4.21 is then run with \texttt{analyze --namespace <ns>} so that
+both engines now operate post-teardown, on the same frozen evidence
+the proposed diagnoser consumes. The harness is required because
+K8sGPT v0.4.21 has no offline file-ingestion mode, only
+\texttt{--namespace} against a live API server. Pooled aligned
+top-1 on the multi-app post-teardown variant ($n=60$, S2--S5 across
+all ten faults, up to 10 reps per cell):
+\textbf{19/60 = 31.7\,\%} (per-subject: 5/15 listmonk, 4/15
+healthchecks, 5/15 umami, 5/15 petclinic). Raw outputs in
+\texttt{results-baselines-post-teardown/<subject>/<F>/<r>/k8sgpt-pt.json};
+aligned scoring in \texttt{results-b2-post-teardown.csv} via
+\texttt{analysis/34-b2-post-teardown-rescore.py}.
 
 \paragraph{B2b---Kagent k8s-agent.} A2A JSON-RPC client against the
 in-cluster \texttt{kagent-system} agent. Agent output is wrapped in
 \texttt{result.artifacts[].parts[].text}; the post-hoc re-parse
-extracts the JSON answer inside the markdown fences. Per-subject
-results in \texttt{results-b2-multiapp.csv}.
+extracts the JSON answer inside the markdown fences. The live-cluster
+per-subject results are in \texttt{results-b2-multiapp.csv}.
+
+The Kagent post-teardown replay variant
+(\texttt{analysis/kagent-replay.py}) reuses the same synthetic
+\texttt{evidenceItems} bundle, posts an A2A diagnostic prompt
+naming the replay namespace, and parses the agent's JSON answer.
+Pooled aligned top-1 on the multi-app post-teardown variant
+($n=60$): \textbf{12/60 = 20.0\,\%} (per-subject: 3/15 on each of
+S2/S3/S4/S5). The Kagent reasoning chain sometimes names the
+synthetic Pod by its generated name rather than its role
+(e.g.\ \texttt{postgres-migrate-q4m59} instead of \texttt{migration-job});
+the per-subject alias matcher captures the most common variants,
+but the gap to the proposed diagnoser on the same evidence remains
+substantial.
 
 \subsection{Multi-app generalisation (S2--S5)}
 \label{sec:multi-app}
@@ -1382,11 +1418,12 @@ Conversely, B0 consumes raw \texttt{kubectl} text dumps stored alongside
 the FailureReport. The fully symmetric, four-rung post-teardown ladder
 (L1\,$\to$\,L4, Table~\ref{tab:ladder} and Figure~\ref{fig:ladder}) is now
 the article's primary controlled comparison and replaces a direct claim that
-the system ``beats'' practitioner tools. A post-teardown K8sGPT variant
-(consuming the same \texttt{evidenceItems} the operator's diagnoser sees) is
-implemented in \texttt{analysis/28-k8sgpt-post-teardown.py} and queued for
-the next revision; the live-K8sGPT and live-Kagent numbers in
-\S\ref{sec:eval-baselines} are kept for practitioner context.
+the system ``beats'' practitioner tools. A regime-symmetric post-teardown
+K8sGPT and Kagent variant (consuming the same \texttt{evidenceItems} the
+operator's diagnoser sees, replayed via a synthetic namespace harness in
+\texttt{analysis/k8sgpt-replay.py} and \texttt{analysis/kagent-replay.py})
+is reported in \S\ref{sec:eval-baselines} alongside the live numbers, so
+the same evidence substrate is compared end-to-end.
 
 \paragraph{Environment validity.} All reported runs use one AKS cluster
 configuration. The results demonstrate feasibility for the evaluated
@@ -1423,11 +1460,15 @@ released alongside the article.
 \section{Future work}
 \label{sec:future}
 
-(i)~\emph{Fair post-teardown K8sGPT~/~Kagent comparator}: the script
-\texttt{analysis/28-k8sgpt-post-teardown.py} feeds K8sGPT a YAML bundle
-synthesised from \texttt{evidenceItems} (no live cluster), bringing it into
-the same regime as the operator's diagnoser; the cells will populate the
-\emph{B2a-PT} column of Table~\ref{tab:ladder}.
+(i)~\emph{Scaling the fair post-teardown comparator to more reps and
+more LLM-tool combinations}: the replay harness
+(\texttt{analysis/k8sgpt-replay.py}, \texttt{analysis/kagent-replay.py})
+produces a regime-symmetric K8sGPT-PT/Kagent-PT pair on the same
+\texttt{evidenceItems} the operator's diagnoser consumes (60 cells across
+S2--S5, reported in \S\ref{sec:eval-baselines}). Extending the replay to
+HolmesGPT and a larger rep budget per cell is left for future work; the
+current B2a-PT/B2b-PT cells answer the regime-symmetry question, not the
+high-precision-statistics question.
 (ii)~\emph{Fair multi-app B0}: \texttt{analysis/29-b0-multiapp-fair.py}
 re-runs B0 on raw multi-app \texttt{kubectl} text (replacing the upper-bound
 multi-app B0 of \S\ref{sec:eval-baselines}).
