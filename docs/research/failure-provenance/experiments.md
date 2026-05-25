@@ -354,3 +354,52 @@ operator's own diagnoser. The work-units below are tracked in
 The article's §5.8 B2a-PT and B2b-PT paragraphs and the cross-subject
 pooled table (`tab:multi-engine-pooled`) now report five-subject
 numbers; the figures are referenced from §sec:multi-app.
+
+### Phase 5e/5f — rep-parity backfill for S2--S5 (2026-05-25 13:00--17:00)
+
+A post-Phase-5c audit revealed that S2--S5 still carried 7 reps for
+the fault subset $\{F1, F2, F3, F6, F7\}$ versus 10 reps for S1 ---
+a residue of the option-A refactor of 2026-05-23. Phase 5e + 5f
+close this 60-cell gap so the per-fault $n$ is uniform across
+subjects.
+
+1. **Phase 5e capture backfill** (`/tmp/backfill-missing-reps-v2.py`)
+   --- imports `multiapp/run-matrix.py`'s `run_unit()`, targets
+   exactly the 60 missing $(\textrm{subject}, F, r)$ tuples. v1 ran
+   with `REPORT_TIMEOUT_S=360` and lost F2/F3 to operator-side
+   capture latency; v2 with `REPORT_TIMEOUT_S=900` and concurrency 5
+   closed 46/60 in $\sim$55\,min (F1, F2, F6, F7 all OK; F3 still
+   timed out).
+2. **Full scoring on the new captures** (`/tmp/full-scoring.sh`) ---
+   one pass per engine $\times$ mode $\times$ level for the 46 new
+   reports: 5 levels $\times$ (rule-grounded + LLM-A grounded +
+   LLM-A freeform + LLM-B grounded + LLM-B freeform) $\times$ 46 =
+   1150 diag files. Pool A (`gpt-4o-mini`) at concurrency 10, pool B
+   (`cohere-command-a`) at concurrency 3 to honour TPM quotas.
+3. **F3 root-cause diagnosis + Phase 5f**
+   (`/tmp/backfill-f3-only.py`) --- manual probe (`pr-99999`) plus
+   operator-log inspection identified the operator's
+   `provisioningDeadline = 15 * time.Minute` as the only path to a
+   FailureReport when the migration Job pod sits in
+   `ImagePullBackOff` indefinitely. Phase 5f raises
+   `REPORT_TIMEOUT_S` to 1200\,s for a 5\,min margin and re-captures
+   the 12 remaining F3 cells, concurrency 3 (each cell takes
+   $\sim$15\,min wall-clock, total $\sim$80\,min for the four
+   batches).
+4. **K8sGPT-PT + Kagent-PT re-replay on the 46 new captures**
+   (`analysis/k8sgpt-replay.py --subset s2+s3+s4+s5 --max-reps 3
+   --force` + same for `kagent-replay.py`) --- forces re-processing
+   for the 120 $(\textrm{subject}, F, r)$ cells with $r \in \{1, 2,
+   3\}$ so the comparator outputs match the new captures.
+5. **Idempotent rescore re-run** ---
+   `35-unified-rescore.py`, `36-unified-figures.py`,
+   `34-b2-post-teardown-rescore.py`, `19-evidence-precision.py`,
+   `21-lmm.py`, `21c-glmm-logit-s1s5.py`, `22-tukey.py`,
+   `23-mcnemar.py`, `24-cd-diagrams.py`, `25-pareto.py`,
+   `30b-evidence-ladder-s1s5.py`, `17-multiapp-rescore.py` --- all
+   re-emit on the now-uniform 5-subject $\times$ 10-fault $\times$
+   $\leq$10-rep matrix.
+
+`threats-to-validity.md §9.3` documents the rep-parity backfill and
+the F3 operator-deadline finding. `PROGRESS.md` carries the per-step
+ticks (timestamped tour-de-table 12:35--17:00 UTC).

@@ -283,3 +283,28 @@ paragraphs are rewritten with the final five-subject pooled numbers,
 `overleaf.zip` is repacked. `PROGRESS.md` carries the 5-minute live
 ticks for the long-running Kagent replay; `experimentations.md §11`
 holds the full lab-notebook record of the campaign.
+
+## Phase 5e/5f — rep-parity backfill for S2--S5 (2026-05-25 13:00--17:00)
+
+Post-Phase-5c audit revealed a residual 60-cell rep-parity gap:
+S2--S5 carried 7 reps for $\{F1, F2, F3, F6, F7\}$ versus 10 for S1
+(legacy from the option-A refactor of 2026-05-23). Phase 5e + 5f
+close this gap so every (subject, fault) cell has 10 reps.
+
+| Deliverable | Status |
+|---|---|
+| Phase 5e --- 60 missing captures via `/tmp/backfill-missing-reps-v2.py` (`REPORT_TIMEOUT_S=900`, conc 5) | ✅ 46/60 OK (F1, F2, F6, F7 all closed; F3 still timed out) |
+| Phase 5e --- full scoring of the 46 new reports (rule + LLM-A grounded + LLM-A freeform + LLM-B grounded + LLM-B freeform) via `/tmp/full-scoring.sh` | ✅ batch-1 700 + batch-2 450 diag files |
+| Phase 5f --- F3 root cause (operator `provisioningDeadline = 15 * time.Minute`) | ✅ identified via manual `pr-99999` probe + operator logs |
+| Phase 5f --- F3-only re-capture via `/tmp/backfill-f3-only.py` (`REPORT_TIMEOUT_S=1200`, conc 3) | 🔄 in progress (ETA $\sim$80\,min) |
+| K8sGPT-PT + Kagent-PT re-replay on the 120 cells for $r \in \{1, 2, 3\}$ via `--force --max-reps 3` | 🔄 K8sGPT-PT in progress; Kagent-PT pending |
+| Rescore re-run (`35-unified-rescore`, `36-unified-figures`, `34-b2-post-teardown-rescore`, `19-evidence`, `21-lmm`, `21c-glmm-logit-s1s5`, `22-tukey`, `23-mcnemar`, `24-cd-diagrams`, `25-pareto`, `30b-evidence-ladder-s1s5`, `17-multiapp-rescore`) | ⏳ pending Phase 5f completion |
+| Article rewiring (abstract + §5.8 + tab + figures) | ⏳ pending Phase 5f + rescore completion |
+| Documentation update (`PROGRESS.md`, `threats-to-validity.md §9.3`, `experimentations.md §12`, `experiments.md`) | ✅ committed `c2899db` (PROGRESS + threats) + this commit |
+
+`threats-to-validity.md §9.3` documents both the rep-parity backfill
+and the F3 `provisioningDeadline` finding as an operator design
+choice rather than a benchmark artefact --- practitioners reading
+the article should note that the 15\,min capture floor for
+permanent-image-pull faults is the dominant MTTD component, and we
+report it honestly rather than mask it.

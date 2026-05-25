@@ -311,3 +311,48 @@ These can run concurrently; each item has a unique resource lane.
   - Q1 zero-fault budget: kept. No skipped captures on the `--force`
     replay; every output is overwritten uniformly so the five subjects
     receive identical processing.
+
+- 2026-05-25 12:35--17:00 UTC — **Phase 5e/5f rep-parity backfill
+  for S2--S5**:
+  - W24 (new) --- Audit script catalogues the 60 missing
+    $(\textrm{subject}, F, r)$ tuples: S2--S5 carry only 7 reps for
+    $\{F1, F2, F3, F6, F7\}$ vs 10 for S1 (option-A refactor of
+    2026-05-23 left $r1$--$r3$ as stubs without `report.json`).
+  - W25 (new) --- `/tmp/backfill-missing-reps-v2.py` re-captures
+    the 60 cells via `multiapp/run-matrix.py`'s `run_unit()` with
+    `REPORT_TIMEOUT_S=900`, concurrency 5. v1 timed out on F2/F3
+    (900\,s vs operator's 15\,min `provisioningDeadline`); v2 closed
+    46/60 (F1, F2, F6, F7 all OK; F3 still timed out). ✅
+  - W26 (new) --- `/tmp/full-scoring.sh` scores the 46 new reports
+    in two sub-batches (700 + 450 = 1150 diag files), pool A
+    (`gpt-4o-mini`) conc 10, pool B (`cohere-command-a`) conc 3.
+    Rule + LLM-A grounded + LLM-A freeform + LLM-B grounded + LLM-B
+    freeform; every report has 25 diag files. ✅
+  - W27 (new) --- F3 root cause: manual `pr-99999` probe + operator
+    log inspection identifies
+    `provisioningDeadline = 15 * time.Minute`
+    ([`internal/controller/preview_controller.go:188`](../../internal/controller/preview_controller.go#L188))
+    as the dominant MTTD component for ImagePullBackOff-on-Job
+    faults. Phase 5e's 900\,s timeout matched the backstop exactly;
+    Phase 5f raises to 1200\,s. ✅
+  - W28 (new) --- `/tmp/backfill-f3-only.py` re-captures the 12
+    remaining F3 cells with `REPORT_TIMEOUT_S=1200`, concurrency 3.
+    Wall-clock $\sim$80\,min serial (4 batches $\times$ 15--20\,min
+    each). 🔄
+  - W29 (new) --- K8sGPT-PT + Kagent-PT re-replay on the 120
+    $(\textrm{subj}, F, r)$ cells with $r \in \{1, 2, 3\}$ via
+    `--force --max-reps 3`. Ensures comparator outputs reflect the
+    re-captured failurereport.yaml files. 🔄
+  - W30 (new) --- Idempotent rescore re-run on the post-Phase-5f
+    matrix; new outputs replace the Phase-5c committed snapshots.
+    Article §5.8 and §sec:multi-app numbers refresh on completion.
+    ⏳
+  - W31 (new) --- AKS nodepool scaled 3$\to$2 (`az aks nodepool
+    scale ... --node-count 2`) once the cluster-side capture load
+    dropped; Cohere key saved to `idp-preview-kv/cohere-key` for
+    future-session re-use. ✅
+  - Q1 zero-fault budget: maintained. The 12 F3 captures that
+    timed out in Phase 5e are tracked in Phase 5f rather than
+    dropped; F3 r1--r3 are documented as a known long-latency cell
+    in `threats-to-validity.md §9.3` if any cell still misses after
+    Phase 5f's 1200\,s timeout. No silent data loss.

@@ -1022,3 +1022,84 @@ section):
 
 The `overleaf.zip` is repacked from the local `article.tex` +
 `figures/` + `*.bib` and committed alongside.
+
+## 12. Phase 5e/5f rep-parity backfill (2026-05-25 13:00--17:00 UTC)
+
+Phase 5c left a residual asymmetry: S2--S5 had 7 reports for each
+fault in $\{F1, F2, F3, F6, F7\}$ versus 10 for S1, a 60-cell
+imbalance traceable to the option-A refactor of 2026-05-23 that
+renumbered the S2--S5 reps. Phases 5e + 5f close this gap.
+
+### 12.1 Phase 5e --- four-fault backfill (F1, F2, F6, F7)
+
+Script: `/tmp/backfill-missing-reps-v2.py`. Targets the 60 missing
+$(\textrm{subject}, \textrm{fault}, \textrm{rep})$ tuples, calls
+`multiapp/run-matrix.py`'s `run_unit()` for each. v1 ran with
+`REPORT_TIMEOUT_S=360` and timed out on F2 / F3 (operator capture
+window > 6\,min); v2 with `REPORT_TIMEOUT_S=900`, concurrency 5 took
+55\,min and closed 46/60 captures:
+
+| Subject | F1 | F2 | F3 | F6 | F7 | OK r1--r3 |
+|---|---|---|---|---|---|---|
+| s2-listmonk     | 3/3 ✅ | 3/3 ✅ | 0/3 ❌ | 3/3 ✅ | 3/3 ✅ | 12/15 |
+| s3-healthchecks | 3/3 ✅ | 3/3 ✅ | 0/3 ❌ | 3/3 ✅ | 3/3 ✅ | 12/15 |
+| s4-umami        | 3/3 ✅ | 3/3 ✅ | 0/3 ❌ | 3/3 ✅ | 3/3 ✅ | 12/15 |
+| s5-petclinic    | 3/3 ✅ | 3/3 ✅ | 0/3 ❌ | 3/3 ✅ | 3/3 ✅ | 12/15 |
+| **TOTAL**       | 12/12 | 12/12 | **0/12** | 12/12 | 12/12 | **46/60** |
+
+Scoring was then done in two sub-batches via `/tmp/full-scoring.sh`
+(rule + LLM-A grounded + LLM-A freeform + LLM-B grounded + LLM-B
+freeform): batch-1 28 reports $\times$ 5 modes $\times$ 5 levels =
+700 diag files, batch-2 18 reports $\times$ 5 modes $\times$ 5
+levels = 450 diag files. Pool A (`gpt-4o-mini`) at concurrency 10,
+pool B (`cohere-command-a`) at concurrency 3 (Cohere TPM quota).
+
+### 12.2 Phase 5f --- F3-only re-capture with operator-aware timeout
+
+Root cause identified by manual probe `pr-99999` deploy + cluster
+inspection:
+
+- F3 (invalid image tag) leaves the migration Job pod in
+  `ImagePullBackOff` forever.
+- The pod never reaches `JobFailed`, so the operator's per-task
+  failure detector (`jobPodImageError`) returns an error that the
+  Reconciler swallows for re-queue.
+- Only the operator's `provisioningDeadline = 15 * time.Minute`
+  backstop ([`internal/controller/preview_controller.go:188`](../../internal/controller/preview_controller.go#L188))
+  triggers `setFailedStatus(\"ProvisioningTimeout\")` $\to$
+  `captureFailureReport()`.
+- Phase 5e's 900\,s timeout matched the backstop exactly --- *no
+  margin*. Phase 5f raises `REPORT_TIMEOUT_S` to 1200\,s, giving a
+  5\,min margin.
+
+Script: `/tmp/backfill-f3-only.py`. Targets the 12 remaining F3
+captures (4 subjects $\times$ 3 reps), concurrency 3. ETA $\sim$80\,min
+serial (each capture blocks $\sim$15--20\,min on the operator's
+provisioningDeadline).
+
+### 12.3 Pipeline outputs (committed)
+
+| Commit | Content |
+|---|---|
+| `29878e2` | 19-evidence-precision now scores 440 reports across S1--S5 (was S1 only) |
+| `a2f5a25` | 21-lmm / 22-tukey / 23-mcnemar / 24-cd / 25-pareto regenerated with S1--S5 (9400 rows); new `21c-glmm-logit-s1s5` (subject + scenario random effects) |
+| `e6732bb` | New `30b-evidence-ladder-s1s5.py` pools L1$\to$L4 across all five subjects |
+| `5ee3d57` | `post-backfill-pipeline.sh` (move new captures + rule scoring + LLM scoring + PT replay + rescores) |
+| `d39aea6` | Phase 5e/5f documented in `PROGRESS.md` and `threats-to-validity.md §9.3` |
+
+### 12.4 Final coverage matrix (after Phase 5f)
+
+| Subject | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 | F10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| S1 (`s1-flask-catalog`) | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 |
+| S2 (`s2-listmonk`)      | 10 | 10 | $\leq 10$ | 10 | 10 | 10 | 10 | 10 | 10 | 10 |
+| S3 (`s3-healthchecks`)  | 10 | 10 | $\leq 10$ | 10 | 10 | 10 | 10 | 10 | 10 | 10 |
+| S4 (`s4-umami`)         | 10 | 10 | $\leq 10$ | 10 | 10 | 10 | 10 | 10 | 10 | 10 |
+| S5 (`s5-petclinic`)     | 10 | 10 | $\leq 10$ | 10 | 10 | 10 | 10 | 10 | 10 | 10 |
+
+F3 cells marked $\leq 10$ depend on the outcome of Phase 5f (in
+progress at the time of writing). The cell count will be 10 if all
+12 F3 captures succeed, or 7 + (captures that succeed) otherwise.
+The pooled aligned-top-1 numbers in §11.3 are recomputed on the
+final coverage in commit `c2899db` (and a follow-up after Phase 5f
+completes).
