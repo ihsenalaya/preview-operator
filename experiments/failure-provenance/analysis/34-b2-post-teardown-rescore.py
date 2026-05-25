@@ -15,7 +15,8 @@ RESULTS = ROOT / 'results-baselines-post-teardown'
 OUT_CSV = ROOT / 'results-matrix' / 'results-b2-post-teardown.csv'
 
 SUBJECT_IDX = {
-    's2-listmonk': 0, 's3-healthchecks': 1, 's4-umami': 2, 's5-petclinic': 3,
+    "s1-flask-catalog": -1,
+    "s2-listmonk": 0, "s3-healthchecks": 1, "s4-umami": 2, "s5-petclinic": 3,
 }
 SCENARIO_ROLE = {
     'F1': 'migration-job', 'F2': 'app', 'F3': 'app',

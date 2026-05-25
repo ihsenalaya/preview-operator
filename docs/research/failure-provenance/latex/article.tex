@@ -146,7 +146,8 @@ diagnoser $31.4\,\%$; pooled across the remaining four subjects (S2--S5)
 LLM-grounded accuracy drops to $15.6\,\%$ and rule-grounded to
 $7.8\,\%$. The regime-symmetric post-teardown comparators we
 introduce (K8sGPT-PT and Kagent-PT, both consuming the same operator
-evidence) reach $31.7\,\%$ and $20.0\,\%$ respectively. A vanilla LLM
+evidence on all five subjects) reach $23.1\,\%$ and $13.8\,\%$
+pooled across S1--S5. A vanilla LLM
 baseline over an operator-curated kubectl-equivalent bundle can
 outperform the proposed diagnoser on parts of the broader subject set,
 showing that the artifact alone does not solve RCA. The evidence
@@ -1329,13 +1330,19 @@ both engines now operate post-teardown, on the same frozen evidence
 the proposed diagnoser consumes. The harness is required because
 K8sGPT v0.4.21 has no offline file-ingestion mode, only
 \texttt{--namespace} against a live API server. Pooled aligned
-top-1 on the post-teardown variant ($n=60$, subjects S2--S5
-across all ten faults, up to 10 reps per cell):
-\textbf{19/60 = 31.7\,\%} (per-subject: 5/15 on S2 \texttt{listmonk},
-4/15 on S3 \texttt{healthchecks}, 5/15 on S4 \texttt{umami}, 5/15 on
-S5 \texttt{petclinic}). The S1 post-teardown variant is left for
-future work --- S1 already has a complete pre-teardown ladder
-(L1--L4) reported in \S\ref{sec:rq2}. Raw outputs in
+top-1 on the post-teardown variant across \emph{all five subjects}
+($n=160$, S1--S5, up to 10 reps per cell):
+\textbf{37/160 = 23.1\,\%}. Per-subject: S1
+\texttt{idp-preview} 18/100 = $18.0\,\%$ (full F1--F10), S2
+\texttt{listmonk} 5/15 = $33.3\,\%$ (F1+F2+F3+F6+F7), S3
+\texttt{healthchecks} 4/15 = $26.7\,\%$, S4 \texttt{umami}
+5/15 = $33.3\,\%$, S5 \texttt{petclinic} 5/15 = $33.3\,\%$. The S1
+score is lower because S1 covers the full F1--F10 scope including
+the harder symptom-vs-cause scenarios (F4, F5, F8, F9, F10) where
+K8sGPT cannot recover the root cause from synthesised status
+fields alone; the four breadth subjects S2--S5 currently cover
+only the F1+F2+F3+F6+F7 sub-scope, which favours the resource-status
+analyzers K8sGPT uses. Raw outputs in
 \texttt{results-baselines-post-teardown/<subject>/<F>/<r>/k8sgpt-pt.json};
 aligned scoring in \texttt{results-b2-post-teardown.csv} via
 \texttt{analysis/34-b2-post-teardown-rescore.py}.
@@ -1350,11 +1357,14 @@ The Kagent post-teardown replay variant
 (\texttt{analysis/kagent-replay.py}) reuses the same synthetic
 \texttt{evidenceItems} bundle, posts an A2A diagnostic prompt
 naming the replay namespace, and parses the agent's JSON answer.
-Pooled aligned top-1 on the post-teardown variant
-($n=60$, subjects S2--S5): \textbf{12/60 = 20.0\,\%} (per-subject:
-3/15 on each of S2 \texttt{listmonk}, S3 \texttt{healthchecks},
-S4 \texttt{umami}, S5 \texttt{petclinic}). The Kagent reasoning
-chain sometimes names the
+Pooled aligned top-1 on the post-teardown variant across
+\emph{all five subjects} ($n=160$): \textbf{22/160 = 13.8\,\%}.
+Per-subject: S1 \texttt{idp-preview} 10/100 = $10.0\,\%$
+(full F1--F10), S2 \texttt{listmonk} 3/15 = $20.0\,\%$
+(F1+F2+F3+F6+F7), S3 \texttt{healthchecks} 3/15 = $20.0\,\%$,
+S4 \texttt{umami} 3/15 = $20.0\,\%$, S5 \texttt{petclinic}
+3/15 = $20.0\,\%$. As with K8sGPT-PT, S1 is harder because of the
+full F1--F10 scope. The Kagent reasoning chain sometimes names the
 synthetic Pod by its generated name rather than its role
 (e.g.\ \texttt{postgres-migrate-q4m59} instead of \texttt{migration-job});
 the per-subject alias matcher captures the most common variants,
