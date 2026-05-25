@@ -142,9 +142,10 @@ instrumented subset. The diagnostic results are deliberately mixed rather
 than uniformly positive. Aligned top-1 accuracy varies substantially
 across the five subjects: on the simplest subject (S1, Flask/Python) the
 rule-grounded diagnoser reaches $40.8\,\%$ and the LLM-grounded
-diagnoser $31.4\,\%$; pooled across the remaining four subjects (S2--S5)
-LLM-grounded accuracy drops to $15.6\,\%$ and rule-grounded to
-$7.8\,\%$. The regime-symmetric post-teardown comparators we
+diagnoser $31.4\,\%$; pooled across all five subjects, the LLM-grounded
+diagnoser reaches $18.7\,\%$ aligned top-1 (468/2500) and the
+rule-grounded diagnoser $15.3\,\%$ (337/2200), with the per-subject
+spread reflecting stack-complexity heterogeneity. The regime-symmetric post-teardown comparators we
 introduce (K8sGPT-PT and Kagent-PT, both consuming the same operator
 evidence on all five subjects) reach $23.1\,\%$ and $13.8\,\%$
 pooled across S1--S5. A vanilla LLM
@@ -1301,10 +1302,10 @@ grounding constraint. Two B0 variants are reported:
 Reading: the regime-symmetric B0 ($7.5\,\%$ pooled on S2--S5)
 confirms that operator-side typing and provenance, not raw
 \texttt{kubectl} volume, drive the cross-subject accuracy gap. The
-proposed LLM-grounded diagnoser at $15.6\,\%$
+proposed LLM-grounded diagnoser at $18.7\,\%$
 (\S\ref{sec:multi-app}, Table~\ref{tab:multi-engine-pooled}) is
-$\sim 2\times$ B0 on the same substrate, restoring the operator's
-value proposition on the broader subject set.
+$\sim 2.5\times$ B0 on the same substrate, restoring the operator's
+value proposition across the five-subject set.
 
 \paragraph{B2a---K8sGPT v0.4.21.} Same input substrate (live
 preview namespace), \texttt{azureopenai} backend, scored with the
@@ -1393,42 +1394,74 @@ The 13 stale \fn{10} captures (3 on S2, 10 on S5 with the
 incorrect mechanism) are invalidated; the final \fn{10} number is
 based exclusively on the patched-harness captures.
 
-\paragraph{Pooled aligned top-1 across S2--S5 (full F1--F10
-scope).} The five engines pooled across the four breadth subjects,
+\paragraph{Pooled aligned top-1 across S1--S5 (all five
+subjects).} The five engines pooled across all five subjects,
 Wilson 95\,\% CI:
 
 \begin{table}[h]
 \centering
-\caption{Pooled aligned top-1 across subjects S2--S5 (full F1--F10
-scope). The numbers complement the per-scenario S1 detail in
-Table~\ref{tab:rq2-s1}.}
+\caption{Pooled aligned top-1 across subjects S1--S5. The pool
+mixes S1's full F1--F10 scope ($n=500$ diagnoses per engine, 100
+captures $\times$ 5 evidence levels) with the S2--S5
+F1+F2+F3+F6+F7 sub-scope ($n \approx 400$--500 per engine across
+the four subjects). The numbers complement the per-scenario S1
+detail in Table~\ref{tab:rq2-s1}. Source: \texttt{analysis/35-unified-rescore.py}.}
 \label{tab:multi-engine-pooled}
 \small
 \begin{tabular}{l c c}
 \toprule
 \textbf{Engine} & $n$ & \textbf{aligned top-1} \\
 \midrule
-rule-grounded                & 1700 &  7.8\,\% (133/1700) [6.6, 9.2] \\
-llm-grounded (\mbox{\texttt{gpt-4o-mini}})  & 2000 & \textbf{15.6\,\%} (311/2000) [14.0, 17.2] \\
-llm-freeform (\mbox{\texttt{gpt-4o-mini}})  & 1700 & \textbf{16.4\,\%} (279/1700) [14.7, 18.2] \\
-llm-b-grounded (\mbox{\texttt{cohere-command-a}}) & 2000 &  6.0\,\% (119/2000) [5.0, 7.1] \\
-llm-b-freeform (\mbox{\texttt{cohere-command-a}}) & 1700 &  4.6\,\% (79/1700) [3.7, 5.8] \\
+rule-grounded                & 2200 & \textbf{15.32\,\%} (337/2200) [13.87, 16.88] \\
+llm-grounded (\mbox{\texttt{gpt-4o-mini}})  & 2500 & \textbf{18.72\,\%} (468/2500) [17.24, 20.30] \\
+llm-freeform (\mbox{\texttt{gpt-4o-mini}})  & 2200 & \textbf{18.00\,\%} (396/2200) [16.45, 19.66] \\
+llm-b-grounded (\mbox{\texttt{cohere-command-a}}) & 2500 & 5.32\,\% (133/2500) [4.51, 6.27] \\
+llm-b-freeform (\mbox{\texttt{cohere-command-a}}) & 2200 & 3.82\,\% (84/2200) [3.09, 4.70] \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{engine-pooled-bars-s1s5}
+\caption{Pooled aligned top-1 per engine across all five subjects
+(S1--S5), with Wilson 95\,\% CIs. Hatched bars denote free-form
+mode (no grounding constraint); solid bars denote grounded mode.
+LLM-A (\texttt{gpt-4o-mini}) outperforms LLM-B
+(\texttt{cohere-command-a}) on the same evidence substrate, and
+within each LLM the grounding constraint changes accuracy by
+$\le 1.5$ percentage points. Source:
+\texttt{analysis/36-unified-figures.py} from the
+\texttt{35-unified-rescore} CSV.}
+\Description{Bar chart of pooled aligned top-1 accuracy across the
+five diagnostic engines, with error bars for Wilson 95\% CIs.}
+\label{fig:engine-pooled-s1s5}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{engine-by-subject-heatmap-s1s5}
+\caption{Per-subject $\times$ engine aligned top-1 heatmap (S1--S5).
+S1 is the only subject covering the full F1--F10 scope and is
+diluted by the harder symptom-vs-cause scenarios; S2--S5 cover
+F1+F2+F3+F6+F7 only and therefore concentrate on the
+deployment/infrastructure faults that the diagnosers handle best.}
+\Description{Heatmap of aligned top-1 per subject (rows) by engine (columns).}
+\label{fig:engine-heatmap-s1s5}
+\end{figure}
+
 \noindent The freeform numbers are essentially flat against grounded
-on \texttt{gpt-4o-mini} ($16.4\,\%$ vs $15.6\,\%$) and lower on
-\texttt{cohere-command-a} ($4.6\,\%$ vs $6.0\,\%$). The
+on \texttt{gpt-4o-mini} ($18.00\,\%$ vs $18.72\,\%$) and lower on
+\texttt{cohere-command-a} ($3.82\,\%$ vs $5.32\,\%$). The
 grounding constraint therefore neither adds nor removes much
-accuracy on subjects S2--S5 --- both modes consume the same
+accuracy --- both modes consume the same
 \fp{} \texttt{evidenceItems}, so the gap is bounded by the
 diagnoser's understanding of the substrate, not by the prompt
 template. Per-subject (LLM-A grounded, F1+F2+F3+F6+F7 sub-scope,
-$n=500$ each): S1 \texttt{idp-preview} ranks highest at
-$\mathbf{31.4\,\%}$ (Flask/Python, the simplest stack), followed
-by S3 \texttt{healthchecks} $20.0\,\%$, S2 \texttt{listmonk}
-$15.0\,\%$, S4 \texttt{umami} $13.8\,\%$, S5
+$n=500$ each for S1, $n=500$ each for S2--S5): S1 \texttt{idp-preview}
+ranks highest at $\mathbf{31.4\,\%}$ (Flask/Python, the simplest
+stack), followed by S3 \texttt{healthchecks} $20.0\,\%$, S2
+\texttt{listmonk} $15.0\,\%$, S4 \texttt{umami} $13.8\,\%$, S5
 \texttt{petclinic} $13.4\,\%$. The substantial gap between S1
 and the other four subjects reflects stack complexity: S1's
 shallow service graph and concise log lines suit the diagnoser
