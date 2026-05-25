@@ -904,3 +904,121 @@ Phase 2 numbers will update these once it completes.
 - `Q1-COMPLIANCE.md` — live tracker, 18 work-units; 13 ✅ done as of 22:45.
 - `PROGRESS.md` — 23 ticks of live monitoring (16:08 → 22:45).
 - `bibliography.bib` — still 12 `TODO_VERIFY` entries pending.
+
+---
+
+## 11. S1--S5 unified treatment campaign (2026-05-25 08:00--12:30 UTC)
+
+Goal: remove the historical S1-vs-multi-app two-tier framing and run
+every measurement on all five subjects uniformly, including the new
+post-teardown comparator baselines.
+
+### 11.1 Capture inventory (final, after `failurereport.yaml` synthesis)
+
+| Subject | `report.json` | `failurereport.yaml` | Source |
+|---|---|---|---|
+| S1 (`s1-flask-catalog`) | 109 | 109 (100 originals + 9 synthesised) | `results-matrix/` |
+| S2 (`s2-listmonk`) | 85 | 85 (15 originals + 70 synthesised) | `results-multiapp/s2-listmonk/` |
+| S3 (`s3-healthchecks`) | 85 | 85 (15 originals + 70 synthesised) | `results-multiapp/s3-healthchecks/` |
+| S4 (`s4-umami`) | 85 | 85 (15 originals + 70 synthesised) | `results-multiapp/s4-umami/` |
+| S5 (`s5-petclinic`) | 85 | 85 (15 originals + 70 synthesised) | `results-multiapp/s5-petclinic/` |
+| **TOTAL** | **449** | **449** (`max-reps 20` exposes 509 capture-cells in the replay discovery) | |
+
+The 340 synthesised `failurereport.yaml` files come from a one-shot
+`report.json → YAML` conversion (`/tmp/convert-reports.py`, see git log).
+The conversion is loss-less: `report.json` already serialises the CRD
+status fields the synthesiser needs.
+
+### 11.2 New analysis scripts (committed 2026-05-25)
+
+| Script | Purpose | Output |
+|---|---|---|
+| `analysis/k8sgpt-replay.py` | Post-teardown K8sGPT replay via synthesised namespace on AKS | `results-baselines-post-teardown/<subj>/<F>/<r>/k8sgpt-pt.json` |
+| `analysis/kagent-replay.py` | Post-teardown Kagent A2A replay via port-forward | `…/kagent-pt.json` |
+| `analysis/34-b2-post-teardown-rescore.py` | Vocab-aligned scoring of K8sGPT-PT and Kagent-PT on S1--S5 | `results-matrix/results-b2-post-teardown.csv` |
+| `analysis/35-unified-rescore.py` | Pool `diag-*.json` across S1 + S2--S5 to produce single per-engine pooled summary | `analysis-output/35-unified-rescore/{summary-pooled-s1s5.md,summary-by-subject.md,per-subject-results.csv}` |
+| `analysis/36-unified-figures.py` | S1--S5 unified figures (per-engine bars + heatmap) | `latex/figures/engine-pooled-bars-s1s5.png`, `…/engine-by-subject-heatmap-s1s5.png` |
+
+### 11.3 Final S1--S5 pooled aligned top-1 (after uniform `--force` replay)
+
+`analysis/35-unified-rescore.py` output, $n_{\text{total}} = 11\,600$ diagnoses:
+
+| Engine | $n$ | Aligned top-1 | Wilson 95\,\% CI |
+|---|---|---|---|
+| rule-grounded                        | 2200 | 15.32\,\% (337/2200) | [13.87, 16.88] |
+| llm-grounded   (`gpt-4o-mini`)      | 2500 | **18.72\,\%** (468/2500) | [17.24, 20.30] |
+| llm-freeform   (`gpt-4o-mini`)      | 2200 | **18.00\,\%** (396/2200) | [16.45, 19.66] |
+| llm-b-grounded (`cohere-command-a`) | 2500 |  5.32\,\% (133/2500) | [4.51, 6.27] |
+| llm-b-freeform (`cohere-command-a`) | 2200 |  3.82\,\% ( 84/2200) | [3.09, 4.70] |
+
+Per-subject breakdown of LLM-A grounded (sub-scope F1+F2+F3+F6+F7, $n=500$ each):
+
+| Subject | Aligned top-1 |
+|---|---|
+| S1 `idp-preview` (Flask/Python) | 31.4\,\% |
+| S2 `listmonk` (Go) | 15.0\,\% |
+| S3 `healthchecks` (Django) | 20.0\,\% |
+| S4 `umami` (Next.js) | 13.8\,\% |
+| S5 `petclinic` (Spring) | 13.4\,\% |
+
+S1's lead reflects stack simplicity (shallow service graph, concise log
+lines); the four breadth subjects cluster around 14--20\,\%.
+
+### 11.4 Post-teardown comparator results (uniform `--force` replay, 449 captures)
+
+`analysis/34-b2-post-teardown-rescore.py`, $n = 509$ rows after the
+uniform replay over all `failurereport.yaml` available with
+`--max-reps 20`. Values reported below come from the **final**
+`--force` pass (no skips, all five subjects).
+
+> **NB:** the replay is in progress at the time of writing (K8sGPT-PT
+> at ~50\,\%, Kagent-PT at ~17\,\%). Final numbers will be inserted
+> here when the two replays complete and `34-b2-post-teardown-rescore.py`
+> is re-run. The mid-run partial scoring at $n=160$ produced
+> K8sGPT-PT 23.1\,\% and Kagent-PT 13.8\,\%; the full-coverage final
+> numbers replace those.
+
+### 11.5 Replay harness implementation notes
+
+- **Synthesised namespace** per capture (prefix `fp-replay-` for
+  K8sGPT, `kg-replay-` for Kagent) on the live AKS cluster.
+- For each capture, the synthesiser groups `evidenceItems` by
+  `(kind, name)` and emits a minimal `Pod`/`Job`/`Service`/`Deployment`
+  manifest with the status subresource patched to mirror the captured
+  failure state (e.g.\ `CrashLoopBackOff`, `ImagePullBackOff`,
+  `BackoffLimitExceeded`, missing-Service-selector).
+- K8sGPT v0.4.21 is invoked with
+  `analyze --namespace <ns> --filter Pod,Job,Service,Deployment,…
+  --backend azureopenai --explain --no-cache -o json` so the analyzer
+  is scoped to the workload-level Pods and not to AKS Node noise.
+- Kagent is reached via `kubectl port-forward -n kagent-system
+  svc/k8s-agent 18080:8080`; the script POSTs an A2A `message/send`
+  JSON-RPC with the same SRE diagnostic prompt used in the live
+  baseline (mirrors `14-cluster-baselines.py` exactly).
+- Per-cell wall-clock: K8sGPT-PT ≈10 s (one namespace lifecycle +
+  one LLM call), Kagent-PT ≈25--30 s (one namespace lifecycle + agentic
+  reasoning chain with multiple intermediate LLM and kubectl calls).
+- Sequential by design; one tmux session each. Total wall-clock for a
+  full-coverage `--force` replay: K8sGPT ≈85 min, Kagent ≈3 h 30.
+
+### 11.6 Article wiring (post-replay)
+
+After the replays complete and `34-b2-post-teardown-rescore.py` /
+`35-unified-rescore.py` re-emit their outputs, the following article
+edits are applied (covered in the commits noted in the file's last
+section):
+
+- §abstract: pooled S1--S5 numbers replace the previous
+  "S1 reference / S2--S5 multi-app" split.
+- §sec:eval-baselines: B2a-PT and B2b-PT rows in
+  `tab:baseline-regimes` carry pooled-S1--S5 numbers, S1 included
+  alongside S2--S5.
+- §sec:multi-app: `tab:multi-engine-pooled` is the canonical
+  cross-subject table; figures
+  `engine-pooled-bars-s1s5.png` and `engine-by-subject-heatmap-s1s5.png`
+  are emitted by `analysis/36-unified-figures.py`.
+- §threats / §future-work: language no longer privileges S1 over the
+  other four subjects.
+
+The `overleaf.zip` is repacked from the local `article.tex` +
+`figures/` + `*.bib` and committed alongside.
