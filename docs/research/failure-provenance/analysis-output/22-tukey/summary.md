@@ -1,6 +1,6 @@
 # L4 — Tukey HSD pairwise contrasts
 
-Generated 2026-05-25T12:38:35.895023Z.
+Generated 2026-05-25T18:04:33.680453Z.
 
 ## LLM=A
 

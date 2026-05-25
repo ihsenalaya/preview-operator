@@ -1,6 +1,6 @@
 # L3 — Primary inferential model (LMM)
 
-Generated 2026-05-25T12:38:34.283653Z.
+Generated 2026-05-25T18:04:28.352192Z.
 
 Model: `correct ~ C(configuration) * C(llm)` with random intercept `(1|scenario)`. n = 9400 rows. Fitted via statsmodels MixedLM.
 

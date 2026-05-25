@@ -4,8 +4,8 @@ Pooled across all five subjects (flask-catalog, listmonk, healthchecks, umami, p
 
 | Engine | n | aligned top-1 | Wilson 95% CI |
 |---|---|---|---|
-| llm-b-freeform | 2200 |   3.8% (84/2200) | [3.1%, 4.7%] |
-| llm-b-grounded | 2500 |   5.3% (133/2500) | [4.5%, 6.3%] |
-| llm-freeform | 2200 |  18.0% (396/2200) | [16.5%, 19.7%] |
-| llm-grounded | 2500 |  18.7% (468/2500) | [17.2%, 20.3%] |
-| rule-grounded | 2200 |  15.3% (337/2200) | [13.9%, 16.9%] |
+| llm-b-freeform | 2500 |   5.9% (148/2500) | [5.1%, 6.9%] |
+| llm-b-grounded | 2500 |   6.8% (171/2500) | [5.9%, 7.9%] |
+| llm-freeform | 2500 |  19.4% (485/2500) | [17.9%, 21.0%] |
+| llm-grounded | 2500 |  19.7% (492/2500) | [18.2%, 21.3%] |
+| rule-grounded | 2500 |  15.8% (394/2500) | [14.4%, 17.2%] |

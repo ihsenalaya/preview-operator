@@ -1,14 +1,29 @@
 subject_id,scenario_id,rep,configuration,engine_mode,diag_component,diag_category,gt_role,gt_category,top1_aligned,category_correct
-s2-listmonk,F1,r1,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r1,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r1,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r1,C2,llm-grounded,postgres-migrate job,database,migration-job,database,0,1
-s2-listmonk,F1,r1,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C1,llm-b-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s2-listmonk,F1,r1,C1,llm-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s2-listmonk,F1,r1,C1,llm-b-grounded,PostgreSQL database,configuration,migration-job,database,0,0
+s2-listmonk,F1,r1,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s2-listmonk,F1,r1,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r1,C2,llm-b-freeform,PostgreSQL migration job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C2,llm-freeform,postgres-migrate job,configuration,migration-job,database,0,0
+s2-listmonk,F1,r1,C2,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s2-listmonk,F1,r1,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r1,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C3,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
 s2-listmonk,F1,r1,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s2-listmonk,F1,r1,C4,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r1,C4,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s2-listmonk,F1,r1,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r1,C5,llm-grounded,database migration job,application,migration-job,database,0,0
+s2-listmonk,F1,r1,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r1,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C4,llm-b-grounded,Database Migration Job (postgres-migrate),database,migration-job,database,0,1
+s2-listmonk,F1,r1,C4,llm-grounded,database,database,migration-job,database,1,1
+s2-listmonk,F1,r1,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r1,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C5,llm-b-grounded,Database Migration Job (postgres-migrate),database,migration-job,database,0,1
+s2-listmonk,F1,r1,C5,llm-grounded,Database migration job,database,migration-job,database,0,1
+s2-listmonk,F1,r1,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s2-listmonk,F1,r10,C1,llm-b-freeform,PostgreSQL database,database,migration-job,database,0,1
 s2-listmonk,F1,r10,C1,llm-freeform,PostgreSQL Database,database,migration-job,database,0,1
 s2-listmonk,F1,r10,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -34,26 +49,56 @@ s2-listmonk,F1,r10,C5,llm-freeform,postgres-migrate job,database,migration-job,d
 s2-listmonk,F1,r10,C5,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
 s2-listmonk,F1,r10,C5,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
 s2-listmonk,F1,r10,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
-s2-listmonk,F1,r2,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r2,C1,llm-grounded,database,database,migration-job,database,1,1
-s2-listmonk,F1,r2,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C1,llm-b-freeform,PostgreSQL pod,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C1,llm-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C1,llm-b-grounded,PostgreSQL pod,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r2,C2,llm-b-freeform,PostgreSQL container,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C2,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
 s2-listmonk,F1,r2,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s2-listmonk,F1,r2,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r2,C3,llm-b-freeform,PostgreSQL container,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C3,llm-b-grounded,PostgreSQL migration job,application,migration-job,database,0,0
 s2-listmonk,F1,r2,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s2-listmonk,F1,r2,C4,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r2,C4,llm-grounded,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r2,C4,llm-b-freeform,PostgreSQL container,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C4,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r2,C5,llm-b-freeform,PostgreSQL container,configuration,migration-job,database,0,0
+s2-listmonk,F1,r2,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
 s2-listmonk,F1,r2,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r2,C5,llm-grounded,database migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r3,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r3,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r3,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s2-listmonk,F1,r3,C2,llm-grounded,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C5,llm-grounded,Database Migration Job,database,migration-job,database,0,1
+s2-listmonk,F1,r2,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r3,C1,llm-b-freeform,PostgreSQL pod configuration,configuration,migration-job,database,0,0
+s2-listmonk,F1,r3,C1,llm-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s2-listmonk,F1,r3,C1,llm-b-grounded,PostgreSQL database,configuration,migration-job,database,0,0
+s2-listmonk,F1,r3,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s2-listmonk,F1,r3,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r3,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C2,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s2-listmonk,F1,r3,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r3,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
 s2-listmonk,F1,r3,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
 s2-listmonk,F1,r3,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s2-listmonk,F1,r3,C4,llm-b-grounded,PostgreSQL database and migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r3,C4,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s2-listmonk,F1,r3,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
-s2-listmonk,F1,r3,C5,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s2-listmonk,F1,r3,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r3,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C4,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s2-listmonk,F1,r3,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s2-listmonk,F1,r3,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s2-listmonk,F1,r3,C5,llm-grounded,postgres-migrate job,database,migration-job,database,0,1
+s2-listmonk,F1,r3,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s2-listmonk,F1,r4,C1,llm-b-freeform,PostgreSQL database,database,migration-job,database,0,1
 s2-listmonk,F1,r4,C1,llm-freeform,PostgreSQL Database,database,migration-job,database,0,1
 s2-listmonk,F1,r4,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -454,16 +499,31 @@ s2-listmonk,F10,r9,C5,llm-freeform,application,application,test-suite,test-relia
 s2-listmonk,F10,r9,C5,llm-b-grounded,Test Suite,test-reliability,test-suite,test-reliability,0,1
 s2-listmonk,F10,r9,C5,llm-grounded,Test Suite,test-reliability,test-suite,test-reliability,0,1
 s2-listmonk,F10,r9,C5,rule-grounded,seed-job,database,test-suite,test-reliability,0,0
+s2-listmonk,F2,r1,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r1,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r1,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r1,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r1,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r1,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r1,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r1,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r1,C2,llm-grounded,unknown,unknown,app,configuration,0,0
-s2-listmonk,F2,r1,C3,llm-b-grounded,API endpoint handlers,application,app,configuration,0,0
+s2-listmonk,F2,r1,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r1,C3,llm-b-freeform,application backend or dependencies,application,app,configuration,0,0
+s2-listmonk,F2,r1,C3,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r1,C3,llm-b-grounded,application backend or dependencies,application,app,configuration,0,0
 s2-listmonk,F2,r1,C3,llm-grounded,application,application,app,configuration,1,0
-s2-listmonk,F2,r1,C4,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
+s2-listmonk,F2,r1,C3,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r1,C4,llm-b-freeform,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r1,C4,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r1,C4,llm-b-grounded,smoke test suite,test-reliability,app,configuration,0,0
 s2-listmonk,F2,r1,C4,llm-grounded,application,application,app,configuration,1,0
-s2-listmonk,F2,r1,C5,llm-b-grounded,Test Suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r1,C4,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r1,C5,llm-b-freeform,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r1,C5,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r1,C5,llm-b-grounded,smoke test suite,application,app,configuration,0,0
 s2-listmonk,F2,r1,C5,llm-grounded,application,application,app,configuration,1,0
+s2-listmonk,F2,r1,C5,rule-grounded,seed-job,database,app,configuration,0,0
 s2-listmonk,F2,r10,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r10,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r10,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
@@ -489,26 +549,56 @@ s2-listmonk,F2,r10,C5,llm-freeform,application,application,app,configuration,1,0
 s2-listmonk,F2,r10,C5,llm-b-grounded,Application API handlers,application,app,configuration,0,0
 s2-listmonk,F2,r10,C5,llm-grounded,application,application,app,configuration,1,0
 s2-listmonk,F2,r10,C5,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r2,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r2,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r2,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r2,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r2,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r2,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r2,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r2,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r2,C2,llm-grounded,unknown,unknown,app,configuration,0,0
-s2-listmonk,F2,r2,C3,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
+s2-listmonk,F2,r2,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r2,C3,llm-b-freeform,application backend or dependencies,application,app,configuration,0,0
+s2-listmonk,F2,r2,C3,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r2,C3,llm-b-grounded,smoke test endpoints,application,app,configuration,0,0
 s2-listmonk,F2,r2,C3,llm-grounded,application,application,app,configuration,1,0
-s2-listmonk,F2,r2,C4,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
+s2-listmonk,F2,r2,C3,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r2,C4,llm-b-freeform,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r2,C4,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r2,C4,llm-b-grounded,smoke test suite,test-reliability,app,configuration,0,0
 s2-listmonk,F2,r2,C4,llm-grounded,application,application,app,configuration,1,0
-s2-listmonk,F2,r2,C5,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
-s2-listmonk,F2,r2,C5,llm-grounded,application,application,app,configuration,1,0
+s2-listmonk,F2,r2,C4,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r2,C5,llm-b-freeform,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r2,C5,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r2,C5,llm-b-grounded,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r2,C5,llm-grounded,smoke tests,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r2,C5,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r3,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r3,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r3,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r3,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r3,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r3,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r3,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r3,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r3,C2,llm-grounded,unknown,unknown,app,configuration,0,0
-s2-listmonk,F2,r3,C3,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
+s2-listmonk,F2,r3,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s2-listmonk,F2,r3,C3,llm-b-freeform,application backend or dependencies,application,app,configuration,0,0
+s2-listmonk,F2,r3,C3,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r3,C3,llm-b-grounded,smoke test endpoints,application,app,configuration,0,0
 s2-listmonk,F2,r3,C3,llm-grounded,application,application,app,configuration,1,0
-s2-listmonk,F2,r3,C4,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
+s2-listmonk,F2,r3,C3,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r3,C4,llm-b-freeform,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r3,C4,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r3,C4,llm-b-grounded,smoke test suite,test-reliability,app,configuration,0,0
 s2-listmonk,F2,r3,C4,llm-grounded,application,application,app,configuration,1,0
-s2-listmonk,F2,r3,C5,llm-b-grounded,Application API handlers,application,app,configuration,0,0
+s2-listmonk,F2,r3,C4,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F2,r3,C5,llm-b-freeform,smoke test suite,test-reliability,app,configuration,0,0
+s2-listmonk,F2,r3,C5,llm-freeform,application,application,app,configuration,1,0
+s2-listmonk,F2,r3,C5,llm-b-grounded,smoke test suite,test-reliability,app,configuration,0,0
 s2-listmonk,F2,r3,C5,llm-grounded,application,application,app,configuration,1,0
+s2-listmonk,F2,r3,C5,rule-grounded,seed-job,database,app,configuration,0,0
 s2-listmonk,F2,r4,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r4,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s2-listmonk,F2,r4,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
@@ -659,16 +749,31 @@ s2-listmonk,F2,r9,C5,llm-freeform,application,application,app,configuration,1,0
 s2-listmonk,F2,r9,C5,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
 s2-listmonk,F2,r9,C5,llm-grounded,application,application,app,configuration,1,0
 s2-listmonk,F2,r9,C5,rule-grounded,seed-job,database,app,configuration,0,0
+s2-listmonk,F3,r1,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s2-listmonk,F3,r1,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F3,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F3,r1,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F3,r1,C2,llm-b-grounded,postgres-migrate-z4dr7 pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
+s2-listmonk,F3,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F3,r1,C2,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C2,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C2,llm-b-grounded,postgres-migrate-m7c79 pod,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r1,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r1,C3,llm-b-grounded,postgres-migrate-z4dr7 pod,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r1,C3,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r1,C4,llm-b-grounded,postgres-migrate-z4dr7 Pod,configuration,app,infrastructure,0,0
+s2-listmonk,F3,r1,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r1,C3,llm-b-freeform,Container Image Pull,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C3,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C3,llm-b-grounded,postgres-migrate-m7c79 Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r1,C4,llm-b-freeform,Docker image (s2-listmonk-adapter),configuration,app,infrastructure,0,0
+s2-listmonk,F3,r1,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C4,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r1,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r1,C5,llm-b-grounded,Database Migration Job,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r1,C5,llm-b-freeform,Container Image Pull,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C5,llm-b-grounded,Container Registry Authentication,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r1,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r1,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s2-listmonk,F3,r10,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F3,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F3,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -694,26 +799,56 @@ s2-listmonk,F3,r10,C5,llm-freeform,Docker image registry,infrastructure,app,infr
 s2-listmonk,F3,r10,C5,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r10,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r10,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r2,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s2-listmonk,F3,r2,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
 s2-listmonk,F3,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F3,r2,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F3,r2,C2,llm-b-grounded,postgres-migrate-2l6v5 Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F3,r2,C2,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s2-listmonk,F3,r2,C2,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C2,llm-b-grounded,postgres-migrate-jqhsc pod,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r2,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r2,C3,llm-b-grounded,postgres-migrate-2l6v5 Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r2,C3,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s2-listmonk,F3,r2,C3,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C3,llm-b-grounded,postgres-migrate-jqhsc pod,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r2,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r2,C4,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r2,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r2,C5,llm-b-grounded,postgres-migrate-2l6v5 pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r2,C4,llm-b-freeform,postgres-migrate-jqhsc Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C4,llm-b-grounded,Database migration job,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C4,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r2,C5,llm-b-freeform,postgres-migrate-jqhsc Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C5,llm-b-grounded,Database Migration Job,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r2,C5,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r2,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r3,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
+s2-listmonk,F3,r3,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
 s2-listmonk,F3,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F3,r3,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F3,r3,C2,llm-b-grounded,postgres-migrate-c2k77 pod,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r3,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r3,C3,llm-b-grounded,postgres-migrate-c2k77 pod,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r3,C3,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r3,C4,llm-b-grounded,postgres-migrate-c2k77 Pod,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r3,C4,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F3,r3,C2,llm-b-freeform,postgres-migrate-dhnkb pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C2,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C2,llm-b-grounded,postgres-migrate-dhnkb Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C2,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r3,C3,llm-b-freeform,postgres-migrate-dhnkb pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C3,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C3,llm-b-grounded,postgres-migrate-dhnkb pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r3,C4,llm-b-freeform,Container Image Pull,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C4,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s2-listmonk,F3,r3,C5,llm-b-freeform,postgres-migrate-dhnkb Pod,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
 s2-listmonk,F3,r3,C5,llm-b-grounded,Database Migration Job,infrastructure,app,infrastructure,0,1
-s2-listmonk,F3,r3,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s2-listmonk,F3,r3,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s2-listmonk,F3,r4,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
 s2-listmonk,F3,r4,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
 s2-listmonk,F3,r4,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
@@ -1364,16 +1499,31 @@ s2-listmonk,F5,r9,C5,llm-freeform,frontend,application,frontend,application,1,1
 s2-listmonk,F5,r9,C5,llm-b-grounded,frontend application,application,frontend,application,0,1
 s2-listmonk,F5,r9,C5,llm-grounded,frontend,application,frontend,application,1,1
 s2-listmonk,F5,r9,C5,rule-grounded,test-suite,test-reliability,frontend,application,0,0
-s2-listmonk,F6,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F6,r1,C1,llm-grounded,database,database,app,infrastructure,0,0
+s2-listmonk,F6,r1,C1,llm-b-freeform,PostgreSQL,database,app,infrastructure,0,0
+s2-listmonk,F6,r1,C1,llm-freeform,PostgreSQL database,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r1,C1,llm-b-grounded,PostgreSQL,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r1,C1,llm-grounded,PostgreSQL,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r1,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r1,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s2-listmonk,F6,r1,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C2,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s2-listmonk,F6,r1,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r1,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r1,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r1,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s2-listmonk,F6,r1,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r1,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C4,llm-b-grounded,svc-probe application,application,app,infrastructure,0,0
 s2-listmonk,F6,r1,C4,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
-s2-listmonk,F6,r1,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r1,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r1,C5,llm-b-grounded,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r1,C5,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s2-listmonk,F6,r1,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s2-listmonk,F6,r10,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F6,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F6,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -1399,26 +1549,56 @@ s2-listmonk,F6,r10,C5,llm-freeform,svc-probe,configuration,app,infrastructure,0,
 s2-listmonk,F6,r10,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r10,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r10,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s2-listmonk,F6,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F6,r2,C1,llm-grounded,database,database,app,infrastructure,0,0
+s2-listmonk,F6,r2,C1,llm-b-freeform,PostgreSQL database,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r2,C1,llm-freeform,database,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r2,C1,llm-b-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r2,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
+s2-listmonk,F6,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r2,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r2,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s2-listmonk,F6,r2,C2,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s2-listmonk,F6,r2,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r2,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r2,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r2,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s2-listmonk,F6,r2,C4,llm-b-grounded,svc-probe deployment,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r2,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r2,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C4,llm-b-grounded,svc-probe deployment,application,app,infrastructure,0,0
 s2-listmonk,F6,r2,C4,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r2,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r2,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r2,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r2,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r3,C1,llm-b-freeform,PostgreSQL,database,app,infrastructure,0,0
+s2-listmonk,F6,r3,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
 s2-listmonk,F6,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s2-listmonk,F6,r3,C1,llm-grounded,application,application,app,infrastructure,1,0
+s2-listmonk,F6,r3,C1,llm-grounded,PostgreSQL,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r3,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r3,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s2-listmonk,F6,r3,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C2,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s2-listmonk,F6,r3,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r3,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r3,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r3,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r3,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r3,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s2-listmonk,F6,r3,C4,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s2-listmonk,F6,r3,C4,llm-grounded,svc-probe,configuration,app,infrastructure,0,0
+s2-listmonk,F6,r3,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s2-listmonk,F6,r3,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r3,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r3,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s2-listmonk,F6,r3,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s2-listmonk,F6,r4,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F6,r4,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s2-listmonk,F6,r4,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -1569,16 +1749,31 @@ s2-listmonk,F6,r9,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r9,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s2-listmonk,F6,r9,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
 s2-listmonk,F6,r9,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s2-listmonk,F7,r1,C1,llm-b-grounded,Database initialization or configuration,database,service,infrastructure,0,0
-s2-listmonk,F7,r1,C1,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r1,C2,llm-b-grounded,Database initialization or configuration,database,service,infrastructure,0,0
-s2-listmonk,F7,r1,C2,llm-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r1,C3,llm-b-grounded,backend service,database,service,infrastructure,0,0
-s2-listmonk,F7,r1,C3,llm-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r1,C4,llm-b-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r1,C4,llm-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r1,C5,llm-b-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r1,C5,llm-grounded,database,database,service,infrastructure,0,0
+s2-listmonk,F7,r1,C1,llm-b-freeform,PostgreSQL,database,service,infrastructure,0,0
+s2-listmonk,F7,r1,C1,llm-freeform,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r1,C1,llm-b-grounded,PostgreSQL,database,service,infrastructure,0,0
+s2-listmonk,F7,r1,C1,llm-grounded,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r1,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r1,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r1,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r1,C4,llm-b-freeform,svc-backend deployment,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r1,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r1,C5,llm-b-freeform,svc-backend deployment,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r1,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s2-listmonk,F7,r1,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r1,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s2-listmonk,F7,r10,C1,llm-b-freeform,PostgreSQL database,database,service,infrastructure,0,0
 s2-listmonk,F7,r10,C1,llm-freeform,database,database,service,infrastructure,0,0
 s2-listmonk,F7,r10,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
@@ -1604,26 +1799,56 @@ s2-listmonk,F7,r10,C5,llm-freeform,Kubernetes Scheduler,infrastructure,service,i
 s2-listmonk,F7,r10,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
 s2-listmonk,F7,r10,C5,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
 s2-listmonk,F7,r10,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
-s2-listmonk,F7,r2,C1,llm-b-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r2,C1,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r2,C2,llm-b-grounded,backend service,application,service,infrastructure,0,0
-s2-listmonk,F7,r2,C2,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r2,C3,llm-b-grounded,backend service,database,service,infrastructure,0,0
-s2-listmonk,F7,r2,C3,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r2,C4,llm-b-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r2,C4,llm-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r2,C5,llm-b-grounded,Database Initialization,database,service,infrastructure,0,0
-s2-listmonk,F7,r2,C5,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C1,llm-b-grounded,database migration script,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C1,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C2,llm-b-grounded,Database Initialization,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C2,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C3,llm-b-grounded,Database Initialization,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C3,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C4,llm-b-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r3,C4,llm-grounded,database,database,service,infrastructure,0,0
-s2-listmonk,F7,r3,C5,llm-b-grounded,svc-backend,database,service,infrastructure,1,0
-s2-listmonk,F7,r3,C5,llm-grounded,database,database,service,infrastructure,0,0
+s2-listmonk,F7,r2,C1,llm-b-freeform,PostgreSQL,database,service,infrastructure,0,0
+s2-listmonk,F7,r2,C1,llm-freeform,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r2,C1,llm-b-grounded,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r2,C1,llm-grounded,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r2,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r2,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r2,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r2,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C4,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s2-listmonk,F7,r2,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r2,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s2-listmonk,F7,r2,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r2,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r3,C1,llm-b-freeform,PostgreSQL,database,service,infrastructure,0,0
+s2-listmonk,F7,r3,C1,llm-freeform,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r3,C1,llm-b-grounded,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r3,C1,llm-grounded,PostgreSQL,configuration,service,infrastructure,0,0
+s2-listmonk,F7,r3,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r3,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r3,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r3,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s2-listmonk,F7,r3,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s2-listmonk,F7,r3,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s2-listmonk,F7,r4,C1,llm-b-freeform,PostgreSQL database initialization,database,service,infrastructure,0,0
 s2-listmonk,F7,r4,C1,llm-freeform,database,database,service,infrastructure,0,0
 s2-listmonk,F7,r4,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
@@ -2274,16 +2499,31 @@ s2-listmonk,F9,r9,C5,llm-freeform,postgres-migrate job,application,seed-job,data
 s2-listmonk,F9,r9,C5,llm-b-grounded,database migration script,application,seed-job,database,0,0
 s2-listmonk,F9,r9,C5,llm-grounded,database migration job,application,seed-job,database,0,0
 s2-listmonk,F9,r9,C5,rule-grounded,migration-job,database,seed-job,database,0,1
-s3-healthchecks,F1,r1,C1,llm-b-grounded,PostgreSQL database pod,database,migration-job,database,0,1
-s3-healthchecks,F1,r1,C1,llm-grounded,PostgreSQL Database,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C1,llm-b-freeform,PostgreSQL pod,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r1,C1,llm-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r1,C1,llm-b-grounded,PostgreSQL Pod,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r1,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r1,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r1,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
 s3-healthchecks,F1,r1,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r1,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s3-healthchecks,F1,r1,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r1,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
 s3-healthchecks,F1,r1,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r1,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s3-healthchecks,F1,r1,C4,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r1,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C4,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
 s3-healthchecks,F1,r1,C4,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s3-healthchecks,F1,r1,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
-s3-healthchecks,F1,r1,C5,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s3-healthchecks,F1,r1,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r1,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C5,llm-grounded,Database migration job,database,migration-job,database,0,1
+s3-healthchecks,F1,r1,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s3-healthchecks,F1,r10,C1,llm-b-freeform,PostgreSQL database pod,database,migration-job,database,0,1
 s3-healthchecks,F1,r10,C1,llm-freeform,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r10,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -2309,26 +2549,56 @@ s3-healthchecks,F1,r10,C5,llm-freeform,postgres-migrate job,application,migratio
 s3-healthchecks,F1,r10,C5,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r10,C5,llm-grounded,database migration job,database,migration-job,database,0,1
 s3-healthchecks,F1,r10,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
-s3-healthchecks,F1,r2,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s3-healthchecks,F1,r2,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s3-healthchecks,F1,r2,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C1,llm-b-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r2,C1,llm-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r2,C1,llm-b-grounded,PostgreSQL database,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r2,C1,llm-grounded,PostgreSQL database,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r2,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r2,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C2,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
 s3-healthchecks,F1,r2,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s3-healthchecks,F1,r2,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r2,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C3,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
 s3-healthchecks,F1,r2,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s3-healthchecks,F1,r2,C4,llm-b-grounded,postgres-migrate job,database,migration-job,database,0,1
-s3-healthchecks,F1,r2,C4,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s3-healthchecks,F1,r2,C5,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s3-healthchecks,F1,r2,C5,llm-grounded,Database Migration Job,application,migration-job,database,0,0
-s3-healthchecks,F1,r3,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s3-healthchecks,F1,r3,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s3-healthchecks,F1,r3,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r2,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C4,llm-b-grounded,Database Migration Job (postgres-migrate),database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r2,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C5,llm-grounded,Database migration job,database,migration-job,database,0,1
+s3-healthchecks,F1,r2,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r3,C1,llm-b-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r3,C1,llm-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r3,C1,llm-b-grounded,PostgreSQL database,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r3,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s3-healthchecks,F1,r3,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r3,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C2,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
 s3-healthchecks,F1,r3,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s3-healthchecks,F1,r3,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r3,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
 s3-healthchecks,F1,r3,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r3,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
-s3-healthchecks,F1,r3,C4,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r3,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C4,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
 s3-healthchecks,F1,r3,C4,llm-grounded,database migration job,database,migration-job,database,0,1
-s3-healthchecks,F1,r3,C5,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s3-healthchecks,F1,r3,C5,llm-grounded,Database Migration Job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s3-healthchecks,F1,r3,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C5,llm-grounded,database migration job,database,migration-job,database,0,1
+s3-healthchecks,F1,r3,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s3-healthchecks,F1,r4,C1,llm-b-freeform,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r4,C1,llm-freeform,PostgreSQL database,database,migration-job,database,0,1
 s3-healthchecks,F1,r4,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -2729,16 +2999,31 @@ s3-healthchecks,F10,r9,C5,llm-freeform,application,application,test-suite,test-r
 s3-healthchecks,F10,r9,C5,llm-b-grounded,application,application,test-suite,test-reliability,0,0
 s3-healthchecks,F10,r9,C5,llm-grounded,Test Suite,application,test-suite,test-reliability,0,0
 s3-healthchecks,F10,r9,C5,rule-grounded,seed-job,database,test-suite,test-reliability,0,0
+s3-healthchecks,F2,r1,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r1,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r1,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r1,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r1,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r1,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r1,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r1,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r1,C2,llm-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r1,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r1,C3,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r1,C3,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r1,C3,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r1,C3,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
-s3-healthchecks,F2,r1,C4,llm-b-grounded,backend service (svc-backend),application,app,configuration,0,0
+s3-healthchecks,F2,r1,C3,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r1,C4,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r1,C4,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r1,C4,llm-b-grounded,backend service,application,app,configuration,0,0
 s3-healthchecks,F2,r1,C4,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
-s3-healthchecks,F2,r1,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
-s3-healthchecks,F2,r1,C5,llm-grounded,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r1,C4,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r1,C5,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r1,C5,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r1,C5,llm-b-grounded,backend service (svc-backend),application,app,configuration,0,0
+s3-healthchecks,F2,r1,C5,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r1,C5,rule-grounded,backend,observability,app,configuration,1,0
 s3-healthchecks,F2,r10,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r10,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r10,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
@@ -2764,26 +3049,56 @@ s3-healthchecks,F2,r10,C5,llm-freeform,svc-backend,infrastructure,app,configurat
 s3-healthchecks,F2,r10,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r10,C5,llm-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r10,C5,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r2,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r2,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r2,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r2,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r2,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r2,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r2,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r2,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r2,C2,llm-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r2,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r2,C3,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r2,C3,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r2,C3,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r2,C3,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
-s3-healthchecks,F2,r2,C4,llm-b-grounded,backend service (svc-backend),application,app,configuration,0,0
+s3-healthchecks,F2,r2,C3,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r2,C4,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r2,C4,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r2,C4,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r2,C4,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r2,C4,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r2,C5,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r2,C5,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r2,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r2,C5,llm-grounded,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r2,C5,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r3,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r3,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r3,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r3,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r3,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r3,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r3,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r3,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r3,C2,llm-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r3,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s3-healthchecks,F2,r3,C3,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r3,C3,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r3,C3,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r3,C3,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r3,C3,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r3,C4,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r3,C4,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r3,C4,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r3,C4,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r3,C4,rule-grounded,backend,observability,app,configuration,1,0
+s3-healthchecks,F2,r3,C5,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s3-healthchecks,F2,r3,C5,llm-freeform,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r3,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s3-healthchecks,F2,r3,C5,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
+s3-healthchecks,F2,r3,C5,rule-grounded,backend,observability,app,configuration,1,0
 s3-healthchecks,F2,r4,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r4,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s3-healthchecks,F2,r4,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
@@ -2934,16 +3249,31 @@ s3-healthchecks,F2,r9,C5,llm-freeform,svc-backend,infrastructure,app,configurati
 s3-healthchecks,F2,r9,C5,llm-b-grounded,backend service (svc-backend),application,app,configuration,0,0
 s3-healthchecks,F2,r9,C5,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
 s3-healthchecks,F2,r9,C5,rule-grounded,backend,observability,app,configuration,1,0
-s3-healthchecks,F3,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s3-healthchecks,F3,r1,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
-s3-healthchecks,F3,r1,C2,llm-b-grounded,postgres-migrate-mjlzg pod,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r1,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r1,C3,llm-b-grounded,postgres-migrate-mjlzg Pod,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r1,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r1,C4,llm-b-grounded,postgres-migrate-mjlzg Pod,configuration,app,infrastructure,0,0
-s3-healthchecks,F3,r1,C4,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r1,C5,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r1,C5,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C1,llm-freeform,PostgreSQL database,application,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C2,llm-b-freeform,Docker image 'testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f3-nonexistent',infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C2,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C2,llm-b-grounded,Docker image pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r1,C3,llm-b-freeform,Docker image 'testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f3-nonexistent',infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C3,llm-freeform,Image Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C3,llm-b-grounded,Docker image pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C3,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r1,C4,llm-b-freeform,Container Registry Authentication,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C4,llm-b-grounded,s3-healthchecks-adapter Docker image,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r1,C5,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C5,llm-b-grounded,Docker image reference,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r1,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r1,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s3-healthchecks,F3,r10,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s3-healthchecks,F3,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s3-healthchecks,F3,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -2969,26 +3299,56 @@ s3-healthchecks,F3,r10,C5,llm-freeform,Image Registry,infrastructure,app,infrast
 s3-healthchecks,F3,r10,C5,llm-b-grounded,Kubernetes Pod (postgres-migrate-gdhxw),infrastructure,app,infrastructure,0,1
 s3-healthchecks,F3,r10,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
 s3-healthchecks,F3,r10,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
-s3-healthchecks,F3,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s3-healthchecks,F3,r2,C1,llm-grounded,database,database,app,infrastructure,0,0
-s3-healthchecks,F3,r2,C2,llm-b-grounded,postgres-migrate-bldkh pod,configuration,app,infrastructure,0,0
-s3-healthchecks,F3,r2,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r2,C3,llm-b-grounded,postgres-migrate-bldkh pod,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r2,C3,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r2,C4,llm-b-grounded,Database Migration Job,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C1,llm-freeform,PostgreSQL database,application,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C2,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C2,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C2,llm-b-grounded,postgres-migrate-hvj4k pod,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C2,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r2,C3,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C3,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C3,llm-b-grounded,postgres-migrate-hvj4k Pod,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C3,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r2,C4,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C4,llm-b-grounded,postgres-migrate-hvj4k Pod,infrastructure,app,infrastructure,0,1
 s3-healthchecks,F3,r2,C4,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r2,C5,llm-b-grounded,Database Migration Job,configuration,app,infrastructure,0,0
-s3-healthchecks,F3,r2,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s3-healthchecks,F3,r3,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s3-healthchecks,F3,r3,C2,llm-b-grounded,postgres-migrate-4cmch pod,configuration,app,infrastructure,0,0
-s3-healthchecks,F3,r3,C2,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r3,C3,llm-b-grounded,postgres-migrate-4cmch pod,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r3,C3,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r3,C4,llm-b-grounded,Database migration job (postgres-migrate),configuration,app,infrastructure,0,0
-s3-healthchecks,F3,r3,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s3-healthchecks,F3,r3,C5,llm-b-grounded,Database Migration Job,configuration,app,infrastructure,0,0
-s3-healthchecks,F3,r3,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r2,C5,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r2,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C5,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r2,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r3,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C1,llm-freeform,PostgreSQL,unknown,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C2,llm-b-freeform,Container Image Pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C2,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C2,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r3,C3,llm-b-freeform,Container Image Pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C3,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C3,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r3,C4,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C4,llm-b-grounded,Container Registry Authentication,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C4,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s3-healthchecks,F3,r3,C5,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s3-healthchecks,F3,r3,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C5,llm-b-grounded,Docker image pull,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F3,r3,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s3-healthchecks,F3,r4,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s3-healthchecks,F3,r4,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s3-healthchecks,F3,r4,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -3639,16 +3999,31 @@ s3-healthchecks,F5,r9,C5,llm-freeform,frontend,application,frontend,application,
 s3-healthchecks,F5,r9,C5,llm-b-grounded,frontend,application,frontend,application,1,1
 s3-healthchecks,F5,r9,C5,llm-grounded,frontend,application,frontend,application,1,1
 s3-healthchecks,F5,r9,C5,rule-grounded,test-suite,test-reliability,frontend,application,0,0
-s3-healthchecks,F6,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s3-healthchecks,F6,r1,C1,llm-grounded,backend,application,app,infrastructure,1,0
+s3-healthchecks,F6,r1,C1,llm-b-freeform,PostgreSQL configuration,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C1,llm-freeform,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C1,llm-b-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C2,llm-b-freeform,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C2,llm-freeform,svc-probe,infrastructure,app,infrastructure,0,1
 s3-healthchecks,F6,r1,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C4,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r1,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r1,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s3-healthchecks,F6,r10,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
 s3-healthchecks,F6,r10,C1,llm-freeform,backend service (uWSGI),application,app,infrastructure,0,0
 s3-healthchecks,F6,r10,C1,llm-b-grounded,backend service,application,app,infrastructure,0,0
@@ -3674,26 +4049,56 @@ s3-healthchecks,F6,r10,C5,llm-freeform,svc-probe,application,app,infrastructure,
 s3-healthchecks,F6,r10,C5,llm-b-grounded,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r10,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r10,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s3-healthchecks,F6,r2,C1,llm-b-grounded,uWSGI server in svc-backend pod,application,app,infrastructure,0,0
-s3-healthchecks,F6,r2,C1,llm-grounded,uWSGI server,application,app,infrastructure,0,0
-s3-healthchecks,F6,r2,C2,llm-b-grounded,svc-probe pod and backend service,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C1,llm-b-freeform,PostgreSQL,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C1,llm-b-grounded,PostgreSQL pod,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C3,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F6,r2,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C4,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r2,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r2,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s3-healthchecks,F6,r3,C1,llm-b-grounded,backend service (uWSGI),configuration,app,infrastructure,0,0
-s3-healthchecks,F6,r3,C1,llm-grounded,backend,application,app,infrastructure,1,0
+s3-healthchecks,F6,r2,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C1,llm-b-freeform,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C1,llm-freeform,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C1,llm-b-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C4,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r3,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s3-healthchecks,F6,r3,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s3-healthchecks,F6,r3,C5,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s3-healthchecks,F6,r3,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s3-healthchecks,F6,r4,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
 s3-healthchecks,F6,r4,C1,llm-freeform,backend,application,app,infrastructure,1,0
 s3-healthchecks,F6,r4,C1,llm-b-grounded,backend service,application,app,infrastructure,0,0
@@ -3844,16 +4249,31 @@ s3-healthchecks,F6,r9,C5,llm-freeform,svc-probe,infrastructure,app,infrastructur
 s3-healthchecks,F6,r9,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s3-healthchecks,F6,r9,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
 s3-healthchecks,F6,r9,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s3-healthchecks,F7,r1,C1,llm-b-grounded,uWSGI server in svc-backend pod,application,service,infrastructure,0,0
-s3-healthchecks,F7,r1,C1,llm-grounded,uWSGI server,application,service,infrastructure,0,0
-s3-healthchecks,F7,r1,C2,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C2,llm-grounded,Kubernetes Node Scheduler,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C3,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C3,llm-grounded,Kubernetes cluster,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C4,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C4,llm-grounded,Kubernetes cluster,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r1,C5,llm-grounded,Kubernetes Node Scheduler,infrastructure,service,infrastructure,0,1
+s3-healthchecks,F7,r1,C1,llm-b-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C1,llm-b-grounded,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C1,llm-grounded,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C4,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C4,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r1,C5,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r1,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s3-healthchecks,F7,r10,C1,llm-b-freeform,uWSGI server in svc-backend pod,configuration,service,infrastructure,0,0
 s3-healthchecks,F7,r10,C1,llm-freeform,uWSGI,configuration,service,infrastructure,0,0
 s3-healthchecks,F7,r10,C1,llm-b-grounded,uWSGI server in backend pod,configuration,service,infrastructure,0,0
@@ -3879,26 +4299,56 @@ s3-healthchecks,F7,r10,C5,llm-freeform,svc-backend,application,service,infrastru
 s3-healthchecks,F7,r10,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
 s3-healthchecks,F7,r10,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
 s3-healthchecks,F7,r10,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
-s3-healthchecks,F7,r2,C1,llm-b-grounded,backend service,application,service,infrastructure,0,0
-s3-healthchecks,F7,r2,C1,llm-grounded,backend,application,service,infrastructure,1,0
-s3-healthchecks,F7,r2,C2,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C2,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C3,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C3,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C4,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C4,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r2,C5,llm-grounded,Kubernetes nodes,infrastructure,service,infrastructure,0,1
-s3-healthchecks,F7,r3,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
-s3-healthchecks,F7,r3,C1,llm-grounded,uWSGI backend server,application,service,infrastructure,0,0
-s3-healthchecks,F7,r3,C2,llm-b-grounded,svc-backend pod,application,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C1,llm-b-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C1,llm-b-grounded,PostgreSQL database configuration,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C1,llm-grounded,PostgreSQL,database,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C5,llm-b-freeform,svc-backend deployment,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r2,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r2,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C1,llm-b-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C1,llm-b-grounded,PostgreSQL database configuration,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C1,llm-grounded,database,configuration,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C2,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s3-healthchecks,F7,r3,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s3-healthchecks,F7,r3,C3,llm-b-grounded,svc-backend pod,application,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s3-healthchecks,F7,r3,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s3-healthchecks,F7,r3,C4,llm-b-grounded,svc-backend pod,application,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C4,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C4,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
 s3-healthchecks,F7,r3,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s3-healthchecks,F7,r3,C5,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
 s3-healthchecks,F7,r3,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
 s3-healthchecks,F7,r3,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s3-healthchecks,F7,r3,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s3-healthchecks,F7,r4,C1,llm-b-freeform,uWSGI server in svc-backend pod,application,service,infrastructure,0,0
 s3-healthchecks,F7,r4,C1,llm-freeform,uWSGI,configuration,service,infrastructure,0,0
 s3-healthchecks,F7,r4,C1,llm-b-grounded,uWSGI server in svc-backend pod,configuration,service,infrastructure,0,0
@@ -4549,16 +4999,31 @@ s3-healthchecks,F9,r9,C5,llm-freeform,database migration,database,seed-job,datab
 s3-healthchecks,F9,r9,C5,llm-b-grounded,Database migration script,application,seed-job,database,0,0
 s3-healthchecks,F9,r9,C5,llm-grounded,database migration job,database,seed-job,database,0,1
 s3-healthchecks,F9,r9,C5,rule-grounded,migration-job,database,seed-job,database,0,1
-s4-umami,F1,r1,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s4-umami,F1,r1,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s4-umami,F1,r1,C2,llm-b-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C2,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C3,llm-b-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C3,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C4,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C4,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C5,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s4-umami,F1,r1,C5,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
+s4-umami,F1,r1,C1,llm-b-freeform,PostgreSQL pod,configuration,migration-job,database,0,0
+s4-umami,F1,r1,C1,llm-freeform,PostgreSQL,database,migration-job,database,0,1
+s4-umami,F1,r1,C1,llm-b-grounded,PostgreSQL pod,configuration,migration-job,database,0,0
+s4-umami,F1,r1,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s4-umami,F1,r1,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r1,C2,llm-b-freeform,PostgreSQL container,configuration,migration-job,database,0,0
+s4-umami,F1,r1,C2,llm-freeform,postgres-migrate job,application,migration-job,database,0,0
+s4-umami,F1,r1,C2,llm-b-grounded,PostgreSQL migration job,application,migration-job,database,0,0
+s4-umami,F1,r1,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s4-umami,F1,r1,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r1,C3,llm-b-freeform,PostgreSQL migration job,application,migration-job,database,0,0
+s4-umami,F1,r1,C3,llm-freeform,postgres-migrate job,application,migration-job,database,0,0
+s4-umami,F1,r1,C3,llm-b-grounded,PostgreSQL migration job,application,migration-job,database,0,0
+s4-umami,F1,r1,C3,llm-grounded,Job/postgres-migrate,application,migration-job,database,0,0
+s4-umami,F1,r1,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r1,C4,llm-b-freeform,PostgreSQL database migration job,database,migration-job,database,0,1
+s4-umami,F1,r1,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r1,C4,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s4-umami,F1,r1,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s4-umami,F1,r1,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r1,C5,llm-b-freeform,PostgreSQL database,database,migration-job,database,0,1
+s4-umami,F1,r1,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r1,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
+s4-umami,F1,r1,C5,llm-grounded,Database migration job,application,migration-job,database,0,0
+s4-umami,F1,r1,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s4-umami,F1,r10,C1,llm-b-freeform,PostgreSQL database,database,migration-job,database,0,1
 s4-umami,F1,r10,C1,llm-freeform,PostgreSQL Database,database,migration-job,database,0,1
 s4-umami,F1,r10,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -4584,26 +5049,56 @@ s4-umami,F1,r10,C5,llm-freeform,postgres-migrate job,database,migration-job,data
 s4-umami,F1,r10,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
 s4-umami,F1,r10,C5,llm-grounded,Database migration job,application,migration-job,database,0,0
 s4-umami,F1,r10,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
-s4-umami,F1,r2,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s4-umami,F1,r2,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s4-umami,F1,r2,C2,llm-b-grounded,postgres-migrate Job,infrastructure,migration-job,database,0,0
-s4-umami,F1,r2,C2,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r2,C3,llm-b-grounded,postgres-migrate Pod,infrastructure,migration-job,database,0,0
-s4-umami,F1,r2,C3,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r2,C4,llm-b-grounded,postgres-migrate-job,infrastructure,migration-job,database,0,0
-s4-umami,F1,r2,C4,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r2,C5,llm-b-grounded,postgres-migrate,infrastructure,migration-job,database,1,0
-s4-umami,F1,r2,C5,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s4-umami,F1,r3,C1,llm-grounded,PostgreSQL Database,database,migration-job,database,0,1
-s4-umami,F1,r3,C2,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C2,llm-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C3,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C3,llm-grounded,PostgreSQL pod,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C4,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C4,llm-grounded,Postgres migration job,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C5,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s4-umami,F1,r3,C5,llm-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
+s4-umami,F1,r2,C1,llm-b-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s4-umami,F1,r2,C1,llm-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s4-umami,F1,r2,C1,llm-b-grounded,PostgreSQL pod,configuration,migration-job,database,0,0
+s4-umami,F1,r2,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s4-umami,F1,r2,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r2,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s4-umami,F1,r2,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r2,C2,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
+s4-umami,F1,r2,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s4-umami,F1,r2,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r2,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s4-umami,F1,r2,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r2,C3,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
+s4-umami,F1,r2,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s4-umami,F1,r2,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r2,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r2,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r2,C4,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s4-umami,F1,r2,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s4-umami,F1,r2,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r2,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r2,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r2,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
+s4-umami,F1,r2,C5,llm-grounded,Database Migration Job,database,migration-job,database,0,1
+s4-umami,F1,r2,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r3,C1,llm-b-freeform,PostgreSQL pod,configuration,migration-job,database,0,0
+s4-umami,F1,r3,C1,llm-freeform,PostgreSQL,database,migration-job,database,0,1
+s4-umami,F1,r3,C1,llm-b-grounded,PostgreSQL Pod,configuration,migration-job,database,0,0
+s4-umami,F1,r3,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
+s4-umami,F1,r3,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r3,C2,llm-b-freeform,PostgreSQL container,configuration,migration-job,database,0,0
+s4-umami,F1,r3,C2,llm-freeform,postgres-migrate job,configuration,migration-job,database,0,0
+s4-umami,F1,r3,C2,llm-b-grounded,PostgreSQL migration job,application,migration-job,database,0,0
+s4-umami,F1,r3,C2,llm-grounded,Job/postgres-migrate,infrastructure,migration-job,database,0,0
+s4-umami,F1,r3,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r3,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s4-umami,F1,r3,C3,llm-freeform,postgres-migrate job,application,migration-job,database,0,0
+s4-umami,F1,r3,C3,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s4-umami,F1,r3,C3,llm-grounded,Job/postgres-migrate,application,migration-job,database,0,0
+s4-umami,F1,r3,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r3,C4,llm-b-freeform,PostgreSQL migration job,database,migration-job,database,0,1
+s4-umami,F1,r3,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r3,C4,llm-b-grounded,Database Migration Job (postgres-migrate),database,migration-job,database,0,1
+s4-umami,F1,r3,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s4-umami,F1,r3,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s4-umami,F1,r3,C5,llm-b-freeform,PostgreSQL container,application,migration-job,database,0,0
+s4-umami,F1,r3,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s4-umami,F1,r3,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
+s4-umami,F1,r3,C5,llm-grounded,Database Migration Job,database,migration-job,database,0,1
+s4-umami,F1,r3,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s4-umami,F1,r4,C1,llm-b-freeform,PostgreSQL database pod,database,migration-job,database,0,1
 s4-umami,F1,r4,C1,llm-freeform,PostgreSQL database,database,migration-job,database,0,1
 s4-umami,F1,r4,C1,llm-b-grounded,PostgreSQL database pod,database,migration-job,database,0,1
@@ -5004,16 +5499,31 @@ s4-umami,F10,r9,C5,llm-freeform,application,application,test-suite,test-reliabil
 s4-umami,F10,r9,C5,llm-b-grounded,Application API endpoints,application,test-suite,test-reliability,0,0
 s4-umami,F10,r9,C5,llm-grounded,application,application,test-suite,test-reliability,0,0
 s4-umami,F10,r9,C5,rule-grounded,seed-job,database,test-suite,test-reliability,0,0
+s4-umami,F2,r1,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r1,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r1,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r1,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r1,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r1,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r1,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r1,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r1,C2,llm-grounded,unknown,unknown,app,configuration,0,0
-s4-umami,F2,r1,C3,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
+s4-umami,F2,r1,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r1,C3,llm-b-freeform,application JSON serialization,application,app,configuration,0,0
+s4-umami,F2,r1,C3,llm-freeform,application,application,app,configuration,1,0
+s4-umami,F2,r1,C3,llm-b-grounded,application API endpoints,application,app,configuration,0,0
 s4-umami,F2,r1,C3,llm-grounded,application,application,app,configuration,1,0
-s4-umami,F2,r1,C4,llm-b-grounded,Application API,application,app,configuration,0,0
+s4-umami,F2,r1,C3,rule-grounded,seed-job,database,app,configuration,0,0
+s4-umami,F2,r1,C4,llm-b-freeform,application API endpoints,application,app,configuration,0,0
+s4-umami,F2,r1,C4,llm-freeform,application,application,app,configuration,1,0
+s4-umami,F2,r1,C4,llm-b-grounded,"application endpoints (login, me, websites_list)",application,app,configuration,0,0
 s4-umami,F2,r1,C4,llm-grounded,application,application,app,configuration,1,0
-s4-umami,F2,r1,C5,llm-b-grounded,Application API,application,app,configuration,0,0
-s4-umami,F2,r1,C5,llm-grounded,application,application,app,configuration,1,0
+s4-umami,F2,r1,C4,rule-grounded,seed-job,database,app,configuration,0,0
+s4-umami,F2,r1,C5,llm-b-freeform,"application endpoints (me_endpoint, websites_list, login)",application,app,configuration,0,0
+s4-umami,F2,r1,C5,llm-freeform,application,application,app,configuration,1,0
+s4-umami,F2,r1,C5,llm-b-grounded,Test Suite,test-reliability,app,configuration,0,0
+s4-umami,F2,r1,C5,llm-grounded,Test Suite,application,app,configuration,0,0
+s4-umami,F2,r1,C5,rule-grounded,seed-job,database,app,configuration,0,0
 s4-umami,F2,r10,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r10,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r10,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
@@ -5039,26 +5549,56 @@ s4-umami,F2,r10,C5,llm-freeform,API endpoints,application,app,configuration,0,0
 s4-umami,F2,r10,C5,llm-b-grounded,Application API Endpoints,application,app,configuration,0,0
 s4-umami,F2,r10,C5,llm-grounded,application,application,app,configuration,1,0
 s4-umami,F2,r10,C5,rule-grounded,seed-job,database,app,configuration,0,0
+s4-umami,F2,r2,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r2,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r2,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r2,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r2,C2,llm-grounded,unknown,unknown,app,configuration,0,0
-s4-umami,F2,r2,C3,llm-b-grounded,application API endpoints,application,app,configuration,0,0
-s4-umami,F2,r2,C3,llm-grounded,application,application,app,configuration,1,0
-s4-umami,F2,r2,C4,llm-b-grounded,Application API,application,app,configuration,0,0
-s4-umami,F2,r2,C4,llm-grounded,application,application,app,configuration,1,0
-s4-umami,F2,r2,C5,llm-b-grounded,Application endpoints,application,app,configuration,0,0
-s4-umami,F2,r2,C5,llm-grounded,Test Suite,application,app,configuration,0,0
+s4-umami,F2,r2,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C3,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C3,llm-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C3,llm-b-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C3,llm-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C3,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C4,llm-b-freeform,postgres deployment,database,app,configuration,0,0
+s4-umami,F2,r2,C4,llm-freeform,database,database,app,configuration,0,0
+s4-umami,F2,r2,C4,llm-b-grounded,Database Deployment,database,app,configuration,0,0
+s4-umami,F2,r2,C4,llm-grounded,database,database,app,configuration,0,0
+s4-umami,F2,r2,C4,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r2,C5,llm-b-freeform,postgres deployment,database,app,configuration,0,0
+s4-umami,F2,r2,C5,llm-freeform,PostgreSQL deployment,database,app,configuration,0,0
+s4-umami,F2,r2,C5,llm-b-grounded,postgres deployment,database,app,configuration,0,0
+s4-umami,F2,r2,C5,llm-grounded,Database,database,app,configuration,0,0
+s4-umami,F2,r2,C5,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r3,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r3,C1,llm-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C2,llm-b-freeform,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C2,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r3,C2,llm-b-grounded,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r3,C2,llm-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s4-umami,F2,r3,C3,llm-b-freeform,"application endpoints (me_endpoint, websites_list, login)",application,app,configuration,0,0
+s4-umami,F2,r3,C3,llm-freeform,application,application,app,configuration,1,0
 s4-umami,F2,r3,C3,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
 s4-umami,F2,r3,C3,llm-grounded,application,application,app,configuration,1,0
+s4-umami,F2,r3,C3,rule-grounded,seed-job,database,app,configuration,0,0
+s4-umami,F2,r3,C4,llm-b-freeform,application,application,app,configuration,1,0
+s4-umami,F2,r3,C4,llm-freeform,application,application,app,configuration,1,0
 s4-umami,F2,r3,C4,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
 s4-umami,F2,r3,C4,llm-grounded,application,application,app,configuration,1,0
+s4-umami,F2,r3,C4,rule-grounded,seed-job,database,app,configuration,0,0
+s4-umami,F2,r3,C5,llm-b-freeform,application,application,app,configuration,1,0
+s4-umami,F2,r3,C5,llm-freeform,application,application,app,configuration,1,0
 s4-umami,F2,r3,C5,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
 s4-umami,F2,r3,C5,llm-grounded,Test Suite,application,app,configuration,0,0
+s4-umami,F2,r3,C5,rule-grounded,seed-job,database,app,configuration,0,0
 s4-umami,F2,r4,C1,llm-b-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r4,C1,llm-freeform,unknown,unknown,app,configuration,0,0
 s4-umami,F2,r4,C1,llm-b-grounded,unknown,unknown,app,configuration,0,0
@@ -5209,16 +5749,31 @@ s4-umami,F2,r9,C5,llm-freeform,application,application,app,configuration,1,0
 s4-umami,F2,r9,C5,llm-b-grounded,Application API endpoints,application,app,configuration,0,0
 s4-umami,F2,r9,C5,llm-grounded,Test Suite,test-reliability,app,configuration,0,0
 s4-umami,F2,r9,C5,rule-grounded,seed-job,database,app,configuration,0,0
-s4-umami,F3,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
+s4-umami,F3,r1,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s4-umami,F3,r1,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
+s4-umami,F3,r1,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
 s4-umami,F3,r1,C1,llm-grounded,database,database,app,infrastructure,0,0
-s4-umami,F3,r1,C2,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F3,r1,C2,llm-b-freeform,Container Image,configuration,app,infrastructure,0,0
+s4-umami,F3,r1,C2,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C2,llm-b-grounded,postgres-migrate-xp7xq Pod,infrastructure,app,infrastructure,0,1
 s4-umami,F3,r1,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r1,C3,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r1,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r1,C4,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
-s4-umami,F3,r1,C4,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r1,C5,llm-b-grounded,Database Migration Job,configuration,app,infrastructure,0,0
-s4-umami,F3,r1,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r1,C3,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C3,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C3,llm-b-grounded,postgres-migrate-xp7xq Pod,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C3,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r1,C4,llm-b-freeform,postgres-migrate job,configuration,app,infrastructure,0,0
+s4-umami,F3,r1,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C4,llm-b-grounded,postgres-migrate-xp7xq Pod,configuration,app,infrastructure,0,0
+s4-umami,F3,r1,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r1,C5,llm-b-freeform,postgres-migrate job,configuration,app,infrastructure,0,0
+s4-umami,F3,r1,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C5,llm-b-grounded,postgres-migrate job,configuration,app,infrastructure,0,0
+s4-umami,F3,r1,C5,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r1,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s4-umami,F3,r10,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s4-umami,F3,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s4-umami,F3,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -5244,26 +5799,56 @@ s4-umami,F3,r10,C5,llm-freeform,Container Registry,infrastructure,app,infrastruc
 s4-umami,F3,r10,C5,llm-b-grounded,Database migration job (postgres-migrate),configuration,app,infrastructure,0,0
 s4-umami,F3,r10,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
 s4-umami,F3,r10,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r2,C1,llm-b-freeform,PostgreSQL pod,database,app,infrastructure,0,0
+s4-umami,F3,r2,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
 s4-umami,F3,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s4-umami,F3,r2,C1,llm-grounded,database,database,app,infrastructure,0,0
-s4-umami,F3,r2,C2,llm-b-grounded,postgres-migrate-cht4q pod,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r2,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r2,C3,llm-b-grounded,postgres-migrate-cht4q pod,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r2,C3,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r2,C4,llm-b-grounded,postgres-migrate-cht4q Pod,configuration,app,infrastructure,0,0
+s4-umami,F3,r2,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
+s4-umami,F3,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F3,r2,C2,llm-b-freeform,Docker image 'testagentdevops.azurecr.io/s4-umami-adapter:fp-f3-nonexistent',infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C2,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C2,llm-b-grounded,postgres-migrate-rxc8r Pod,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r2,C3,llm-b-freeform,Docker image 'testagentdevops.azurecr.io/s4-umami-adapter:fp-f3-nonexistent',infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C3,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C3,llm-b-grounded,postgres-migrate-rxc8r Pod,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r2,C4,llm-b-freeform,Container Registry Authentication,configuration,app,infrastructure,0,0
+s4-umami,F3,r2,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C4,llm-b-grounded,Docker image pull,infrastructure,app,infrastructure,0,1
 s4-umami,F3,r2,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r2,C5,llm-b-grounded,Database Migration Job (postgres-migrate),configuration,app,infrastructure,0,0
+s4-umami,F3,r2,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r2,C5,llm-b-freeform,Container Registry Authentication,configuration,app,infrastructure,0,0
+s4-umami,F3,r2,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r2,C5,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
 s4-umami,F3,r2,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
+s4-umami,F3,r2,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r3,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s4-umami,F3,r3,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
+s4-umami,F3,r3,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
 s4-umami,F3,r3,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
-s4-umami,F3,r3,C2,llm-b-grounded,postgres-migrate-g4tdb pod,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r3,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r3,C3,llm-b-grounded,postgres-migrate-g4tdb pod,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r3,C3,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r3,C4,llm-b-grounded,postgres-migrate-g4tdb Pod,configuration,app,infrastructure,0,0
-s4-umami,F3,r3,C4,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
-s4-umami,F3,r3,C5,llm-b-grounded,Database migration job (postgres-migrate),configuration,app,infrastructure,0,0
-s4-umami,F3,r3,C5,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F3,r3,C2,llm-b-freeform,Docker image repository,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C2,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C2,llm-b-grounded,postgres-migrate-8tx87 Pod,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r3,C3,llm-b-freeform,Container Image Pull,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C3,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C3,llm-b-grounded,Pod/postgres-migrate-8tx87,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r3,C4,llm-b-freeform,Container Registry Authentication,configuration,app,infrastructure,0,0
+s4-umami,F3,r3,C4,llm-freeform,Azure Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C4,llm-b-grounded,postgres-migrate-8tx87 Pod,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C4,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s4-umami,F3,r3,C5,llm-b-freeform,Container Registry Authentication,configuration,app,infrastructure,0,0
+s4-umami,F3,r3,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C5,llm-b-grounded,Docker image repository,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s4-umami,F3,r3,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s4-umami,F3,r4,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s4-umami,F3,r4,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s4-umami,F3,r4,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -5914,16 +6499,31 @@ s4-umami,F5,r9,C5,llm-freeform,frontend,application,frontend,application,1,1
 s4-umami,F5,r9,C5,llm-b-grounded,frontend application,application,frontend,application,0,1
 s4-umami,F5,r9,C5,llm-grounded,frontend,application,frontend,application,1,1
 s4-umami,F5,r9,C5,rule-grounded,test-suite,test-reliability,frontend,application,0,0
-s4-umami,F6,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s4-umami,F6,r1,C1,llm-grounded,database,database,app,infrastructure,0,0
+s4-umami,F6,r1,C1,llm-b-freeform,PostgreSQL pod,configuration,app,infrastructure,0,0
+s4-umami,F6,r1,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
+s4-umami,F6,r1,C1,llm-b-grounded,PostgreSQL,database,app,infrastructure,0,0
+s4-umami,F6,r1,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s4-umami,F6,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r1,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r1,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r1,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s4-umami,F6,r1,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r1,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r1,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r1,C3,llm-freeform,svc-probe,infrastructure,app,infrastructure,0,1
 s4-umami,F6,r1,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s4-umami,F6,r1,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r1,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r1,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r1,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r1,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s4-umami,F6,r1,C4,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s4-umami,F6,r1,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s4-umami,F6,r1,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r1,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r1,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r1,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r1,C5,llm-b-grounded,svc-probe deployment,configuration,app,infrastructure,0,0
+s4-umami,F6,r1,C5,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r1,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s4-umami,F6,r10,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s4-umami,F6,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s4-umami,F6,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -5949,26 +6549,56 @@ s4-umami,F6,r10,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r10,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s4-umami,F6,r10,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r10,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r2,C1,llm-b-freeform,PostgreSQL,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r2,C1,llm-freeform,PostgreSQL database,configuration,app,infrastructure,0,0
 s4-umami,F6,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s4-umami,F6,r2,C1,llm-grounded,database,database,app,infrastructure,0,0
+s4-umami,F6,r2,C1,llm-grounded,PostgreSQL,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r2,C2,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r2,C2,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r2,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s4-umami,F6,r2,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s4-umami,F6,r2,C3,llm-b-grounded,svc-probe pod and PostgreSQL database,infrastructure,app,infrastructure,0,1
-s4-umami,F6,r2,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s4-umami,F6,r2,C4,llm-b-grounded,svc-probe deployment,configuration,app,infrastructure,0,0
-s4-umami,F6,r2,C4,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s4-umami,F6,r2,C5,llm-b-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r2,C2,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r2,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r2,C3,llm-b-freeform,svc-probe pod's application,application,app,infrastructure,0,0
+s4-umami,F6,r2,C3,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r2,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r2,C3,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r2,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r2,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r2,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r2,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r2,C4,llm-grounded,svc-probe,configuration,app,infrastructure,0,0
+s4-umami,F6,r2,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r2,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r2,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r2,C5,llm-b-grounded,svc-probe deployment,application,app,infrastructure,0,0
 s4-umami,F6,r2,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
-s4-umami,F6,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s4-umami,F6,r3,C1,llm-grounded,database,database,app,infrastructure,0,0
+s4-umami,F6,r2,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r3,C1,llm-b-freeform,PostgreSQL initialization,configuration,app,infrastructure,0,0
+s4-umami,F6,r3,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
+s4-umami,F6,r3,C1,llm-b-grounded,PostgreSQL initialization,configuration,app,infrastructure,0,0
+s4-umami,F6,r3,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s4-umami,F6,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r3,C2,llm-b-freeform,svc-probe application,application,app,infrastructure,0,0
+s4-umami,F6,r3,C2,llm-freeform,svc-probe,infrastructure,app,infrastructure,0,1
 s4-umami,F6,r3,C2,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s4-umami,F6,r3,C2,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r3,C2,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r3,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r3,C3,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r3,C3,llm-freeform,svc-probe,infrastructure,app,infrastructure,0,1
 s4-umami,F6,r3,C3,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s4-umami,F6,r3,C3,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r3,C3,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r3,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r3,C4,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r3,C4,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r3,C4,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s4-umami,F6,r3,C4,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
-s4-umami,F6,r3,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
-s4-umami,F6,r3,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
+s4-umami,F6,r3,C4,llm-grounded,svc-probe,configuration,app,infrastructure,0,0
+s4-umami,F6,r3,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s4-umami,F6,r3,C5,llm-b-freeform,svc-probe pod,application,app,infrastructure,0,0
+s4-umami,F6,r3,C5,llm-freeform,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r3,C5,llm-b-grounded,svc-probe deployment,application,app,infrastructure,0,0
+s4-umami,F6,r3,C5,llm-grounded,svc-probe,infrastructure,app,infrastructure,0,1
+s4-umami,F6,r3,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s4-umami,F6,r4,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,app,infrastructure,0,1
 s4-umami,F6,r4,C1,llm-freeform,database,database,app,infrastructure,0,0
 s4-umami,F6,r4,C1,llm-b-grounded,PostgreSQL database,infrastructure,app,infrastructure,0,1
@@ -6119,16 +6749,31 @@ s4-umami,F6,r9,C5,llm-freeform,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r9,C5,llm-b-grounded,svc-probe pod,application,app,infrastructure,0,0
 s4-umami,F6,r9,C5,llm-grounded,svc-probe,application,app,infrastructure,0,0
 s4-umami,F6,r9,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s4-umami,F7,r1,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
-s4-umami,F7,r1,C1,llm-grounded,database,database,service,infrastructure,0,0
-s4-umami,F7,r1,C2,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
+s4-umami,F7,r1,C1,llm-b-freeform,PostgreSQL pod,configuration,service,infrastructure,0,0
+s4-umami,F7,r1,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s4-umami,F7,r1,C1,llm-b-grounded,PostgreSQL pod,infrastructure,service,infrastructure,0,1
+s4-umami,F7,r1,C1,llm-grounded,PostgreSQL,infrastructure,service,infrastructure,0,1
+s4-umami,F7,r1,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r1,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r1,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s4-umami,F7,r1,C3,llm-b-grounded,backend service,configuration,service,infrastructure,0,0
+s4-umami,F7,r1,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r1,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r1,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r1,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r1,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r1,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r1,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r1,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r1,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r1,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s4-umami,F7,r10,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,service,infrastructure,0,1
 s4-umami,F7,r10,C1,llm-freeform,PostgreSQL database,infrastructure,service,infrastructure,0,1
 s4-umami,F7,r10,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
@@ -6154,26 +6799,56 @@ s4-umami,F7,r10,C5,llm-freeform,Kubernetes cluster,infrastructure,service,infras
 s4-umami,F7,r10,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
 s4-umami,F7,r10,C5,llm-grounded,Kubernetes cluster,infrastructure,service,infrastructure,0,1
 s4-umami,F7,r10,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
-s4-umami,F7,r2,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
-s4-umami,F7,r2,C1,llm-grounded,database,database,service,infrastructure,0,0
-s4-umami,F7,r2,C2,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
+s4-umami,F7,r2,C1,llm-b-freeform,PostgreSQL,infrastructure,service,infrastructure,0,1
+s4-umami,F7,r2,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s4-umami,F7,r2,C1,llm-b-grounded,PostgreSQL pod,infrastructure,service,infrastructure,0,1
+s4-umami,F7,r2,C1,llm-grounded,PostgreSQL database,configuration,service,infrastructure,0,0
+s4-umami,F7,r2,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r2,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r2,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s4-umami,F7,r2,C3,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
+s4-umami,F7,r2,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r2,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r2,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s4-umami,F7,r2,C4,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s4-umami,F7,r2,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r2,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r2,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s4-umami,F7,r2,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r2,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r2,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
 s4-umami,F7,r2,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s4-umami,F7,r3,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
-s4-umami,F7,r3,C1,llm-grounded,database,database,service,infrastructure,0,0
-s4-umami,F7,r3,C2,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s4-umami,F7,r2,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r3,C1,llm-b-freeform,PostgreSQL authentication configuration,configuration,service,infrastructure,0,0
+s4-umami,F7,r3,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s4-umami,F7,r3,C1,llm-b-grounded,PostgreSQL configuration,configuration,service,infrastructure,0,0
+s4-umami,F7,r3,C1,llm-grounded,database,configuration,service,infrastructure,0,0
+s4-umami,F7,r3,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r3,C2,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s4-umami,F7,r3,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r3,C3,llm-b-freeform,svc-backend,configuration,service,infrastructure,1,0
+s4-umami,F7,r3,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r3,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s4-umami,F7,r3,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s4-umami,F7,r3,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s4-umami,F7,r3,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s4-umami,F7,r4,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,service,infrastructure,0,1
 s4-umami,F7,r4,C1,llm-freeform,database,database,service,infrastructure,0,0
 s4-umami,F7,r4,C1,llm-b-grounded,PostgreSQL database pod,infrastructure,service,infrastructure,0,1
@@ -6824,16 +7499,31 @@ s4-umami,F9,r9,C5,llm-freeform,postgres-migrate job,application,seed-job,databas
 s4-umami,F9,r9,C5,llm-b-grounded,database migration script,application,seed-job,database,0,0
 s4-umami,F9,r9,C5,llm-grounded,database migration job,application,seed-job,database,0,0
 s4-umami,F9,r9,C5,rule-grounded,migration-job,database,seed-job,database,0,1
-s5-petclinic,F1,r1,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s5-petclinic,F1,r1,C1,llm-grounded,database,database,migration-job,database,1,1
-s5-petclinic,F1,r1,C2,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C2,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C3,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C3,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C4,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C4,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C5,llm-b-grounded,PostgreSQL Pod and Migration Job,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r1,C5,llm-grounded,Kubernetes Cluster,infrastructure,migration-job,database,0,0
+s5-petclinic,F1,r1,C1,llm-b-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s5-petclinic,F1,r1,C1,llm-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s5-petclinic,F1,r1,C1,llm-b-grounded,PostgreSQL Pod,configuration,migration-job,database,0,0
+s5-petclinic,F1,r1,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s5-petclinic,F1,r1,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r1,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s5-petclinic,F1,r1,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r1,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C3,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s5-petclinic,F1,r1,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r1,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C4,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r1,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s5-petclinic,F1,r1,C5,llm-grounded,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r1,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s5-petclinic,F1,r10,C1,llm-b-freeform,PostgreSQL database pod,database,migration-job,database,0,1
 s5-petclinic,F1,r10,C1,llm-freeform,PostgreSQL database,database,migration-job,database,0,1
 s5-petclinic,F1,r10,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -6859,26 +7549,56 @@ s5-petclinic,F1,r10,C5,llm-freeform,postgres-migrate job,database,migration-job,
 s5-petclinic,F1,r10,C5,llm-b-grounded,PostgreSQL database migration job,database,migration-job,database,0,1
 s5-petclinic,F1,r10,C5,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
 s5-petclinic,F1,r10,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
-s5-petclinic,F1,r2,C1,llm-b-grounded,PostgreSQL database pod,database,migration-job,database,0,1
-s5-petclinic,F1,r2,C1,llm-grounded,PostgreSQL Database,database,migration-job,database,0,1
-s5-petclinic,F1,r2,C2,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C2,llm-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C3,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C3,llm-grounded,PostgreSQL pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C4,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C4,llm-grounded,PostgreSQL,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C5,llm-b-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r2,C5,llm-grounded,PostgreSQL Pod,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
-s5-petclinic,F1,r3,C1,llm-grounded,PostgreSQL database,database,migration-job,database,0,1
-s5-petclinic,F1,r3,C2,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C2,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C3,llm-b-grounded,Kubernetes node resource allocation,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C3,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C4,llm-b-grounded,Kubernetes Job Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C4,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C5,llm-b-grounded,Kubernetes Job Scheduler,infrastructure,migration-job,database,0,0
-s5-petclinic,F1,r3,C5,llm-grounded,Kubernetes Scheduler,infrastructure,migration-job,database,0,0
+s5-petclinic,F1,r2,C1,llm-b-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s5-petclinic,F1,r2,C1,llm-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s5-petclinic,F1,r2,C1,llm-b-grounded,PostgreSQL Pod,configuration,migration-job,database,0,0
+s5-petclinic,F1,r2,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s5-petclinic,F1,r2,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r2,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C2,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s5-petclinic,F1,r2,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r2,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C3,llm-b-grounded,PostgreSQL migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s5-petclinic,F1,r2,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r2,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C4,llm-b-grounded,Database Migration Job (postgres-migrate),database,migration-job,database,0,1
+s5-petclinic,F1,r2,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r2,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s5-petclinic,F1,r2,C5,llm-grounded,Database migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r2,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r3,C1,llm-b-freeform,PostgreSQL database,configuration,migration-job,database,0,0
+s5-petclinic,F1,r3,C1,llm-freeform,PostgreSQL,configuration,migration-job,database,0,0
+s5-petclinic,F1,r3,C1,llm-b-grounded,PostgreSQL Pod,configuration,migration-job,database,0,0
+s5-petclinic,F1,r3,C1,llm-grounded,PostgreSQL,configuration,migration-job,database,0,0
+s5-petclinic,F1,r3,C1,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r3,C2,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C2,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C2,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C2,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s5-petclinic,F1,r3,C2,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r3,C3,llm-b-freeform,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C3,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C3,llm-b-grounded,PostgreSQL database initialization,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C3,llm-grounded,postgres-migrate job,application,migration-job,database,0,0
+s5-petclinic,F1,r3,C3,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r3,C4,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C4,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C4,llm-b-grounded,Database Migration Job (postgres-migrate),database,migration-job,database,0,1
+s5-petclinic,F1,r3,C4,llm-grounded,database migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C4,rule-grounded,unknown,unknown,migration-job,database,0,0
+s5-petclinic,F1,r3,C5,llm-b-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C5,llm-freeform,postgres-migrate job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C5,llm-b-grounded,Database migration job (postgres-migrate),database,migration-job,database,0,1
+s5-petclinic,F1,r3,C5,llm-grounded,Database migration job,database,migration-job,database,0,1
+s5-petclinic,F1,r3,C5,rule-grounded,unknown,unknown,migration-job,database,0,0
 s5-petclinic,F1,r4,C1,llm-b-freeform,PostgreSQL database,database,migration-job,database,0,1
 s5-petclinic,F1,r4,C1,llm-freeform,PostgreSQL database,database,migration-job,database,0,1
 s5-petclinic,F1,r4,C1,llm-b-grounded,PostgreSQL database,database,migration-job,database,0,1
@@ -7279,16 +7999,31 @@ s5-petclinic,F10,r9,C5,llm-freeform,Kubernetes cluster,infrastructure,test-suite
 s5-petclinic,F10,r9,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,test-suite,test-reliability,0,0
 s5-petclinic,F10,r9,C5,llm-grounded,Kubernetes cluster,infrastructure,test-suite,test-reliability,0,0
 s5-petclinic,F10,r9,C5,rule-grounded,unknown,unknown,test-suite,test-reliability,0,0
+s5-petclinic,F2,r1,C1,llm-b-freeform,PostgreSQL database,database,app,configuration,0,0
+s5-petclinic,F2,r1,C1,llm-freeform,database,database,app,configuration,0,0
 s5-petclinic,F2,r1,C1,llm-b-grounded,PostgreSQL database,database,app,configuration,0,0
-s5-petclinic,F2,r1,C1,llm-grounded,database,database,app,configuration,0,0
-s5-petclinic,F2,r1,C2,llm-b-grounded,svc-backend pod,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r1,C2,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
-s5-petclinic,F2,r1,C3,llm-b-grounded,svc-backend pod,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r1,C3,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r1,C4,llm-b-grounded,svc-backend pod,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r1,C4,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r1,C5,llm-b-grounded,svc-backend pod,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r1,C5,llm-grounded,svc-backend,infrastructure,app,configuration,1,0
+s5-petclinic,F2,r1,C1,llm-grounded,migration job,application,app,configuration,0,0
+s5-petclinic,F2,r1,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r1,C2,llm-b-freeform,PostgreSQL database and Flyway migration,database,app,configuration,0,0
+s5-petclinic,F2,r1,C2,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C2,llm-b-grounded,backend service,application,app,configuration,0,0
+s5-petclinic,F2,r1,C2,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r1,C3,llm-b-freeform,PostgreSQL database,database,app,configuration,0,0
+s5-petclinic,F2,r1,C3,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C3,llm-b-grounded,backend service,application,app,configuration,0,0
+s5-petclinic,F2,r1,C3,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C3,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r1,C4,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C4,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C4,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C4,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C4,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r1,C5,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C5,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C5,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r1,C5,rule-grounded,unknown,unknown,app,configuration,0,0
 s5-petclinic,F2,r10,C1,llm-b-freeform,PostgreSQL database,database,app,configuration,0,0
 s5-petclinic,F2,r10,C1,llm-freeform,migration,application,app,configuration,0,0
 s5-petclinic,F2,r10,C1,llm-b-grounded,PostgreSQL database,database,app,configuration,0,0
@@ -7314,26 +8049,56 @@ s5-petclinic,F2,r10,C5,llm-freeform,svc-backend,application,app,configuration,1,
 s5-petclinic,F2,r10,C5,llm-b-grounded,svc-backend deployment,application,app,configuration,0,0
 s5-petclinic,F2,r10,C5,llm-grounded,svc-backend,application,app,configuration,1,0
 s5-petclinic,F2,r10,C5,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r2,C1,llm-b-freeform,PostgreSQL database,database,app,configuration,0,0
+s5-petclinic,F2,r2,C1,llm-freeform,database,database,app,configuration,0,0
 s5-petclinic,F2,r2,C1,llm-b-grounded,PostgreSQL database,database,app,configuration,0,0
-s5-petclinic,F2,r2,C1,llm-grounded,backend,configuration,app,configuration,1,1
-s5-petclinic,F2,r2,C2,llm-b-grounded,Kubernetes node resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C2,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C3,llm-b-grounded,Kubernetes node resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C3,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C4,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C4,llm-grounded,Kubernetes Node Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r2,C5,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C1,llm-b-grounded,PostgreSQL database,database,app,configuration,0,0
-s5-petclinic,F2,r3,C1,llm-grounded,database,database,app,configuration,0,0
-s5-petclinic,F2,r3,C2,llm-b-grounded,Kubernetes cluster nodes,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C2,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C3,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C3,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C4,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C4,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,app,configuration,0,0
-s5-petclinic,F2,r3,C5,llm-grounded,Kubernetes Scheduler,infrastructure,app,configuration,0,0
+s5-petclinic,F2,r2,C1,llm-grounded,database,database,app,configuration,0,0
+s5-petclinic,F2,r2,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r2,C2,llm-b-freeform,backend service,application,app,configuration,0,0
+s5-petclinic,F2,r2,C2,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C2,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C2,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r2,C3,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C3,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C3,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C3,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C3,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r2,C4,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C4,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C4,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C4,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C4,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r2,C5,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C5,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C5,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r2,C5,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r3,C1,llm-b-freeform,PostgreSQL configuration,configuration,app,configuration,0,1
+s5-petclinic,F2,r3,C1,llm-freeform,PostgreSQL database,configuration,app,configuration,0,1
+s5-petclinic,F2,r3,C1,llm-b-grounded,PostgreSQL configuration,configuration,app,configuration,0,1
+s5-petclinic,F2,r3,C1,llm-grounded,database,configuration,app,configuration,0,1
+s5-petclinic,F2,r3,C1,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r3,C2,llm-b-freeform,svc-backend pod,configuration,app,configuration,0,1
+s5-petclinic,F2,r3,C2,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C2,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C2,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C2,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r3,C3,llm-b-freeform,svc-backend pod,configuration,app,configuration,0,1
+s5-petclinic,F2,r3,C3,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C3,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C3,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C3,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r3,C4,llm-b-freeform,svc-backend,configuration,app,configuration,1,1
+s5-petclinic,F2,r3,C4,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C4,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C4,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C4,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F2,r3,C5,llm-b-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C5,llm-freeform,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C5,llm-grounded,svc-backend,application,app,configuration,1,0
+s5-petclinic,F2,r3,C5,rule-grounded,unknown,unknown,app,configuration,0,0
 s5-petclinic,F2,r4,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,app,configuration,0,0
 s5-petclinic,F2,r4,C1,llm-freeform,PostgreSQL database,database,app,configuration,0,0
 s5-petclinic,F2,r4,C1,llm-b-grounded,PostgreSQL database,database,app,configuration,0,0
@@ -7484,16 +8249,31 @@ s5-petclinic,F2,r9,C5,llm-freeform,svc-backend,application,app,configuration,1,0
 s5-petclinic,F2,r9,C5,llm-b-grounded,svc-backend,application,app,configuration,1,0
 s5-petclinic,F2,r9,C5,llm-grounded,svc-backend,application,app,configuration,1,0
 s5-petclinic,F2,r9,C5,rule-grounded,unknown,unknown,app,configuration,0,0
+s5-petclinic,F3,r1,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s5-petclinic,F3,r1,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
 s5-petclinic,F3,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F3,r1,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F3,r1,C2,llm-b-grounded,postgres-migrate-bfwkk Pod,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r1,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r1,C3,llm-b-grounded,postgres-migrate-bfwkk pod,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C1,llm-grounded,database,database,app,infrastructure,0,0
+s5-petclinic,F3,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F3,r1,C2,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C2,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C2,llm-b-grounded,postgres-migrate-6p2p4 pod,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C2,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r1,C3,llm-b-freeform,Docker image pull,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C3,llm-freeform,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C3,llm-b-grounded,postgres-migrate-6p2p4 pod,infrastructure,app,infrastructure,0,1
 s5-petclinic,F3,r1,C3,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r1,C4,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r1,C4,llm-b-freeform,postgres-migrate,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r1,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C4,llm-b-grounded,Database migration job,infrastructure,app,infrastructure,0,1
 s5-petclinic,F3,r1,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r1,C5,llm-b-freeform,Container Image,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r1,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
 s5-petclinic,F3,r1,C5,llm-b-grounded,Database Migration Job,infrastructure,app,infrastructure,0,1
 s5-petclinic,F3,r1,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r1,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s5-petclinic,F3,r10,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F3,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F3,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -7519,26 +8299,56 @@ s5-petclinic,F3,r10,C5,llm-freeform,Container Registry,infrastructure,app,infras
 s5-petclinic,F3,r10,C5,llm-b-grounded,Database Migration Job (postgres-migrate),configuration,app,infrastructure,0,0
 s5-petclinic,F3,r10,C5,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
 s5-petclinic,F3,r10,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r2,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s5-petclinic,F3,r2,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F3,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F3,r2,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F3,r2,C2,llm-b-grounded,postgres-migrate-xw2s2 pod,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C3,llm-b-grounded,postgres-migrate-xw2s2 pod,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C3,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C4,llm-b-grounded,postgres-migrate-xw2s2 Pod,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C4,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C5,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r2,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F3,r3,C1,llm-grounded,PostgreSQL Database,database,app,infrastructure,0,0
-s5-petclinic,F3,r3,C2,llm-b-grounded,Kubernetes Pod (postgres-migrate-r2grn),infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C2,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C3,llm-b-grounded,Container Image Pull,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C1,llm-grounded,database,database,app,infrastructure,0,0
+s5-petclinic,F3,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F3,r2,C2,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r2,C2,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C2,llm-b-grounded,postgres-migrate-hzqfl pod,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C2,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r2,C3,llm-b-freeform,Container Image Pull,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r2,C3,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C3,llm-b-grounded,postgres-migrate-hzqfl pod,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r2,C4,llm-b-freeform,postgres-migrate,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r2,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C4,llm-b-grounded,postgres-migrate-hzqfl Pod,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r2,C4,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r2,C5,llm-b-freeform,postgres-migrate,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C5,llm-b-grounded,postgres-migrate-hzqfl Pod,configuration,app,infrastructure,0,0
+s5-petclinic,F3,r2,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r2,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r3,C1,llm-b-freeform,PostgreSQL database pod,database,app,infrastructure,0,0
+s5-petclinic,F3,r3,C1,llm-freeform,PostgreSQL Database,database,app,infrastructure,0,0
+s5-petclinic,F3,r3,C1,llm-b-grounded,PostgreSQL database pod,database,app,infrastructure,0,0
+s5-petclinic,F3,r3,C1,llm-grounded,PostgreSQL database,database,app,infrastructure,0,0
+s5-petclinic,F3,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F3,r3,C2,llm-b-freeform,Container Image,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C2,llm-freeform,image registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C2,llm-b-grounded,postgres-migrate-6dpqz pod,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C2,llm-grounded,image registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C2,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r3,C3,llm-b-freeform,Container Image,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C3,llm-freeform,Kubernetes Pod,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C3,llm-b-grounded,postgres-migrate-6dpqz pod,infrastructure,app,infrastructure,0,1
 s5-petclinic,F3,r3,C3,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C4,llm-b-grounded,Database migration job,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C4,llm-grounded,Image Registry,infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C5,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
-s5-petclinic,F3,r3,C5,llm-grounded,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C3,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r3,C4,llm-b-freeform,Docker image (testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f3-nonexistent),configuration,app,infrastructure,0,0
+s5-petclinic,F3,r3,C4,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C4,llm-b-grounded,Database migration job (postgres-migrate),infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C4,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C4,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
+s5-petclinic,F3,r3,C5,llm-b-freeform,Docker image (testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f3-nonexistent),configuration,app,infrastructure,0,0
+s5-petclinic,F3,r3,C5,llm-freeform,Container Registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C5,llm-b-grounded,Database Migration Job,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C5,llm-grounded,container registry,infrastructure,app,infrastructure,0,1
+s5-petclinic,F3,r3,C5,rule-grounded,app-deployment,infrastructure,app,infrastructure,1,1
 s5-petclinic,F3,r4,C1,llm-b-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F3,r4,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F3,r4,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -8189,16 +8999,31 @@ s5-petclinic,F5,r9,C5,llm-freeform,Kubernetes nodes,infrastructure,frontend,appl
 s5-petclinic,F5,r9,C5,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,frontend,application,0,0
 s5-petclinic,F5,r9,C5,llm-grounded,Kubernetes nodes,infrastructure,frontend,application,0,0
 s5-petclinic,F5,r9,C5,rule-grounded,unknown,unknown,frontend,application,0,0
+s5-petclinic,F6,r1,C1,llm-b-freeform,PostgreSQL,database,app,infrastructure,0,0
+s5-petclinic,F6,r1,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
 s5-petclinic,F6,r1,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F6,r1,C1,llm-grounded,database,database,app,infrastructure,0,0
-s5-petclinic,F6,r1,C2,llm-b-grounded,Kubernetes Pod Network Configuration,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r1,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r1,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r1,C2,llm-b-freeform,svc-probe and svc-backend pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C2,llm-freeform,service backend,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C2,llm-b-grounded,svc-probe and svc-backend pods,application,app,infrastructure,0,0
 s5-petclinic,F6,r1,C2,llm-grounded,service probe and backend pods,application,app,infrastructure,0,0
-s5-petclinic,F6,r1,C3,llm-b-grounded,backend and probe services,configuration,app,infrastructure,0,0
-s5-petclinic,F6,r1,C3,llm-grounded,service backend,application,app,infrastructure,0,0
-s5-petclinic,F6,r1,C4,llm-b-grounded,svc-backend,configuration,app,infrastructure,1,0
+s5-petclinic,F6,r1,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r1,C3,llm-b-freeform,svc-probe and svc-backend pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C3,llm-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C3,llm-b-grounded,svc-probe and svc-backend pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C3,llm-grounded,service probe and backend services,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r1,C4,llm-b-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r1,C4,llm-freeform,svc-backend and svc-probe,application,app,infrastructure,0,0
+s5-petclinic,F6,r1,C4,llm-b-grounded,svc-backend,application,app,infrastructure,1,0
 s5-petclinic,F6,r1,C4,llm-grounded,svc-backend,application,app,infrastructure,1,0
-s5-petclinic,F6,r1,C5,llm-b-grounded,svc-backend,configuration,app,infrastructure,1,0
+s5-petclinic,F6,r1,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r1,C5,llm-b-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r1,C5,llm-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r1,C5,llm-b-grounded,svc-backend and svc-probe,application,app,infrastructure,0,0
 s5-petclinic,F6,r1,C5,llm-grounded,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r1,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s5-petclinic,F6,r10,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,app,infrastructure,0,1
 s5-petclinic,F6,r10,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F6,r10,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -8224,26 +9049,56 @@ s5-petclinic,F6,r10,C5,llm-freeform,svc-backend and svc-probe,application,app,in
 s5-petclinic,F6,r10,C5,llm-b-grounded,svc-backend,application,app,infrastructure,1,0
 s5-petclinic,F6,r10,C5,llm-grounded,svc-backend,application,app,infrastructure,1,0
 s5-petclinic,F6,r10,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s5-petclinic,F6,r2,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F6,r2,C1,llm-grounded,database,database,app,infrastructure,0,0
-s5-petclinic,F6,r2,C2,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F6,r2,C2,llm-grounded,service backend,application,app,infrastructure,0,0
-s5-petclinic,F6,r2,C3,llm-b-grounded,svc-probe and svc-backend pods,configuration,app,infrastructure,0,0
-s5-petclinic,F6,r2,C3,llm-grounded,service backend,application,app,infrastructure,0,0
-s5-petclinic,F6,r2,C4,llm-b-grounded,svc-backend,configuration,app,infrastructure,1,0
+s5-petclinic,F6,r2,C1,llm-b-freeform,PostgreSQL,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r2,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r2,C1,llm-b-grounded,PostgreSQL,database,app,infrastructure,0,0
+s5-petclinic,F6,r2,C1,llm-grounded,PostgreSQL,infrastructure,app,infrastructure,0,1
+s5-petclinic,F6,r2,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r2,C2,llm-b-freeform,svc-backend and svc-probe,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r2,C2,llm-freeform,svc-backend and svc-probe,application,app,infrastructure,0,0
+s5-petclinic,F6,r2,C2,llm-b-grounded,"svc-backend, svc-probe",application,app,infrastructure,0,0
+s5-petclinic,F6,r2,C2,llm-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r2,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r2,C3,llm-b-freeform,svc-backend and svc-probe,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r2,C3,llm-freeform,svc-backend and svc-probe,application,app,infrastructure,0,0
+s5-petclinic,F6,r2,C3,llm-b-grounded,"svc-backend, svc-probe",application,app,infrastructure,0,0
+s5-petclinic,F6,r2,C3,llm-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r2,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r2,C4,llm-b-freeform,svc-backend,configuration,app,infrastructure,1,0
+s5-petclinic,F6,r2,C4,llm-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r2,C4,llm-b-grounded,svc-backend,application,app,infrastructure,1,0
 s5-petclinic,F6,r2,C4,llm-grounded,svc-backend,application,app,infrastructure,1,0
-s5-petclinic,F6,r2,C5,llm-b-grounded,svc-backend,configuration,app,infrastructure,1,0
+s5-petclinic,F6,r2,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r2,C5,llm-b-freeform,svc-backend,configuration,app,infrastructure,1,0
+s5-petclinic,F6,r2,C5,llm-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r2,C5,llm-b-grounded,svc-backend,application,app,infrastructure,1,0
 s5-petclinic,F6,r2,C5,llm-grounded,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r2,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r3,C1,llm-b-freeform,PostgreSQL,database,app,infrastructure,0,0
+s5-petclinic,F6,r3,C1,llm-freeform,PostgreSQL,configuration,app,infrastructure,0,0
 s5-petclinic,F6,r3,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F6,r3,C1,llm-grounded,database,database,app,infrastructure,0,0
-s5-petclinic,F6,r3,C2,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F6,r3,C2,llm-grounded,service backend,application,app,infrastructure,0,0
-s5-petclinic,F6,r3,C3,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
-s5-petclinic,F6,r3,C3,llm-grounded,service backend,application,app,infrastructure,0,0
-s5-petclinic,F6,r3,C4,llm-b-grounded,backend service,configuration,app,infrastructure,0,0
-s5-petclinic,F6,r3,C4,llm-grounded,svc-backend,infrastructure,app,infrastructure,1,1
-s5-petclinic,F6,r3,C5,llm-b-grounded,backend service,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r3,C1,llm-grounded,PostgreSQL database,configuration,app,infrastructure,0,0
+s5-petclinic,F6,r3,C1,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r3,C2,llm-b-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C2,llm-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C2,llm-b-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C2,llm-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C2,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r3,C3,llm-b-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C3,llm-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C3,llm-b-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C3,llm-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C3,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r3,C4,llm-b-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C4,llm-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r3,C4,llm-b-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C4,llm-grounded,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r3,C4,rule-grounded,unknown,unknown,app,infrastructure,0,0
+s5-petclinic,F6,r3,C5,llm-b-freeform,svc-backend and svc-probe pods,application,app,infrastructure,0,0
+s5-petclinic,F6,r3,C5,llm-freeform,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r3,C5,llm-b-grounded,svc-backend and svc-probe pods,application,app,infrastructure,0,0
 s5-petclinic,F6,r3,C5,llm-grounded,svc-backend,application,app,infrastructure,1,0
+s5-petclinic,F6,r3,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
 s5-petclinic,F6,r4,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,app,infrastructure,0,1
 s5-petclinic,F6,r4,C1,llm-freeform,PostgreSQL database,database,app,infrastructure,0,0
 s5-petclinic,F6,r4,C1,llm-b-grounded,PostgreSQL database,database,app,infrastructure,0,0
@@ -8394,16 +9249,31 @@ s5-petclinic,F6,r9,C5,llm-freeform,svc-backend,application,app,infrastructure,1,
 s5-petclinic,F6,r9,C5,llm-b-grounded,svc-backend,configuration,app,infrastructure,1,0
 s5-petclinic,F6,r9,C5,llm-grounded,svc-backend,application,app,infrastructure,1,0
 s5-petclinic,F6,r9,C5,rule-grounded,unknown,unknown,app,infrastructure,0,0
-s5-petclinic,F7,r1,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
-s5-petclinic,F7,r1,C1,llm-grounded,database,database,service,infrastructure,0,0
-s5-petclinic,F7,r1,C2,llm-b-grounded,backend service,configuration,service,infrastructure,0,0
-s5-petclinic,F7,r1,C2,llm-grounded,svc-backend,configuration,service,infrastructure,1,0
-s5-petclinic,F7,r1,C3,llm-b-grounded,backend service,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r1,C3,llm-grounded,svc-backend,configuration,service,infrastructure,1,0
-s5-petclinic,F7,r1,C4,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s5-petclinic,F7,r1,C1,llm-b-freeform,PostgreSQL,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r1,C1,llm-freeform,PostgreSQL database,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r1,C1,llm-b-grounded,PostgreSQL,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r1,C1,llm-grounded,PostgreSQL Database,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r1,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r1,C2,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r1,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r1,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s5-petclinic,F7,r1,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
-s5-petclinic,F7,r1,C5,llm-b-grounded,svc-backend,configuration,service,infrastructure,1,0
+s5-petclinic,F7,r1,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r1,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
 s5-petclinic,F7,r1,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r1,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s5-petclinic,F7,r10,C1,llm-b-freeform,PostgreSQL database pod,infrastructure,service,infrastructure,0,1
 s5-petclinic,F7,r10,C1,llm-freeform,backend,configuration,service,infrastructure,1,0
 s5-petclinic,F7,r10,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
@@ -8429,26 +9299,56 @@ s5-petclinic,F7,r10,C5,llm-freeform,Kubernetes Scheduler,infrastructure,service,
 s5-petclinic,F7,r10,C5,llm-b-grounded,Kubernetes Scheduler and Resource Allocation,infrastructure,service,infrastructure,0,1
 s5-petclinic,F7,r10,C5,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
 s5-petclinic,F7,r10,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
-s5-petclinic,F7,r2,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
+s5-petclinic,F7,r2,C1,llm-b-freeform,PostgreSQL database initialization,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r2,C1,llm-freeform,database,database,service,infrastructure,0,0
+s5-petclinic,F7,r2,C1,llm-b-grounded,PostgreSQL database initialization,configuration,service,infrastructure,0,0
 s5-petclinic,F7,r2,C1,llm-grounded,database,database,service,infrastructure,0,0
-s5-petclinic,F7,r2,C2,llm-b-grounded,Kubernetes cluster nodes,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C2,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C3,llm-b-grounded,Kubernetes cluster nodes,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C3,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C4,llm-b-grounded,Kubernetes cluster resource allocation,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C4,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C5,llm-b-grounded,Kubernetes node resource allocation,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r2,C5,llm-grounded,Kubernetes nodes,infrastructure,service,infrastructure,0,1
+s5-petclinic,F7,r2,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r2,C2,llm-b-freeform,backend service,application,service,infrastructure,0,0
+s5-petclinic,F7,r2,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C2,llm-b-grounded,backend service and database,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r2,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r2,C3,llm-b-freeform,backend service (svc-backend),application,service,infrastructure,0,0
+s5-petclinic,F7,r2,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C3,llm-b-grounded,backend service and database,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r2,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r2,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r2,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r2,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r3,C1,llm-b-freeform,PostgreSQL database,database,service,infrastructure,0,0
+s5-petclinic,F7,r3,C1,llm-freeform,database,database,service,infrastructure,0,0
 s5-petclinic,F7,r3,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0
 s5-petclinic,F7,r3,C1,llm-grounded,database,database,service,infrastructure,0,0
-s5-petclinic,F7,r3,C2,llm-b-grounded,Kubernetes node resource allocation,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C2,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C3,llm-b-grounded,Kubernetes cluster nodes,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C3,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C4,llm-b-grounded,Kubernetes node resource allocation,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C4,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C5,llm-b-grounded,Kubernetes cluster nodes,infrastructure,service,infrastructure,0,1
-s5-petclinic,F7,r3,C5,llm-grounded,Kubernetes Scheduler,infrastructure,service,infrastructure,0,1
+s5-petclinic,F7,r3,C1,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r3,C2,llm-b-freeform,PostgreSQL database and application backend service,configuration,service,infrastructure,0,0
+s5-petclinic,F7,r3,C2,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C2,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C2,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C2,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r3,C3,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C3,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C3,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C3,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C3,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r3,C4,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C4,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C4,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C4,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C4,rule-grounded,unknown,unknown,service,infrastructure,0,0
+s5-petclinic,F7,r3,C5,llm-b-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C5,llm-freeform,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C5,llm-b-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C5,llm-grounded,svc-backend,application,service,infrastructure,1,0
+s5-petclinic,F7,r3,C5,rule-grounded,unknown,unknown,service,infrastructure,0,0
 s5-petclinic,F7,r4,C1,llm-b-freeform,PostgreSQL database,database,service,infrastructure,0,0
 s5-petclinic,F7,r4,C1,llm-freeform,PostgreSQL database,infrastructure,service,infrastructure,0,1
 s5-petclinic,F7,r4,C1,llm-b-grounded,PostgreSQL database,database,service,infrastructure,0,0

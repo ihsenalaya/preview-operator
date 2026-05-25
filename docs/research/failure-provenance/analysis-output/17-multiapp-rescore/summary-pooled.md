@@ -4,8 +4,8 @@ Pooled across listmonk + healthchecks + umami + petclinic, F1+F2+F3+F6+F7, C1-C5
 
 | Engine | n | aligned top-1 | Wilson 95% CI |
 |---|---|---|---|
-| llm-b-freeform | 1700 |   4.6% (79/1700) | [3.7%, 5.8%] |
-| llm-b-grounded | 2000 |   6.0% (119/2000) | [5.0%, 7.1%] |
-| llm-freeform | 1700 |  16.4% (279/1700) | [14.7%, 18.2%] |
-| llm-grounded | 2000 |  15.6% (311/2000) | [14.0%, 17.2%] |
-| rule-grounded | 1700 |   7.8% (133/1700) | [6.6%, 9.2%] |
+| llm-b-freeform | 2000 |   7.2% (143/2000) | [6.1%, 8.4%] |
+| llm-b-grounded | 2000 |   7.8% (157/2000) | [6.8%, 9.1%] |
+| llm-freeform | 2000 |  18.4% (368/2000) | [16.8%, 20.2%] |
+| llm-grounded | 2000 |  16.8% (335/2000) | [15.2%, 18.5%] |
+| rule-grounded | 2000 |   9.5% (190/2000) | [8.3%, 10.9%] |

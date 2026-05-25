@@ -1,6 +1,6 @@
 # CD diagrams — Friedman + Nemenyi post-hoc
 
-Generated 2026-05-25T12:38:38.420174Z.
+Generated 2026-05-25T18:04:37.408750Z.
 
 ## LLM=A
 
