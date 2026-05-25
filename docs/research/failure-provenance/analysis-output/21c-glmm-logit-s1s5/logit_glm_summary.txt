@@ -1,0 +1,43 @@
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:           top1_aligned   No. Observations:                11600
+Model:                            GLM   Df Residuals:                    11572
+Model Family:                Binomial   Df Model:                           27
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -3347.4
+Date:                Mon, 25 May 2026   Deviance:                       6694.8
+Time:                        13:15:06   Pearson chi2:                 9.57e+03
+No. Iterations:                    26   Pseudo R-squ. (CS):             0.1526
+Covariance Type:            nonrobust                                         
+=====================================================================================================================
+                                                        coef    std err          z      P>|z|      [0.025      0.975]
+---------------------------------------------------------------------------------------------------------------------
+Intercept                                            -3.0130      0.233    -12.937      0.000      -3.469      -2.557
+C(configuration)[T.C2]                                0.8310      0.259      3.210      0.001       0.324       1.338
+C(configuration)[T.C3]                                1.9293      0.236      8.181      0.000       1.467       2.392
+C(configuration)[T.C4]                                2.1273      0.234      9.103      0.000       1.669       2.585
+C(configuration)[T.C5]                                2.0771      0.234      8.869      0.000       1.618       2.536
+C(engine)[T.llm-grounded]                             0.1927      0.276      0.698      0.485      -0.349       0.734
+C(engine)[T.rule-grounded]                           -0.1938      0.388     -0.500      0.617      -0.954       0.566
+C(scenario_id)[T.F10]                               -25.6450   1.57e+04     -0.002      0.999   -3.07e+04    3.07e+04
+C(scenario_id)[T.F2]                                  1.2785      0.119     10.788      0.000       1.046       1.511
+C(scenario_id)[T.F3]                                  0.0862      0.131      0.656      0.512      -0.171       0.344
+C(scenario_id)[T.F4]                                 -0.9780      0.157     -6.233      0.000      -1.285      -0.670
+C(scenario_id)[T.F5]                                  0.2013      0.125      1.606      0.108      -0.044       0.447
+C(scenario_id)[T.F6]                                 -0.0358      0.134     -0.268      0.789      -0.298       0.226
+C(scenario_id)[T.F7]                                  0.9377      0.120      7.782      0.000       0.702       1.174
+C(scenario_id)[T.F8]                                 -0.7752      0.149     -5.198      0.000      -1.068      -0.483
+C(scenario_id)[T.F9]                                 -2.3024      0.246     -9.375      0.000      -2.784      -1.821
+C(subject_id)[T.s2-listmonk]                         -1.0738      0.098    -10.965      0.000      -1.266      -0.882
+C(subject_id)[T.s3-healthchecks]                     -0.3389      0.086     -3.940      0.000      -0.507      -0.170
+C(subject_id)[T.s4-umami]                            -1.1451      0.099    -11.510      0.000      -1.340      -0.950
+C(subject_id)[T.s5-petclinic]                        -1.0549      0.098    -10.817      0.000      -1.246      -0.864
+C(configuration)[T.C2]:C(engine)[T.llm-grounded]     -0.4077      0.348     -1.171      0.241      -1.090       0.274
+C(configuration)[T.C3]:C(engine)[T.llm-grounded]     -0.2250      0.311     -0.724      0.469      -0.834       0.384
+C(configuration)[T.C4]:C(engine)[T.llm-grounded]     -0.0648      0.307     -0.211      0.833      -0.666       0.536
+C(configuration)[T.C5]:C(engine)[T.llm-grounded]     -0.0068      0.307     -0.022      0.982      -0.609       0.595
+C(configuration)[T.C2]:C(engine)[T.rule-grounded]     0.9552      0.446      2.139      0.032       0.080       1.830
+C(configuration)[T.C3]:C(engine)[T.rule-grounded]     0.7825      0.422      1.855      0.064      -0.044       1.610
+C(configuration)[T.C4]:C(engine)[T.rule-grounded]     0.5845      0.421      1.389      0.165      -0.240       1.409
+C(configuration)[T.C5]:C(engine)[T.rule-grounded]     0.6348      0.421      1.508      0.132      -0.190       1.460
+=====================================================================================================================
