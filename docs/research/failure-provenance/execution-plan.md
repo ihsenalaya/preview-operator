@@ -259,3 +259,27 @@ uses:
 
 Three disjoint provider families (OpenAI / Cohere / Mistral) preserved.
 Documented in `llm-selection.md §3.1`.
+
+## Phase 5c — S1--S5 unified treatment (2026-05-25)
+
+The original Phase-5 plan treated S1 as the *primary* application and
+S2--S5 as a "multi-app" extension. Phase 5c removes that two-tier
+framing: all five subjects are evaluated uniformly across **every**
+diagnostic engine and **every** comparator baseline.
+
+| Deliverable | Status |
+|---|---|
+| `failurereport.yaml` exported for every capture | ✅ 449/449 (340 synthesised from `report.json`, 109 originals) |
+| K8sGPT-PT replay (`analysis/k8sgpt-replay.py`) on all five subjects | 🔄 in progress (`--force`, ~50 % at this writing) |
+| Kagent-PT replay (`analysis/kagent-replay.py`) on all five subjects | 🔄 in progress (`--force`, ~17 % at this writing) |
+| Unified S1--S5 rescoring (`analysis/35-unified-rescore.py`) | ✅ pooled engine numbers emitted |
+| Unified S1--S5 figures (`analysis/36-unified-figures.py`) | ✅ `engine-pooled-bars-s1s5.png`, `engine-by-subject-heatmap-s1s5.png` |
+| 34-rescore extended to include `s1-flask-catalog` in SUBJECT_IDX | ✅ |
+| Article wiring (abstract + §5.8 + tab:multi-engine-pooled + figures) | ✅ committed `61c136e`/`15f0035`; final PT numbers pending replay completion |
+
+Once the two replays complete, the article's §5.8 B2a-PT and B2b-PT
+paragraphs are rewritten with the final five-subject pooled numbers,
+`34-b2-post-teardown-rescore.py` regenerates the CSV summary, and
+`overleaf.zip` is repacked. `PROGRESS.md` carries the 5-minute live
+ticks for the long-running Kagent replay; `experimentations.md §11`
+holds the full lab-notebook record of the campaign.

@@ -238,10 +238,29 @@ the headline conclusions; each is bounded and quantified.
    the methodological requirement of three disjoint provider families
    (OpenAI / Cohere / Mistral). Documented in `llm-selection.md §3.1`.
 
-5. **F4, F5, F8, F9, F10 not in scope on S2–S5** — the operator-only
-   evaluation footprint requires injection at the manifest level (no
-   per-subject source-code patches). F4/F5/F8/F9/F10 rely on
-   application-level code paths that are S1-specific. The multi-app
-   scope is the F1, F2, F3, F6, F7 subset. The article's RQ4 cross-LLM
-   reading uses the same fault subset, so multi-app and S1 are still
-   matcher-comparable on those five.
+5. **F4, F5, F8, F9, F10 — initial S2–S5 gap closed in Phase 5b.**
+   The very first plan envisioned manifest-only injection, which would
+   have made F4/F5/F8/F9/F10 S1-only. Phase 5b lifted that constraint by
+   moving the injection into the wrapper proxy / DB table rename / seed
+   layer (documented in `experimentations.md §10.4` and
+   `threats-to-validity.md §7.1`): the multi-app matrix achieves
+   $40/40$ on each of F4, F5, F8, F9, F10. The article's per-subject
+   table still uses the F1+F2+F3+F6+F7 sub-scope for the narrow
+   alignment matcher (each cell has the largest $n$ there), but the
+   pooled cross-subject numbers in `tab:multi-engine-pooled` aggregate
+   the full F1--F10 set.
+
+6. **S1 vs multi-app two-tier framing removed in Phase 5c.** The
+   earlier draft labelled S1 the "primary application" and S2--S5
+   the "multi-app extension". Phase 5c (2026-05-25) re-pools every
+   measurement across all five subjects uniformly:
+   `analysis/35-unified-rescore.py` emits the cross-subject pooled
+   engine summary ($n=11\,600$); `k8sgpt-replay.py` and
+   `kagent-replay.py` extend the post-teardown comparators
+   (K8sGPT-PT, Kagent-PT) to S1 with a `--force` re-run that
+   guarantees the same processing on every cell. The article body
+   no longer privileges S1 over S2--S5; only the per-scenario
+   detail table (`tab:rq2-s1`) and the L1--L4 ladder figure
+   (`fig:ladder-s1`) are kept on a single subject, with explicit
+   framing that they are illustrative single-subject views, not
+   primary numbers.

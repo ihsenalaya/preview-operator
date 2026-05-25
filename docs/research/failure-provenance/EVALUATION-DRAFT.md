@@ -487,3 +487,34 @@ Per-subject mean precision per scenario in
 (petclinic/F5 — REST-only by design, no frontend evidence to capture)
 to 0.50 (multiple cells). The operator does not over-collect off-topic
 items: no scenario has mean precision below 0.20 across non-N/A cells.
+
+### 11.7 Phase 5c — S1--S5 unified treatment (2026-05-25)
+
+The Phase 5b "multi-app extension" was promoted to a full five-subject
+pool in Phase 5c. The article's pooled aligned top-1 table now
+aggregates S1 alongside S2--S5 ($n = 11\,600$ diagnoses across rule
++ LLM-A grounded/freeform + LLM-B grounded/freeform):
+
+| Engine | $n$ | Aligned top-1 | Wilson 95\,\% CI |
+|---|---|---|---|
+| rule-grounded                        | 2200 | 15.32\,\% (337/2200) | [13.87, 16.88] |
+| llm-grounded   (`gpt-4o-mini`)      | 2500 | **18.72\,\%** (468/2500) | [17.24, 20.30] |
+| llm-freeform   (`gpt-4o-mini`)      | 2200 | **18.00\,\%** (396/2200) | [16.45, 19.66] |
+| llm-b-grounded (`cohere-command-a`) | 2500 |  5.32\,\% (133/2500) | [4.51, 6.27] |
+| llm-b-freeform (`cohere-command-a`) | 2200 |  3.82\,\% ( 84/2200) | [3.09, 4.70] |
+
+The K8sGPT-PT and Kagent-PT replays were re-launched with `--force`
+against all five subjects (no skip, uniform processing of 509
+capture-cells). The pre-`--force` (S2--S5 only + partial S1) pass
+scored K8sGPT-PT 23.1 % (37/160) and Kagent-PT 13.8 % (22/160); the
+post-`--force` pass replaces those numbers and is in flight at the
+time of writing. Final numbers are inserted here on commit when
+`34-b2-post-teardown-rescore.py` re-emits the CSV.
+
+Source scripts (committed 2026-05-25):
+
+- `analysis/k8sgpt-replay.py` (post-teardown K8sGPT replay)
+- `analysis/kagent-replay.py` (post-teardown Kagent replay)
+- `analysis/34-b2-post-teardown-rescore.py` (scoring, S1 added)
+- `analysis/35-unified-rescore.py` (pooled S1--S5 engine summary)
+- `analysis/36-unified-figures.py` (S1--S5 unified figures)

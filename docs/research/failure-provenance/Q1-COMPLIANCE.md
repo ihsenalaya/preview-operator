@@ -278,3 +278,36 @@ These can run concurrently; each item has a unique resource lane.
     in F10-dir cleanup), final commit + push + cron stop.
   - Human-only items remaining: W15 (κ canonical, ~2 h), W16 (bibliography
     12 TODO_VERIFY, ~45 min).
+
+- 2026-05-25 08:00--12:30 UTC — **Phase 5c S1--S5 unified treatment**:
+  - W17 (new) — `report.json → failurereport.yaml` synthesis on 340
+    S2--S5 captures (`/tmp/convert-reports.py`); inventory now 449/449
+    captures with CRD YAML on disk. ✅
+  - W18 (new) — K8sGPT post-teardown replay extended to S1
+    (`analysis/k8sgpt-replay.py --subset s1+s2+s3+s4+s5 --max-reps 20
+    --force`). Sequential, ~10 s/cell, ~85 min wall-clock for 509
+    capture-cells. 🔄
+  - W19 (new) — Kagent post-teardown replay extended to S1
+    (`analysis/kagent-replay.py --subset s1+s2+s3+s4+s5 --max-reps 20
+    --force`). Agentic chain, ~25--30 s/cell, ~3 h 30 wall-clock. 🔄
+  - W20 (new) — Unified S1--S5 rescoring (`analysis/35-unified-rescore.py`)
+    over the diag-output dataset; pooled engine numbers across all five
+    subjects ($n=11\,600$): rule 15.32 %, llm-A grounded 18.72 %,
+    llm-A freeform 18.00 %, llm-B grounded 5.32 %, llm-B freeform 3.82 %.
+    ✅
+  - W21 (new) — Unified S1--S5 figures (`analysis/36-unified-figures.py`):
+    `engine-pooled-bars-s1s5.png` + `engine-by-subject-heatmap-s1s5.png`.
+    ✅
+  - W22 (new) — `34-b2-post-teardown-rescore.py` extended to include
+    `s1-flask-catalog` in SUBJECT_IDX; emits
+    `results-matrix/results-b2-post-teardown.csv` over the five-subject
+    pool. Final values pending the `--force` replay completion. 🔄
+  - W23 (new) — Article wiring: abstract + §sec:eval-baselines
+    (B2a-PT / B2b-PT rows) + §sec:multi-app (`tab:multi-engine-pooled` +
+    `fig:engine-pooled-s1s5` + `fig:engine-heatmap-s1s5`) updated for
+    five-subject treatment. `overleaf.zip` repacked. Commits
+    `8d6f1e9` → `61c136e` → `f4e1d33` → `15f0035`. Final B2a-PT/B2b-PT
+    numbers refresh after the replays complete.
+  - Q1 zero-fault budget: kept. No skipped captures on the `--force`
+    replay; every output is overwritten uniformly so the five subjects
+    receive identical processing.

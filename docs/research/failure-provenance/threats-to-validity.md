@@ -237,3 +237,68 @@ explicitly in the Threats to validity section of the LaTeX article
 (*Scaling and retention* paragraph) and the tiered storage design is
 introduced in §`sec:approach-storage`. Reviewers asking about scale are
 directed to those two locations.
+
+---
+
+## 9. Post-teardown comparator replay harness — synthesised cluster state
+
+The article reports a regime-symmetric K8sGPT-PT and Kagent-PT
+comparator (§sec:eval-baselines). Both are computed by **replaying** the
+operator-captured `evidenceItems` into a disposable namespace on a live
+Kubernetes API server and then invoking the practitioner tool against
+that namespace. The replay harness (`analysis/k8sgpt-replay.py`,
+`analysis/kagent-replay.py`) decodes each `FailureReport`'s evidence
+items into a minimal synthetic `Pod`/`Job`/`Service`/`Deployment`
+bundle, applies it to a fresh namespace on the AKS cluster, patches
+the status subresource (e.g.\ `CrashLoopBackOff`, `ImagePullBackOff`,
+`BackoffLimitExceeded`, missing-Service-selector), runs the tool,
+saves the JSON output, and deletes the namespace.
+
+### 9.1 Threats specific to the replay synthesis
+
+1. **Operator-curated synthesis** — the replay harness produces a
+   *clean* Kubernetes state derived from the operator's structured
+   evidence. K8sGPT and Kagent therefore receive a more deterministic
+   signal than they would see on a live failing cluster (where node
+   noise, races, and unrelated `ConfigMap` lookups can confuse the
+   analyzer). The harness mitigates this by limiting K8sGPT's
+   analyzers to `Pod,Job,Service,Deployment,ReplicaSet,StatefulSet,
+   CronJob,PersistentVolumeClaim,ConfigMap` so cluster-wide Node
+   noise is excluded; the per-scenario aligned matcher still credits
+   only the actual failing-component role.
+
+2. **Pod/Job synthesis fidelity** — the synthesiser sets
+   `containerStatus.state.waiting.reason` and `Job.status.conditions`
+   to mirror the captured failure, but it does **not** reproduce
+   container logs (the operator's evidenceItems contain only
+   `PodLog` snippets at the bundle level, not on-disk container
+   logs the kubelet would expose). K8sGPT and Kagent therefore
+   diagnose from status fields + events rather than from logs.
+   This is consistent across the five subjects; the comparison
+   between the operator's diagnoser and the comparators is
+   "structured-evidence vs structured-evidence".
+
+3. **Kagent reasoning-chain variance** — Kagent is agentic and
+   issues multiple intermediate LLM and kubectl calls per
+   diagnosis. Two replays of the same capture can land on slightly
+   different probable causes; we control this by recording the
+   replay seed in the JSON envelope and re-using it on `--force`
+   replays, but inter-run variance remains a residual threat.
+
+4. **Replay harness is single-cluster** — all 509 capture-cells go
+   through the same AKS cluster (`idp-preview-test`). Cross-provider
+   generality of the comparator numbers is therefore not claimed;
+   the replay establishes the *regime-symmetry* (live-tool, but on
+   operator-captured evidence), not provider-portability.
+
+### 9.2 Five-subject treatment (Phase 5c)
+
+The original Phase-5 design ran B2a/B2b live only on S1 and the
+S2--S5 multi-app subset. Phase 5c (`analysis/k8sgpt-replay.py`,
+`analysis/kagent-replay.py`, `--force --max-reps 20`) extends the
+post-teardown comparators uniformly to all five subjects (449
+distinct captures; 509 capture-cells exposed in discovery because
+`--max-reps 20` admits a few F-cells with $>10$ reps).
+This removes the S1 privilege from the comparator analysis: the same
+synthesis pipeline + the same tool invocation produces the
+K8sGPT-PT and Kagent-PT numbers reported in the article.

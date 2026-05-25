@@ -598,3 +598,27 @@ Tomorrow (human, non-substituable):
 - Cohen κ canonical (2 h)
 - Verify 9 UNVERIFIED biblio entries (~30 min)
 - Re-read article.tex + EVALUATION-DRAFT.md (~1 h)
+
+---
+
+### 2026-05-25 — S1--S5 unified treatment campaign
+
+- 08:00 UTC: editorial decision to remove S1-vs-multi-app two-tier
+  framing and treat all five subjects uniformly; relaunch the post-
+  teardown comparators (K8sGPT-PT, Kagent-PT) on all five subjects.
+- 08:10: 340 `failurereport.yaml` synthesised from `report.json` for
+  S2--S5 captures lacking the CRD YAML on disk; 109 S1 captures
+  already had it. Final coverage 449 captures.
+- 08:13: `k8sgpt-replay.py --subset s1+s2+s3+s4+s5 --max-reps 20
+  --force` launched in tmux `k8sgpt`. `kagent-replay.py` likewise in
+  tmux `kagent`. Both with `--force` so the run is uniform; no skip
+  carry-over from earlier subset replays.
+- 08:30 UTC: `35-unified-rescore.py` and `36-unified-figures.py`
+  committed (commit `61c136e`). Pooled S1--S5 aligned top-1 (engines
+  only, $n=11\,600$): rule 15.32\,\%, llm-A grounded 18.72\,\%,
+  llm-A freeform 18.00\,\%, llm-B grounded 5.32\,\%, llm-B freeform
+  3.82\,\%. Per-subject heatmap and engine bars regenerated.
+- 08:30--12:30 (ETA): K8sGPT-PT replay completes ~09:35; Kagent-PT
+  replay ~12:25; `34-b2-post-teardown-rescore.py` re-emitted; LaTeX
+  updated (abstract + §5.8 B2a/B2b/table); overleaf.zip repacked;
+  commit + push; AKS + VM stopped.

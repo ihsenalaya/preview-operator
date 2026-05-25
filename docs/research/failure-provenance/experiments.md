@@ -315,3 +315,42 @@ Each defect was closed with a code change, a regression test, and a
 re-collection of the affected cells before any number in `EVALUATION-
 DRAFT.md` was published. `PROGRESS.md` ticks 0-9 + the `Q1-COMPLIANCE.md`
 file-by-file checklist are the audit trail.
+
+### Phase 5c — post-teardown replay comparators (2026-05-25)
+
+A fourth set of edits brought the post-teardown comparator baselines
+(K8sGPT-PT and Kagent-PT) onto the same five-subject footing as the
+operator's own diagnoser. The work-units below are tracked in
+`experimentations.md §11` and `execution-plan.md` Phase 5c.
+
+1. **`failurereport.yaml` synthesis** — 340 captures across S2--S5
+   had a `report.json` but no CRD YAML on disk because the original
+   matrix run skipped the YAML export step. A one-shot converter
+   (`/tmp/convert-reports.py`) read each `report.json` and emitted the
+   equivalent `failurereport.yaml` in the capture's `artifacts/`
+   directory (the JSON already encoded the CRD status fields used by
+   the replay harness, so the conversion is loss-less).
+2. **K8sGPT replay harness** (`analysis/k8sgpt-replay.py`) — per
+   capture, decode `evidenceItems` into a synthetic
+   `Pod`/`Job`/`Service` bundle, apply to a disposable namespace on
+   the AKS cluster, patch the status subresource, invoke
+   `k8sgpt analyze --namespace <ns> --filter Pod,Job,…`, save the
+   JSON, delete the namespace. Sequential by design (~10 s/cell).
+3. **Kagent replay harness** (`analysis/kagent-replay.py`) — same
+   synthesis + namespace lifecycle, but instead of `k8sgpt analyze`
+   the script POSTs an A2A `message/send` to the in-cluster
+   `kagent-system/k8s-agent` via `kubectl port-forward` and parses the
+   agent's JSON reply. Slower (~25--30 s/cell) because of the
+   agentic reasoning chain.
+4. **Unified scoring** (`analysis/34-b2-post-teardown-rescore.py` +
+   `analysis/35-unified-rescore.py`) — pool S1--S5 captures with a
+   vocab-aware aligned-top-1 matcher; emit per-subject and pooled
+   summaries, including the comparator results.
+5. **Unified figures** (`analysis/36-unified-figures.py`) —
+   `engine-pooled-bars-s1s5.png` and
+   `engine-by-subject-heatmap-s1s5.png` replace the S1-only
+   bar/heatmap figures.
+
+The article's §5.8 B2a-PT and B2b-PT paragraphs and the cross-subject
+pooled table (`tab:multi-engine-pooled`) now report five-subject
+numbers; the figures are referenced from §sec:multi-app.
