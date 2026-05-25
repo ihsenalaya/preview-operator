@@ -49,12 +49,13 @@ KAGENT_PROMPT = (
 
 def port_forward_open(port: int) -> subprocess.Popen:
     """Open `kubectl port-forward` in background to kagent-system/k8s-agent."""
+    pf_log = open('/tmp/kagent-portforward.log', 'w')
     cmd = [KUBECTL, '-n', 'kagent-system', 'port-forward',
            'svc/k8s-agent', f'{port}:8080']
-    p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    p = subprocess.Popen(cmd, stdout=pf_log, stderr=pf_log,
                          preexec_fn=os.setsid)
-    # wait for the port to be open
-    deadline = time.time() + 15
+    # wait for the port to be open (up to 60 s — kubectl can be slow on first run)
+    deadline = time.time() + 60
     while time.time() < deadline:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(0.5)
@@ -63,7 +64,13 @@ def port_forward_open(port: int) -> subprocess.Popen:
                     return p
             except OSError:
                 pass
-        time.sleep(0.4)
+        time.sleep(1.0)
+        if p.poll() is not None:
+            # subprocess died early
+            pf_log.flush()
+            with open('/tmp/kagent-portforward.log') as f:
+                err = f.read()[-500:]
+            raise RuntimeError(f'kubectl port-forward exited early: {err}')
     raise RuntimeError(f'port-forward to k8s-agent did not open on :{port}')
 
 def port_forward_close(p: subprocess.Popen):
