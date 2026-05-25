@@ -302,3 +302,36 @@ distinct captures; 509 capture-cells exposed in discovery because
 This removes the S1 privilege from the comparator analysis: the same
 synthesis pipeline + the same tool invocation produces the
 K8sGPT-PT and Kagent-PT numbers reported in the article.
+
+### 9.3 Rep-parity backfill across S2--S5 (Phase 5e/5f)
+
+A subsequent audit (2026-05-25 12:35 UTC) revealed that the option-A
+refactor of 2026-05-23 had left S2--S5 with only 7 reports for the
+fault subset $\{F1, F2, F3, F6, F7\}$ versus 10 reports for S1, a
+60-cell asymmetry. Phases 5e + 5f re-captured the missing reps using
+the same orchestrator (`multiapp/run-matrix.py`) with the original
+fault injectors unchanged. Phase 5e closed 46/60 captures (F1, F2, F6,
+F7 succeeded for all four subjects); Phase 5f closed the remaining 14
+F3 captures by raising `REPORT_TIMEOUT_S` from 900\,s to 1200\,s --- a
+direct consequence of the operator's
+`provisioningDeadline = 15 * time.Minute`
+([`internal/controller/preview_controller.go:188`](../../internal/controller/preview_controller.go#L188)).
+F3 (invalid image tag) leaves the migration Job pod in
+ImagePullBackOff forever and never reaches JobFailed; the operator's
+`provisioningDeadline` backstop is the only path to a FailureReport
+in that scenario, so a sub-15\,min orchestrator timeout produces a
+spurious `no-report` even though the operator would have captured the
+report a few seconds later. The 1200\,s setting gives a 5\,min margin
+and matches the timeout in `analysis/k8sgpt-replay.py` for
+namespace synthesis. After Phase 5f, S2--S5 reach 10 reports per
+fault for the in-scope $\{F1, F2, F3, F6, F7\}$ subset, fully
+matching S1.
+
+**Methodological note.** The 15-minute capture floor for F3 is an
+operator design choice (avoid creating premature FailureReports for
+transient ImagePullBackOff during legitimate deploys), not an
+artefact of this study. Practitioners reading the article should note
+that for fault classes where the dependent resource never transitions
+to a terminal-failed phase, the operator's `provisioningDeadline` is
+the dominant component of MTTD --- a real cost of evidence
+completeness that we report in §RQ3 rather than mask.

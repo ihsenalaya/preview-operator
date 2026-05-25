@@ -622,3 +622,39 @@ Tomorrow (human, non-substituable):
   replay ~12:25; `34-b2-post-teardown-rescore.py` re-emitted; LaTeX
   updated (abstract + §5.8 B2a/B2b/table); overleaf.zip repacked;
   commit + push; AKS + VM stopped.
+- 12:15 UTC: post-teardown replay complete --- K8sGPT-PT 509/509 OK
+  (14.4\,\% pooled aligned top-1), Kagent-PT 509/509 OK (11.0\,\%
+  pooled). Commit `5779f35`. Per-subject K8sGPT-PT: S1 14/100, S2
+  13/100, S3 18/100, S4 13/100, S5 14/100. Per-subject Kagent-PT: S1
+  10/100, S2 12/100, S3 11/100, S4 11/100, S5 11/100.
+- 12:35 UTC: audit S1 vs S2--S5 reveals a residual rep-parity gap
+  for S2--S5 r1--r3 across F1+F2+F3+F6+F7 (60 missing captures =
+  5 faults $\times$ 3 reps $\times$ 4 subjects). Audit script paths
+  the gap to the option-A refactor of 2026-05-23 that re-numbered
+  S2--S5 reps from `r1--r10` original to `r4--r10 + 3 stub r1--r3`.
+- 13:00--14:30 UTC: Phase 5e backfill --- v1 captured 18/60 with
+  `REPORT_TIMEOUT_S=360`; F2/F3 timed out (operator's
+  `provisioningDeadline=15min` exceeds 6\,min orchestrator wait).
+  Re-launched as v2 with `REPORT_TIMEOUT_S=900`, concurrency 5:
+  captured 46/60 (F1/F2/F6/F7 all OK; F3 still no-report on all 14
+  attempts).
+- 14:00--14:25 UTC: full scoring on the 46 newly captured reports
+  --- 1100 LLM-grounded (A+B) + 1100 LLM-freeform (A+B) + 230 rule
+  diag files. Commits `29878e2` (19-evidence S1--S5), `a2f5a25`
+  (21-lmm/22-tukey/23-mcnemar/24-cd/25-pareto regen + new
+  `21c-glmm-logit-s1s5`), `e6732bb` (new `30b-evidence-ladder-s1s5`
+  pooled L1--L4 across S1--S5), `5ee3d57`
+  (post-backfill-pipeline.sh).
+- 14:30 UTC: F3 root cause identified --- operator's
+  `provisioningDeadline = 15 * time.Minute`
+  ([`preview_controller.go:188`](../../internal/controller/preview_controller.go#L188))
+  means a Preview stuck in Provisioning (e.g. F3 ImagePullBackOff on
+  a Job pod that never reaches JobFailed) is only marked Failed
+  --- and FailureReport captured --- after 15\,min. The v2
+  backfill's 900\,s = 15\,min timeout had no margin; relaunched
+  Phase 5f F3-only backfill with `REPORT_TIMEOUT_S=1200`,
+  concurrency 3 (ETA $\sim$80\,min).
+- 14:40 UTC: AKS scaled 3$\to$2 nodes (`az aks nodepool scale ...
+  --node-count 2`); cohere-key saved to `idp-preview-kv`;
+  `30b-evidence-ladder-s1s5` and `21c-glmm-logit-s1s5` regenerated
+  on S1--S5 pooled data.
