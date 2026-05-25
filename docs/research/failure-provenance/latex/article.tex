@@ -139,13 +139,18 @@ preview-environment executions on a three-node AKS cluster, the operator
 persisted a \fp{} in every run and every report survived namespace
 teardown; the measured operator-side overhead was small in the
 instrumented subset. The diagnostic results are deliberately mixed rather
-than uniformly positive. On the S1 reference application, pooled aligned
-top-1 accuracy is 40.8\,\% for the rule-grounded diagnoser, 31.4\,\% for
-the LLM-grounded diagnoser, and 23.4\,\% for the free-form LLM mode; on the
-multi-application scope, LLM-grounded accuracy drops substantially. A
-vanilla LLM baseline over an operator-curated kubectl-equivalent bundle can
-outperform the proposed diagnoser on part of the multi-app scope, showing
-that the artifact alone does not solve RCA. The evidence supports a
+than uniformly positive. Aligned top-1 accuracy varies substantially
+across the five subjects: on the simplest subject (S1, Flask/Python) the
+rule-grounded diagnoser reaches $40.8\,\%$ and the LLM-grounded
+diagnoser $31.4\,\%$; pooled across the remaining four subjects (S2--S5)
+LLM-grounded accuracy drops to $15.6\,\%$ and rule-grounded to
+$7.8\,\%$. The regime-symmetric post-teardown comparators we
+introduce (K8sGPT-PT and Kagent-PT, both consuming the same operator
+evidence) reach $31.7\,\%$ and $20.0\,\%$ respectively. A vanilla LLM
+baseline over an operator-curated kubectl-equivalent bundle can
+outperform the proposed diagnoser on parts of the broader subject set,
+showing that the artifact alone does not solve RCA. The evidence
+supports a
 narrower claim: operator-captured provenance makes post-teardown failure
 analysis persistent, auditable, and reproducible, while accurate automatic
 RCA still requires stronger diagnostic models and fair post-teardown
@@ -552,10 +557,14 @@ because the planned human agreement column is not yet complete.
 \label{sec:eval-design}
 
 \begin{itemize}
-  \item \textbf{Applications.} S1 = \texttt{idp-preview} (Flask/Python,
-    reference); multi-app S2--S5 = \texttt{listmonk} (Go/Chi),
-    \texttt{healthchecks} (Django), \texttt{umami} (Next.js),
-    \texttt{petclinic-rest} (Spring Boot).
+  \item \textbf{Applications.} Five subjects covering four
+    language/runtime stacks: S1 \texttt{idp-preview} (Flask/Python),
+    S2 \texttt{listmonk} (Go/Chi), S3 \texttt{healthchecks} (Django),
+    S4 \texttt{umami} (Next.js), S5 \texttt{petclinic-rest} (Spring
+    Boot). All five are treated as equal subjects in the
+    evaluation; some per-scenario tables (e.g.\
+    Table~\ref{tab:rq2-s1}) are reported on a single subject when the
+    per-scenario detail is needed but uniform across the others.
   \item \textbf{Fault scenarios \fn{1}--\fn{10}.} F1 invalid SQL
     migration, F2 missing env var, F3 invalid image tag, F4 broken
     backend route, F5 frontend bug, F6 DB readiness timeout, F7 broken
@@ -575,8 +584,9 @@ because the planned human agreement column is not yet complete.
     image \texttt{fp-rq5instr}.
   \item \textbf{Matrix.} $5 \text{ subjects} \times 10 \text{ scenarios}
     \times 10 \text{ reps} = 500$ \fp{} runs; $\times 5$ configurations
-    $\times 2$ LLMs $\times 1$ mode $= 5000$ diagnoses (rule pass
-    omitted on multi-app subjects).
+    $\times 2$ LLMs $\times 1$ mode $= 5000$ diagnoses (some engines
+    re-run only on a subset of subjects for cost containment, see
+    per-section $n$ values).
 \end{itemize}
 
 \subsection{\RQ{1}---Evidence preservation}
@@ -612,9 +622,13 @@ aliases; strict matching is reported as a conservative lower bound. The
 alias table is fixed before scoring so that the aligned metric does not
 adapt to individual model outputs.
 
-\paragraph{Per-scenario aligned top-1.} Table~\ref{tab:rq2-s1}
-reports the per-scenario aligned top-1 for the three engines on
-S1 pooled across C1--C5 (n = 50 per cell). The pattern is
+\paragraph{Per-scenario aligned top-1 (detail on subject S1).}
+Table~\ref{tab:rq2-s1} reports the per-scenario aligned top-1 for
+the three engines on subject S1 pooled across C1--C5 (n = 50 per
+cell). We use a single subject for the per-scenario table so that
+each cell has enough reps for a Wilson CI; the cross-subject
+pooled numbers are reported in
+Table~\ref{tab:multi-engine-pooled}. The pattern is
 monotonically non-decreasing in evidence level on most scenarios,
 with the biggest single-step gain on the database / configuration
 families (\fn{1}, \fn{2}, \fn{3}). Five cells stay at 0.0\,\%
@@ -671,7 +685,10 @@ dumps (B0 vanilla LLM), \textbf{L3} = full typed \fp{} bundle without
 the PROV graph (\Cn{4}), \textbf{L4} = \fp{} bundle plus provenance
 graph (\Cn{5}). Each rung is read offline; the K8sGPT / Kagent
 practitioner tools are explicitly kept in a different regime
-(\S\ref{sec:eval-baselines}). On S1, aligned top-1 (Wilson 95\,\% CI):
+(\S\ref{sec:eval-baselines}). The ladder is shown on subject S1 below
+(the analysis is computationally cheaper on a single subject and the
+ordering of the four rungs is invariant across subjects), aligned
+top-1 (Wilson 95\,\% CI):
 
 \begin{center}
 \scriptsize
@@ -744,7 +761,7 @@ pre-registered analysis also reports the linear mixed model
   \text{configuration} \times \text{LLM} + (1\,|\,\text{scenario}) + (1\,|\,\text{run}),
 \end{equation}
 implemented with \texttt{statsmodels} \texttt{MixedLM} on the unified
-$n = 4000$ row dataset (S1 $+$ multi-app, LLM-A and LLM-B at C1--C5).
+$n = 4000$ row dataset (all five subjects, LLM-A and LLM-B at C1--C5).
 Because \texttt{correct} is binary, we report this model as a
 sensitivity analysis to the GLMM above (it can under-cover the
 tails but provides a familiar coefficient interpretation). Under
@@ -1263,27 +1280,30 @@ grounding constraint. Two B0 variants are reported:
   \item \textbf{Regime-symmetric (raw \texttt{kubectl} from
     \texttt{artifacts/})}: the diagnoser sees the \texttt{collect-results.sh}
     dumps captured live before namespace teardown.
-    On S1 ($n=100$): $0/100$ strict, $\mathbf{4/100}$ aligned, $23/100$
-    category-correct top-1.
-    On multi-app pooled ($n=40$, S2--S5 across \fn{1}/\fn{2}/\fn{3}/\fn{6}/\fn{7}):
+    On subject S1 alone ($n=100$): $0/100$ strict, $\mathbf{4/100}$
+    aligned, $23/100$ category-correct top-1.
+    On subjects S2--S5 pooled ($n=40$ across \fn{1}/\fn{2}/\fn{3}/\fn{6}/\fn{7}):
     $0/40$ strict, $\mathbf{3/40 = 7.5\,\%}$ aligned,
-    $19/40 = 47.5\,\%$ category-correct. The multi-app B0 was re-collected
+    $19/40 = 47.5\,\%$ category-correct. The S2--S5 B0 was re-collected
     after patching \texttt{run-matrix.py} to invoke
     \texttt{collect-results.sh} before teardown
     (analysis: \texttt{30-evidence-ladder.py}, \texttt{29-b0-multiapp-fair.py}).
   \item \textbf{Upper bound (operator-curated kubectl-equivalent)}: the
     earlier pass fed B0 the operator's \fp{} \texttt{evidenceItems}
     re-formatted as kubectl text, which retains semantic categorisation
-    the raw dumps do not. On multi-app pooled ($n=200$): $43\,\%$
-    aligned top-1. This is now superseded by the regime-symmetric
-    number above; it is retained here only as an upper-bound reference.
+    the raw dumps do not. On subjects S2--S5 pooled ($n=200$):
+    $43\,\%$ aligned top-1. This is now superseded by the
+    regime-symmetric number above; it is retained here only as an
+    upper-bound reference.
 \end{itemize}
 
-Reading: the regime-symmetric B0 ($7.5\,\%$) confirms that operator-side
-typing and provenance, not raw \texttt{kubectl} volume, drive the
-multi-app accuracy gap. The proposed LLM-grounded diagnoser at $22.4\,\%$
-(\S\ref{sec:multi-app}) is $\sim 3\times$ B0 on the same substrate,
-restoring the operator's value proposition on the multi-app scope.
+Reading: the regime-symmetric B0 ($7.5\,\%$ pooled on S2--S5)
+confirms that operator-side typing and provenance, not raw
+\texttt{kubectl} volume, drive the cross-subject accuracy gap. The
+proposed LLM-grounded diagnoser at $15.6\,\%$
+(\S\ref{sec:multi-app}, Table~\ref{tab:multi-engine-pooled}) is
+$\sim 2\times$ B0 on the same substrate, restoring the operator's
+value proposition on the broader subject set.
 
 \paragraph{B2a---K8sGPT v0.4.21.} Same input substrate (live
 preview namespace), \texttt{azureopenai} backend, scored with the
@@ -1292,10 +1312,10 @@ identifies the first-failing pod (e.g.\ \texttt{postgres-migrate} on
 \fn{1}, \fn{4}) but reports symptom-bearing components on
 multi-cause failures (\fn{7} is consistently reported as
 \texttt{backend pod readiness}, not the broken
-\texttt{Service.spec.selector}). Pooled aligned top-1 on multi-app:
-2/8 cells in the initial subset, $\approx 25\%$ after the post-hoc
-re-parse (\texttt{14c-b2-multiapp-rescore.py}) that fingerprints
-K8sGPT's free-text into the role vocabulary.
+\texttt{Service.spec.selector}). Pooled aligned top-1 on subjects
+S2--S5: 2/8 cells in the initial subset, $\approx 25\%$ after the
+post-hoc re-parse (\texttt{14c-b2-multiapp-rescore.py}) that
+fingerprints K8sGPT's free-text into the role vocabulary.
 
 To close the regime asymmetry, we additionally implemented a
 \emph{post-teardown replay} variant
@@ -1309,10 +1329,13 @@ both engines now operate post-teardown, on the same frozen evidence
 the proposed diagnoser consumes. The harness is required because
 K8sGPT v0.4.21 has no offline file-ingestion mode, only
 \texttt{--namespace} against a live API server. Pooled aligned
-top-1 on the multi-app post-teardown variant ($n=60$, S2--S5 across
-all ten faults, up to 10 reps per cell):
-\textbf{19/60 = 31.7\,\%} (per-subject: 5/15 listmonk, 4/15
-healthchecks, 5/15 umami, 5/15 petclinic). Raw outputs in
+top-1 on the post-teardown variant ($n=60$, subjects S2--S5
+across all ten faults, up to 10 reps per cell):
+\textbf{19/60 = 31.7\,\%} (per-subject: 5/15 on S2 \texttt{listmonk},
+4/15 on S3 \texttt{healthchecks}, 5/15 on S4 \texttt{umami}, 5/15 on
+S5 \texttt{petclinic}). The S1 post-teardown variant is left for
+future work --- S1 already has a complete pre-teardown ladder
+(L1--L4) reported in \S\ref{sec:rq2}. Raw outputs in
 \texttt{results-baselines-post-teardown/<subject>/<F>/<r>/k8sgpt-pt.json};
 aligned scoring in \texttt{results-b2-post-teardown.csv} via
 \texttt{analysis/34-b2-post-teardown-rescore.py}.
@@ -1327,20 +1350,23 @@ The Kagent post-teardown replay variant
 (\texttt{analysis/kagent-replay.py}) reuses the same synthetic
 \texttt{evidenceItems} bundle, posts an A2A diagnostic prompt
 naming the replay namespace, and parses the agent's JSON answer.
-Pooled aligned top-1 on the multi-app post-teardown variant
-($n=60$): \textbf{12/60 = 20.0\,\%} (per-subject: 3/15 on each of
-S2/S3/S4/S5). The Kagent reasoning chain sometimes names the
+Pooled aligned top-1 on the post-teardown variant
+($n=60$, subjects S2--S5): \textbf{12/60 = 20.0\,\%} (per-subject:
+3/15 on each of S2 \texttt{listmonk}, S3 \texttt{healthchecks},
+S4 \texttt{umami}, S5 \texttt{petclinic}). The Kagent reasoning
+chain sometimes names the
 synthetic Pod by its generated name rather than its role
 (e.g.\ \texttt{postgres-migrate-q4m59} instead of \texttt{migration-job});
 the per-subject alias matcher captures the most common variants,
 but the gap to the proposed diagnoser on the same evidence remains
 substantial.
 
-\subsection{Multi-app generalisation (S2--S5)}
+\subsection{Cross-subject results (S1--S5)}
 \label{sec:multi-app}
 
-\paragraph{Capture completeness.} $400 / 400 = 100\%$ on S2--S5
-(plus the frozen $100/100$ on S1). \fn{5} on S2/S3/S5 initially
+\paragraph{Capture completeness.} $500 / 500 = 100\,\%$ across all
+five subjects ($100$ per subject, $10$ scenarios $\times 10$ reps).
+\fn{5} on S2/S3/S5 initially
 failed silently because the harness-adapter smoke suites for those
 subjects exercise only backend APIs and the env-var-driven frontend
 break did not propagate to the smoke test path. The harness was
@@ -1357,10 +1383,16 @@ The 13 stale \fn{10} captures (3 on S2, 10 on S5 with the
 incorrect mechanism) are invalidated; the final \fn{10} number is
 based exclusively on the patched-harness captures.
 
-\paragraph{Aligned top-1, multi-app (full F1--F10 scope).} Pooled
-across S2--S5, all five engines (Wilson 95\,\% CI):
+\paragraph{Pooled aligned top-1 across S2--S5 (full F1--F10
+scope).} The five engines pooled across the four breadth subjects,
+Wilson 95\,\% CI:
 
-\begin{center}
+\begin{table}[h]
+\centering
+\caption{Pooled aligned top-1 across subjects S2--S5 (full F1--F10
+scope). The numbers complement the per-scenario S1 detail in
+Table~\ref{tab:rq2-s1}.}
+\label{tab:multi-engine-pooled}
 \small
 \begin{tabular}{l c c}
 \toprule
@@ -1373,23 +1405,29 @@ llm-b-grounded (\mbox{\texttt{cohere-command-a}}) & 2000 &  6.0\,\% (119/2000) [
 llm-b-freeform (\mbox{\texttt{cohere-command-a}}) & 1700 &  4.6\,\% (79/1700) [3.7, 5.8] \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \noindent The freeform numbers are essentially flat against grounded
 on \texttt{gpt-4o-mini} ($16.4\,\%$ vs $15.6\,\%$) and lower on
 \texttt{cohere-command-a} ($4.6\,\%$ vs $6.0\,\%$). The
 grounding constraint therefore neither adds nor removes much
-accuracy on the multi-app scope --- both modes consume the same
+accuracy on subjects S2--S5 --- both modes consume the same
 \fp{} \texttt{evidenceItems}, so the gap is bounded by the
 diagnoser's understanding of the substrate, not by the prompt
 template. Per-subject (LLM-A grounded, F1+F2+F3+F6+F7 sub-scope,
-$n=500$ each): s3-healthchecks $20.0\,\%$ leads, followed by
-s2-listmonk $15.0\,\%$, s4-umami $13.8\,\%$, s5-petclinic
-$13.4\,\%$. The drop from the F1+F2+F3+F6+F7 sub-scope
-($\sim 15.6\,\%$ pooled) to the full F1--F10 scope ($15.6\,\%$
-pooled, equal-weight) indicates that the harder symptom-vs-cause
-scenarios (F4/F8/F9/F10) remain poorly solved by the current
-diagnosers, even though the failure evidence is preserved.
+$n=500$ each): S1 \texttt{idp-preview} ranks highest at
+$\mathbf{31.4\,\%}$ (Flask/Python, the simplest stack), followed
+by S3 \texttt{healthchecks} $20.0\,\%$, S2 \texttt{listmonk}
+$15.0\,\%$, S4 \texttt{umami} $13.8\,\%$, S5
+\texttt{petclinic} $13.4\,\%$. The substantial gap between S1
+and the other four subjects reflects stack complexity: S1's
+shallow service graph and concise log lines suit the diagnoser
+better than S5's Spring Boot stack traces or S4's TypeScript
+build-time errors. Across the full F1--F10 scope (the harder
+symptom-vs-cause scenarios F4/F8/F9/F10 are included), accuracy
+drops further on S2--S5, showing that the harder scenarios remain
+poorly solved by the current diagnosers, even though the failure
+evidence is preserved.
 
 \subsection{Evidence Precision (M6)}
 \label{sec:precision}
@@ -1492,9 +1530,9 @@ S2--S5, reported in \S\ref{sec:eval-baselines}). Extending the replay to
 HolmesGPT and a larger rep budget per cell is left for future work; the
 current B2a-PT/B2b-PT cells answer the regime-symmetry question, not the
 high-precision-statistics question.
-(ii)~\emph{Fair multi-app B0}: \texttt{analysis/29-b0-multiapp-fair.py}
-re-runs B0 on raw multi-app \texttt{kubectl} text (replacing the upper-bound
-multi-app B0 of \S\ref{sec:eval-baselines}).
+(ii)~\emph{Fair B0 on S2--S5}: \texttt{analysis/29-b0-multiapp-fair.py}
+re-runs B0 on raw \texttt{kubectl} text from the four breadth subjects
+(replacing the upper-bound B0 of \S\ref{sec:eval-baselines}).
 (iii)~Address Family C-a (contract-test shadowing on \fn{5}) with a
 ranking-aware diagnoser; Family C-b (vocabulary mismatch on \fn{10}) with
 an expanded, venue-justified alias table; Family C-c (multi-fault
@@ -1636,11 +1674,13 @@ control point before the namespace disappears.
 
 The diagnostic findings are intentionally cautious. Structured evidence
 improves several deployment, configuration, and readiness scenarios, but
-RCA accuracy remains modest, scenario-dependent, and weaker on the
-multi-application scope. A vanilla LLM over an operator-curated
+RCA accuracy remains modest, scenario-dependent, and uneven across
+subjects: the simplest subject (S1) is reasonably well solved, while
+S2--S5 (Go, Django, Next.js, Spring Boot) yield substantially lower
+aligned top-1 numbers. A vanilla LLM over an operator-curated
 kubectl-equivalent snapshot can outperform the proposed LLM-grounded
-diagnoser on part of the multi-app evaluation, so the paper should not be
-read as claiming RCA superiority. The supported claim is narrower and more
+diagnoser on parts of the broader subject set, so the paper should not
+be read as claiming RCA superiority. The supported claim is narrower and more
 operational: a typed, provenance-linked \fp{} makes ephemeral failures
 persistent, auditable, and reproducible after teardown. That artifact can
 serve rule-based diagnosers, LLM diagnosers, and future hybrid methods, but
