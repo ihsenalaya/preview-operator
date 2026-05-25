@@ -658,3 +658,46 @@ Tomorrow (human, non-substituable):
   --node-count 2`); cohere-key saved to `idp-preview-kv`;
   `30b-evidence-ladder-s1s5` and `21c-glmm-logit-s1s5` regenerated
   on S1--S5 pooled data.
+- 15:00 UTC: F3 root cause discovered --- the deployed
+  `preview-operator:fp` image (build 2026-05-22 13:40) predates
+  commit `5f997a1 fix(controller): fail stuck previews --- image-pull
+  jobs + provisioning deadline` (2026-05-22 20:00). The
+  `provisioningDeadline = 15 * time.Minute` backstop was missing
+  from the running binary. Switched the deployment image to
+  `preview-operator:fp-rq5instr` (2026-05-23 18:15, all fixes
+  included); F3 captures now complete in $\sim$80\,s.
+- 15:00--15:50 UTC: Phase 5f F3 backfill --- 9/12 captured under the
+  new operator (s3, s4, s5 F3 r1--r3); 3 s2 F3 captures failed under
+  the legacy operator before the switch and were re-captured
+  successfully in 80\,s post-switch. s4 F2 r1+r3 captures (lost in
+  the v2 overwrite of v1's success markers) also re-captured.
+  Total post-Phase-5f: 30/30 reports per subject = **100\%
+  uniform 5-subject $\times$ 10-fault $\times$ 10-rep matrix**.
+- 15:30--16:00 UTC: full scoring of the new 14 captures
+  (`/tmp/full-scoring.sh`), 350 diag files. K8sGPT-PT + Kagent-PT
+  re-replay --- found a discovery bug in `analysis/k8sgpt-replay.py`
+  and `analysis/kagent-replay.py`: `--max-reps 3` + lexicographic
+  sort kept r1, r10, r2 (not r3); fixed by passing `--max-reps 10`
+  and relying on skip-existing for the 386 unchanged cells.
+- 16:00--16:15 UTC: final rescore re-emission --- `34-b2-post-teardown
+  -rescore.py`, `35-unified-rescore.py`, `36-unified-figures.py`,
+  `19-evidence-precision.py`, `21-lmm.py`, `21c-glmm-logit-s1s5.py`,
+  `22-tukey.py`, `23-mcnemar.py`, `24-cd-diagrams.py`,
+  `25-pareto.py`, `30b-evidence-ladder-s1s5.py`,
+  `17-multiapp-rescore.py` all re-emitted on the now-uniform
+  matrix.
+- 16:15 UTC: **final numbers (S1--S5 pooled, 500-capture matrix,
+  Wilson 95\,\% CI)**:
+  - K8sGPT-PT: $74/500 = 14.8\,\%$ (per-subject: s1 14, s2 14,
+    s3 19, s4 13, s5 14).
+  - Kagent-PT: $54/500 = 10.8\,\%$ (per-subject: s1 10, s2 12,
+    s3 11, s4 11, s5 10).
+  - llm-grounded (`gpt-4o-mini`): $492/2500 = 19.68\,\%$ [18.17, 21.28].
+  - llm-freeform (`gpt-4o-mini`): $485/2500 = 19.40\,\%$ [17.90, 21.00].
+  - rule-grounded: $394/2500 = 15.76\,\%$ [14.38, 17.24].
+  - llm-b-grounded (`cohere-command-a`): $171/2500 = 6.84\,\%$ [5.92, 7.90].
+  - llm-b-freeform (`cohere-command-a`): $148/2500 = 5.92\,\%$ [5.06, 6.91].
+- 16:20 UTC: LaTeX abstract + `tab:multi-engine-pooled` +
+  B2a-PT/B2b-PT paragraphs updated with the final numbers; commit
+  `fa126f9` (final rescore outputs from VM) + follow-up local
+  commit (LaTeX + PROGRESS final numbers + this entry).
