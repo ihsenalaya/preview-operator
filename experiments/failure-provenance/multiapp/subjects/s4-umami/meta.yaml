@@ -1,0 +1,61 @@
+id: s4-umami
+name: "Umami Web Analytics"
+description: "Privacy-focused web analytics platform with REST API"
+origin:
+  repo: umami-software/umami
+  version: v2.15.1
+  license: MIT
+language: TypeScript
+framework: Next.js 14
+database: postgresql
+
+seed_entity: websites
+seed_count: 1
+
+# Run Prisma migrations, then seed 1 website via SQL
+migration_command:
+  - sh
+  - -c
+  - |
+    cd /app &&
+    node node_modules/.bin/prisma migrate deploy 2>&1 | tail -5 &&
+    node << 'JSEOF'
+    const {PrismaClient} = require('@prisma/client');
+    const {hashPassword} = require('next-basics');
+    const crypto = require('crypto');
+    const prisma = new PrismaClient();
+    async function main() {
+      const hash = hashPassword('umami');
+      const user = await prisma.user.upsert({
+        where: {username: 'admin'},
+        update: {},
+        create: {id: crypto.randomUUID(), username: 'admin', password: hash, role: 'admin'}
+      });
+      const exists = await prisma.website.findFirst({where: {name: 'Seed Website'}});
+      if (!exists) {
+        await prisma.website.create({
+          data: {id: crypto.randomUUID(), name: 'Seed Website',
+                 domain: 'seed.example.com', userId: user.id, createdBy: user.id}
+        });
+      }
+      await prisma.$disconnect();
+      console.log('PASS migration umami: OK');
+    }
+    main().catch(e => { console.error(e); process.exit(1); });
+    JSEOF
+
+services:
+  - name: backend
+    image_key: app
+    port: 3000
+    path_prefix: /
+  - name: probe
+    image_key: probe
+    port: 9090
+    path_prefix: /probe
+
+notes: |
+  Next.js app wrapped with Python proxy (wrapper.py) for /healthz.
+  Default credentials: admin/umami (set by Umami's first-run seed).
+  Tests authenticate via POST /api/auth/login then use Bearer token.
+  Isolation probes use PROBE_URL=http://svc-probe:9090.

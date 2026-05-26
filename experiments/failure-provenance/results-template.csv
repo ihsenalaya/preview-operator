@@ -1,0 +1,1 @@
+scenario_id,run_id,cluster_type,configuration,failure_detected_at,diagnosis_available_at,mttd_seconds,top1_correct,top3_correct,evidence_precision,evidence_recall,hallucination_rate,recommendation_score,bundle_size_bytes,cpu_overhead,memory_overhead,storage_overhead,namespace_deleted,evidence_survived,notes

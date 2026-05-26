@@ -1,0 +1,11 @@
+scenario_id,gt_component,gt_category,b2a_k8sgpt_component,b2a_k8sgpt_aligned,b2b_kagent_component,b2b_kagent_category,b2b_kagent_aligned
+F1,migration-job,database,migration-job,1,postgres-migrate,application,1
+F2,app-deployment,configuration,Deployment/preview-pr-9501/svc-backend,0,svc-backend,configuration,1
+F3,app-deployment,infrastructure,app-deployment,1,postgres-migrate-9h6jv,application,0
+F4,backend,application,ConfigMap/preview-pr-9701/ai-enrichment,0,e2e-tests,test-reliability,0
+F5,frontend,application,Node/aks-nodepool1-21128521-vmss000001,0,e2e-tests,test-reliability,0
+F6,app-deployment,infrastructure,Node/aks-nodepool1-21128521-vmss000001,0,svc-frontend,infrastructure,0
+F7,service,infrastructure,Node/aks-nodepool1-21128521-vmss000003,0,e2e-tests,test-reliability,0
+F8,backend,observability,Node/aks-nodepool1-21128521-vmss000001,0,e2e-tests,test-reliability,0
+F9,seed-job,database,ConfigMap/preview-pr-10201/db-checkpoint-after-seed,0,e2e-tests,test-reliability,0
+F10,test-suite,test-reliability,backend,0,microcks-contract-tests,application,0

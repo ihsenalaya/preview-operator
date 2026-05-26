@@ -1,0 +1,53 @@
+id: s2-listmonk
+name: "Listmonk Newsletter Manager"
+description: "Self-hosted newsletter and mailing-list manager with a REST API"
+origin:
+  repo: knadh/listmonk
+  version: v2.5.1
+  license: AGPL-3.0
+language: Go
+framework: Chi router
+database: postgresql
+
+seed_entity: lists
+seed_count: 3
+
+# Installs schema then seeds 3 mailing lists
+# Fix: binary is at /listmonk/listmonk (directory), psql installed at runtime
+migration_command:
+  - sh
+  - -c
+  - |
+    python3 << 'PYEOF'
+    import os, urllib.parse
+    u = urllib.parse.urlparse(os.environ.get('DATABASE_URL', ''))
+    cfg = '[app]\naddress = "0.0.0.0:9000"\nadmin_username = "admin"\nadmin_password = "harness123"\n'
+    cfg += '[db]\nhost = "{}"\nport = {}\nuser = "{}"\npassword = "{}"\ndatabase = "{}"\n'.format(
+        u.hostname or 'postgres', u.port or 5432,
+        u.username or 'postgres', u.password or 'postgres',
+        (u.path or '/listmonk').lstrip('/'))
+    cfg += 'ssl_mode = "disable"\nmax_open = 10\nmax_idle = 5\nmax_lifetime = "300s"\n'
+    open('/tmp/listmonk-config.toml', 'w').write(cfg)
+    print('Config written to /tmp/listmonk-config.toml')
+    PYEOF
+    /listmonk/listmonk --config=/tmp/listmonk-config.toml --install --yes 2>&1 | tail -3 &&
+    apt-get update -q 2>/dev/null &&
+    apt-get install -y postgresql-client 2>/dev/null &&
+    psql "$DATABASE_URL" -c "INSERT INTO lists (uuid, name, type, optin, tags, created_at, updated_at) SELECT gen_random_uuid(), name, type::list_type, optin::list_optin, tags, NOW(), NOW() FROM (VALUES ('Seed List 1','public','single',ARRAY[]::text[]),('Seed List 2','public','double',ARRAY[]::text[]),('Seed List 3','private','single',ARRAY[]::text[])) AS t(name,type,optin,tags) ON CONFLICT DO NOTHING" &&
+    echo 'PASS migration listmonk install+seed: OK'
+
+services:
+  - name: backend
+    image_key: app
+    port: 9000
+    path_prefix: /
+  - name: probe
+    image_key: probe
+    port: 9090
+    path_prefix: /probe
+
+notes: |
+  Go binary wrapped with a Python proxy (wrapper.py) that serves /healthz and
+  forwards other traffic to listmonk running on port 9001.
+  API authentication: HTTP Basic admin:harness123 (set in wrapper.py config).
+  Isolation probes use PROBE_URL=http://svc-probe:9090.

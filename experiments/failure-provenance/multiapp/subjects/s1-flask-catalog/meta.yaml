@@ -1,0 +1,41 @@
+id: s1-flask-catalog
+name: "Flask Product Catalog"
+description: "Flask/PostgreSQL REST API with product catalogue, orders, and reviews"
+origin:
+  repo: internal
+  version: exp-20260514
+  license: internal
+language: Python
+framework: Flask 3
+database: postgresql
+
+seed_entity: products
+seed_count: 5
+
+# alembic applies 001_initial_schema + 002_seed_products (5 rows)
+migration_command:
+  - alembic
+  - upgrade
+  - head
+
+# S1 embeds /api/run-log in the app; no separate probe service needed.
+# The run-log probe URL defaults to APP_URL in the test scripts.
+services:
+  - name: backend
+    image_key: app
+    port: 8080
+    path_prefix: /api
+  - name: frontend
+    image_key: app
+    port: 3000
+    path_prefix: /
+    env:
+      - name: APP_MODE
+        value: frontend
+      - name: BACKEND_URL
+        value: "http://svc-backend:8080"
+
+notes: |
+  Reference subject. run_log is embedded in the app at /api/run-log.
+  Tests use APP_URL for both functional calls and the isolation probe.
+  testapp/ source unchanged; harness-adapter == the testapp image itself.

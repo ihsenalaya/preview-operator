@@ -1,0 +1,481 @@
+{
+  "frozen_commit_sha": "2e81a648c3244c276dc3d58821a01e61d536901e",
+  "operator_image_digest": "testagentdevops.azurecr.io/preview-operator@sha256:88cd767f41c07f0eb65d85ea0d95f543926d07839f373b099dbb1c1d591a3a30",
+  "llm_a_model": "gpt-4o-mini-2024-07-18",
+  "cluster_type": "aks",
+  "n_rows": 1500,
+  "RQ1": {
+    "n_runs_expected": 100,
+    "n_runs_captured": 100,
+    "capture_rate": 1.0,
+    "namespace_deleted_rate": 1.0,
+    "evidence_survived_rate": 1.0,
+    "comment": "Capture rate is the rep-level success of the operator in producing a FailureReport with phase=Captured. Survival rate is per-row because the score CSV has 15 rows per rep."
+  },
+  "RQ2": {
+    "strict": {
+      "F1_rule-grounded": {
+        "n": 50,
+        "correct": 50,
+        "top1": 1.0,
+        "wilson_lo": 0.9286499658256813,
+        "wilson_hi": 1.0
+      },
+      "F1_llm-grounded": {
+        "n": 50,
+        "correct": 19,
+        "top1": 0.38,
+        "wilson_lo": 0.2586259584257722,
+        "wilson_hi": 0.5184980497760643
+      },
+      "F1_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F2_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F2_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F2_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F3_rule-grounded": {
+        "n": 50,
+        "correct": 40,
+        "top1": 0.8,
+        "wilson_lo": 0.6696262789551477,
+        "wilson_hi": 0.8875637005402612
+      },
+      "F3_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F3_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F4_rule-grounded": {
+        "n": 50,
+        "correct": 30,
+        "top1": 0.6,
+        "wilson_lo": 0.4618118910275937,
+        "wilson_hi": 0.7239181021375425
+      },
+      "F4_llm-grounded": {
+        "n": 50,
+        "correct": 1,
+        "top1": 0.02,
+        "wilson_lo": 0.0035391680889764604,
+        "wilson_hi": 0.10495686471836953
+      },
+      "F4_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F5_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F5_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F5_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F6_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F6_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F6_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F8_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F8_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F8_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F7_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F7_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F7_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F9_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F9_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F9_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F10_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F10_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F10_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      }
+    },
+    "aligned": {
+      "F1_rule-grounded": {
+        "n": 50,
+        "correct": 50,
+        "top1": 1.0,
+        "wilson_lo": 0.9286499658256813,
+        "wilson_hi": 1.0
+      },
+      "F1_llm-grounded": {
+        "n": 50,
+        "correct": 50,
+        "top1": 1.0,
+        "wilson_lo": 0.9286499658256813,
+        "wilson_hi": 1.0
+      },
+      "F1_llm-freeform": {
+        "n": 50,
+        "correct": 35,
+        "top1": 0.7,
+        "wilson_lo": 0.562493877226366,
+        "wilson_hi": 0.8089661091039063
+      },
+      "F2_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F2_llm-grounded": {
+        "n": 50,
+        "correct": 31,
+        "top1": 0.62,
+        "wilson_lo": 0.4815019502239357,
+        "wilson_hi": 0.7413740415742278
+      },
+      "F2_llm-freeform": {
+        "n": 50,
+        "correct": 34,
+        "top1": 0.68,
+        "wilson_lo": 0.5418944286372394,
+        "wilson_hi": 0.792419559060006
+      },
+      "F3_rule-grounded": {
+        "n": 50,
+        "correct": 40,
+        "top1": 0.8,
+        "wilson_lo": 0.6696262789551477,
+        "wilson_hi": 0.8875637005402612
+      },
+      "F3_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F3_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F4_rule-grounded": {
+        "n": 50,
+        "correct": 30,
+        "top1": 0.6,
+        "wilson_lo": 0.4618118910275937,
+        "wilson_hi": 0.7239181021375425
+      },
+      "F4_llm-grounded": {
+        "n": 50,
+        "correct": 21,
+        "top1": 0.42,
+        "wilson_lo": 0.2937479723456693,
+        "wilson_hi": 0.5576680331222217
+      },
+      "F4_llm-freeform": {
+        "n": 50,
+        "correct": 15,
+        "top1": 0.3,
+        "wilson_lo": 0.1910338908960936,
+        "wilson_hi": 0.4375061227736339
+      },
+      "F5_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F5_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F5_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F6_rule-grounded": {
+        "n": 50,
+        "correct": 27,
+        "top1": 0.54,
+        "wilson_lo": 0.40398634328388083,
+        "wilson_hi": 0.6703056539821737
+      },
+      "F6_llm-grounded": {
+        "n": 50,
+        "correct": 26,
+        "top1": 0.52,
+        "wilson_lo": 0.3851151225880844,
+        "wilson_hi": 0.6520308760449429
+      },
+      "F6_llm-freeform": {
+        "n": 50,
+        "correct": 14,
+        "top1": 0.28,
+        "wilson_lo": 0.17474014357680362,
+        "wilson_hi": 0.4166538714598967
+      },
+      "F8_rule-grounded": {
+        "n": 50,
+        "correct": 30,
+        "top1": 0.6,
+        "wilson_lo": 0.4618118910275937,
+        "wilson_hi": 0.7239181021375425
+      },
+      "F8_llm-grounded": {
+        "n": 50,
+        "correct": 29,
+        "top1": 0.58,
+        "wilson_lo": 0.4423319668777783,
+        "wilson_hi": 0.7062520276543307
+      },
+      "F8_llm-freeform": {
+        "n": 50,
+        "correct": 19,
+        "top1": 0.38,
+        "wilson_lo": 0.2586259584257722,
+        "wilson_hi": 0.5184980497760643
+      },
+      "F7_rule-grounded": {
+        "n": 50,
+        "correct": 27,
+        "top1": 0.54,
+        "wilson_lo": 0.40398634328388083,
+        "wilson_hi": 0.6703056539821737
+      },
+      "F7_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F7_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F9_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F9_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F9_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F10_rule-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F10_llm-grounded": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      },
+      "F10_llm-freeform": {
+        "n": 50,
+        "correct": 0,
+        "top1": 0.0,
+        "wilson_lo": 0.0,
+        "wilson_hi": 0.07135003417431873
+      }
+    },
+    "pooled_by_engine": {
+      "rule-grounded": {
+        "strict_top1": 0.24,
+        "aligned_top1": 0.408,
+        "delta_count": 84,
+        "n": 500
+      },
+      "llm-grounded": {
+        "strict_top1": 0.04,
+        "aligned_top1": 0.314,
+        "delta_count": 137,
+        "n": 500
+      },
+      "llm-freeform": {
+        "strict_top1": 0.0,
+        "aligned_top1": 0.234,
+        "delta_count": 117,
+        "n": 500
+      }
+    }
+  },
+  "RQ3": {
+    "status": "NOT MEASURED",
+    "reason": "FailureReport.status does not carry a diagnosis_available_at timestamp (verified in task #19, 2026-05-23). MTTD column in the CSV is empty for all 1500 rows. Recovering MTTD requires an operator-side instrumentation pass that emits a diagnosis-completed timestamp, which is a Lot-1 (operator) gap, not a Phase-5a (data) gap.",
+    "n_measured": 0
+  },
+  "RQ4": {
+    "status": "PARTIAL",
+    "reason": "Hallucination rate column in the CSV is empty for all rows (strict matcher did not implement claim-level annotation). Per task #26, Claude Sonnet judge on F10 + 20% subsample is still pending. The strict\u2192aligned delta on RQ2 is a *proxy* for one form of hallucination \u2014 naming a wrong component \u2014 but not for unsupported-claim hallucination per the analysis-plan \u00a71 L6 definition.",
+    "n_measured": 0
+  },
+  "RQ5": {
+    "bundle_size_bytes_median": 3971.0,
+    "bundle_size_bytes_iqr": [
+      3669,
+      4167
+    ],
+    "cpu_overhead_status": "NOT MEASURED \u2014 column empty in CSV",
+    "memory_overhead_status": "NOT MEASURED \u2014 column empty in CSV",
+    "comment": "Bundle size is the only RQ5 metric captured during the live run. CPU/memory overhead requires a paired evidence-on / evidence-off setup that was not part of the Phase 5a run; this is future work flagged in the article's threats-to-validity table."
+  }
+}

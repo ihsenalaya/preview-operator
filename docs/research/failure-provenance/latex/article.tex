@@ -1,0 +1,1896 @@
+% article.tex --- Operator-Captured Failure Provenance for Ephemeral
+% Kubernetes Preview Environments
+%
+% Q1 submission draft, ACM sigconf format (compatible with FSE/ICSE/ASE
+% submission flows; switch to IEEEtran via `\documentclass[conference]{IEEEtran}`
+% with minor cosmetic edits if the venue requires it).
+%
+% Generated 2026-05-23 from article-draft.md (1186 lines) on commit
+% d677885 --- multi-app matrix 500/500 = 100 % captures, F1-F10 across
+% s1-flask-catalog + s2-listmonk + s3-healthchecks + s4-umami +
+% s5-petclinic.
+%
+% Compilation: pdflatex article && bibtex article && pdflatex article
+% (or upload to Overleaf --- figures/, bibliography.bib, and this file
+%  are the only artefacts required).
+
+\documentclass[sigconf, nonacm=true, anonymous=false, review=false]{acmart}
+
+%%% Venue metadata is intentionally suppressed (nonacm=true) until the
+%%% target venue is finalised. Re-enable by removing nonacm and setting
+%%% \acmConference / \setcopyright accordingly.
+\copyrightyear{2026}
+\acmYear{2026}
+\settopmatter{printacmref=false, printccs=false, printfolios=true}
+
+%%% Standard packages.
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}  % scalable fonts required by microtype font expansion
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, fit, calc, backgrounds}
+\usepackage{hyperref}
+\usepackage{balance}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{flushend}
+% \usepackage[strings]{underscore}  % conflicts with bibtex keys containing underscores
+
+%%% Layout tuning for a cleaner ACM two-column manuscript.
+\setlength{\headheight}{16.2pt}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
+\setlist{nosep,leftmargin=*}
+\renewcommand{\arraystretch}{1.08}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\bibsep}{1pt plus 0.2ex}
+\Urlmuskip=0mu plus 2mu
+\sloppy
+
+%%% Small visual helpers used in the revised layout.
+\newcommand{\artifactname}[1]{\nolinkurl{#1}}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcommand{\metric}[1]{\textbf{#1}}
+\newcommand{\subtleemph}[1]{\textit{#1}}
+
+\graphicspath{{figures/}}
+
+%%% Acronym shortcuts.
+\newcommand{\RQ}[1]{RQ#1\xspace}
+\newcommand{\CRD}[1]{\texttt{#1}\xspace}
+\newcommand{\fp}{FailureReport\xspace}
+\newcommand{\Cn}[1]{C#1\xspace}
+\newcommand{\fn}[1]{F#1\xspace}
+
+%%% Code listing style.
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=fullflexible,
+  frame=single,
+  framerule=0.3pt,
+  framesep=3pt,
+  numbers=none,
+  showstringspaces=false,
+  tabsize=2,
+  upquote=true
+}
+
+\begin{document}
+
+\title{From Ephemeral Failures to Persistent Evidence:\\
+       Provenance-Guided Diagnosis of Kubernetes Preview Environments}
+
+\author{Ihsen Alaya}
+\affiliation{%
+  \institution{}
+  \country{}
+}
+\email{ihsen.alaya@outlook.com}
+
+\author{Adel Kouki}
+\affiliation{%
+  \institution{}
+  \country{}
+}
+\email{}
+
+\settopmatter{authorsperrow=2}
+
+\begin{abstract}
+Ephemeral preview environments let teams validate a pull request (PR) in a
+realistic Kubernetes deployment before merge. When such an environment
+fails, the evidence needed for diagnosis---pod logs, Kubernetes events,
+resource state, test outcomes, and the link to the PR change---is often
+short-lived and namespace-scoped. Once the preview namespace is torn down,
+this evidence becomes difficult or impossible to reconstruct, weakening
+post-failure root-cause analysis (RCA), auditability, and reproducibility.
+
+We present an operator-based evidence and provenance substrate for
+post-teardown analysis of Kubernetes PR-preview failures. The approach does
+not treat namespace survival of a cluster-scoped custom resource as the
+scientific contribution. Instead, it uses the operator's control point to
+capture typed evidence, normalize it into a stable \fp{} artifact, and link
+the PR, preview resources, evidence-collection activity, evidence items,
+and downstream diagnostic hypotheses in a W3C-PROV-inspired graph. The goal
+is to make an otherwise ephemeral failure inspectable and reusable after the
+original namespace has disappeared.
+
+We evaluate the approach on five reference applications, ten deterministic
+fault classes, ten repetitions per class, two LLMs, one rule-based
+diagnoser, and three practitioner-oriented baselines. Across 500
+preview-environment executions on a three-node AKS cluster, the operator
+persisted a \fp{} in every run and every report survived namespace
+teardown; the measured operator-side overhead was small in the
+instrumented subset. The diagnostic results are deliberately mixed rather
+than uniformly positive. Aligned top-1 accuracy varies substantially
+across the five subjects: on the simplest subject (S1, Flask/Python) the
+rule-grounded diagnoser reaches $40.8\,\%$ and the LLM-grounded
+diagnoser $31.4\,\%$; pooled across all five subjects on the full
+F1--F10 $\times$ 10-rep matrix (after the Phase 5e/5f rep-parity
+backfill), the LLM-grounded diagnoser reaches $19.7\,\%$
+aligned top-1 (492/2500) and the rule-grounded diagnoser
+$15.8\,\%$ (394/2500), with the per-subject spread reflecting
+stack-complexity heterogeneity. The regime-symmetric
+post-teardown comparators we introduce (K8sGPT-PT and Kagent-PT,
+both consuming the same operator evidence on all five subjects)
+reach $14.8\,\%$ ($74/500$) and $10.8\,\%$ ($54/500$) pooled
+across S1--S5 on the same 500-capture matrix. A vanilla LLM
+baseline over an operator-curated kubectl-equivalent bundle can
+outperform the proposed diagnoser on parts of the broader subject set,
+showing that the artifact alone does not solve RCA. The evidence
+supports a
+narrower claim: operator-captured provenance makes post-teardown failure
+analysis persistent, auditable, and reproducible, while accurate automatic
+RCA still requires stronger diagnostic models and fair post-teardown
+comparators. We release the operator, harness, analysis scripts, and
+bibliography as a reproducible artifact.
+\end{abstract}
+
+\keywords{Kubernetes operators, preview environments, failure provenance, root-cause analysis, LLM diagnostics, W3C PROV}
+
+\maketitle
+
+%%% ===================================================================
+\section{Introduction}
+\label{sec:intro}
+
+The PR-preview workflow is now standard in cloud-native software
+development~\cite{signadot_preview_envs, okteto_preview_envs,
+jenkinsx_preview_envs, argocd_cncf}: each pull request triggers the
+deployment of a per-PR ephemeral environment in which automated tests
+run before merge. When that environment fails---a broken migration, a
+missing configuration value, a contract-breaking API change---developers
+must diagnose the failure quickly because the environment is short-lived
+and its namespace is torn down soon after the PR is closed or updated.
+
+\paragraph{The problem in one paragraph.}
+\textbf{Failure evidence is namespace-scoped and ephemeral.} Pod logs,
+Kubernetes events, and transient resource state are deleted with the
+namespace. The cluster-scoped \texttt{Preview} custom resource keeps a
+\texttt{status.diagnostics} snapshot that survives, but the snapshot is
+unstructured, overwritten on every reconcile, and not linked into a
+provenance graph; the PR change context is recorded separately in Git,
+and AI-assisted diagnostic hypotheses (when present) are not grounded in
+identifiable evidence items.
+
+\paragraph{Thesis.}
+A Kubernetes operator already observes the reconciliation path of every
+preview environment. It is therefore a suitable control-plane component
+for capturing and structuring failure evidence before teardown, in a typed,
+addressable, auditable form linked to the PR change that produced the
+failure. The contribution is the preservation and provenance of evidence;
+LLM- and rule-based diagnosers are evaluated as downstream consumers of
+that artifact.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item A Kubernetes-native \emph{failure evidence model} that
+    represents PR change context, Kubernetes resource state, test
+    outcomes, logs, events, telemetry, and diagnostic hypotheses as typed,
+    addressable evidence items with deterministic identifiers, mapped onto
+    W3C PROV~\cite{lebo_provo_2013, w3c_prov_dm}.
+  \item A \emph{post-teardown provenance artifact}: a persisted
+    \fp{} that links the PR, preview resources, evidence-collection
+    activity, evidence items, and diagnostic outputs so that a preview
+    failure remains auditable after namespace deletion.
+  \item A \emph{controlled diagnostic-utility evaluation} that reports
+    both successes and failures across a five-app, multi-LLM
+    fault-injection matrix, including explicit analysis of cases where
+    structured evidence does \emph{not} yield accurate RCA.
+  \item A \emph{baseline-comparability analysis} separating live-cluster
+    tools from post-teardown artifact consumers, to avoid overstating
+    diagnostic gains when comparators see different inputs.
+\end{enumerate}
+
+We implement the approach as an extension of an existing open-source
+preview-environment operator using
+Kubebuilder~\cite{kubebuilder_sigs} and \texttt{controller-runtime}.
+Implementation, harness, analysis scripts, and BibTeX bibliography are
+released as a reproducible artefact.
+
+\paragraph{Positioning.} This article does \emph{not} claim that
+Kubernetes RCA~\cite{zhang_microservice_diagnosis_survey_2025}, LLM-based
+RCA~\cite{openrca_2025, rcacopilot_2024}, graph-based
+RCA~\cite{microrca_2020, microdiag_2021, causalrca_2023}, preview
+environments, Kubernetes-native test orchestration, or observability are
+new. The originality is the operator-controlled \emph{capture,
+structuring, linking, grounding, and evaluation} of failure evidence for
+\emph{ephemeral, change-scoped} environments---a niche not addressed by
+AIOps RCA (which targets production telemetry, not change-scoped
+previews) nor by GitOps tooling (which deploys but does not diagnose).
+The paper therefore makes an evidence-substrate claim, not a claim that
+automatic Kubernetes RCA is solved by the proposed diagnosers.
+
+%%% ===================================================================
+\section{Background}
+\label{sec:bg}
+
+\subsection{Kubernetes operators and Custom Resources}
+\label{sec:bg-operators}
+
+A Kubernetes operator~\cite{kubernetes_operator_pattern,
+kubernetes_custom_resources} is a controller that reconciles a Custom
+Resource Definition (CRD) toward a declared desired state. Operators
+sit in the cluster's control-plane reconciliation
+loop~\cite{kubernetes_controller_concepts}; their reconcile method is
+invoked on resource events (create, update, delete, periodic
+re-sync). Cluster-scoped resources survive namespace teardown by
+construction, and \texttt{finalizers}~\cite{kubernetes_finalizers}
+provide the pre-deletion hook we use to sequence evidence
+persistence. The cluster-management lineage from
+Borg~\cite{borg_2015} formalises this design pattern. We extend an
+existing preview-environment operator built on
+Kubebuilder~\cite{kubebuilder_sigs} that already manages PR-scoped
+\texttt{Preview} CRs.
+
+\subsection{Preview environments}
+\label{sec:bg-preview}
+
+A PR-preview environment is a per-pull-request, namespace-scoped
+deployment of the application under test, built and managed
+automatically~\cite{signadot_preview_envs, okteto_preview_envs,
+jenkinsx_preview_envs}. Argo CD's ApplicationSet pull-request
+generator~\cite{argocd_pr_generator, argocd_cncf} and Argo
+Workflows~\cite{argo_workflows_cncf} provide the GitOps substrate.
+The namespace is torn down when the PR is closed or updated; this
+short lifetime is the source of the evidence-loss problem this
+article addresses.
+
+\subsection{Test orchestration in Kubernetes}
+\label{sec:bg-tests}
+
+We use the smoke / regression / e2e suite the operator already runs
+through Kubernetes \texttt{Job}s during the \emph{Test} phase of the
+preview lifecycle. The Job pattern is standard~\cite{kubernetes_jobs}.
+
+\subsection{Observability---logs, metrics, traces}
+\label{sec:bg-obs}
+
+OpenTelemetry~\cite{opentelemetry_docs, opentelemetry_operator}
+unified the wire format for logs, metrics, and traces, descending
+from Dapper's span-based tracing model~\cite{dapper_2010}.
+Prometheus~\cite{prometheus_cncf} provides cluster-wide metrics;
+Jaeger~\cite{jaeger_cncf} is a common trace backend;
+Istio~\cite{istio_service_mesh} injects sidecar instrumentation at
+the service-mesh layer. The operator can subscribe to a tracing
+backend (when configured) and capture trace IDs in the provenance
+graph; in this article's evaluation, traces are out of scope, and
+we rely on logs and events only.
+
+\subsection{AI-assisted root cause analysis}
+\label{sec:bg-rca}
+
+LLM-assisted RCA on Kubernetes has been formalised in
+OpenRCA~\cite{openrca_2025} and RCACopilot~\cite{rcacopilot_2024},
+and surveyed comprehensively by
+Zhang~et~al.~\cite{zhang_microservice_diagnosis_survey_2025}. Classical
+microservice RCA approaches include
+MicroRCA~\cite{microrca_2020}, MicroDiag~\cite{microdiag_2021},
+CausalRCA~\cite{causalrca_2023}, PAL~\cite{pal_2011}, and
+Eadro~\cite{eadro_2023}, benchmarked together by
+RCAEval~\cite{rcaeval_2024}. Log-based RCA pipelines build on
+Drain~\cite{drain_2017}, Spell~\cite{spell_2016},
+DeepLog~\cite{deeplog_2017}, and the Loghub
+datasets~\cite{loghub_2023}. The practitioner tools
+K8sGPT~\cite{k8sgpt_cncf}, HolmesGPT~\cite{holmesgpt_robusta} and
+Kagent~\cite{kagent} use these methods on live clusters.
+\emph{These existing tools diagnose live clusters, whereas our
+approach preserves evidence for post-teardown analysis} --- a
+distinct operational regime that becomes essential once the
+preview namespace has been torn down and the live-cluster
+diagnosers no longer apply. The contribution of this article is
+upstream of all of these: it is the structured, persistent,
+provenance-linked failure evidence that any diagnoser --- live or
+post-teardown --- would benefit from.
+
+\subsection{LLM reasoning and tool use}
+\label{sec:bg-llm}
+
+We use the ReAct~\cite{yao2023react} grounding convention for the LLM
+diagnoser: a system prompt fixes the schema, the user prompt lists the
+typed evidence items, and the model returns a JSON object referencing
+specific evidence-item IDs. The prompting tradition draws on
+few-shot~\cite{brown_gpt3_2020}, chain-of-thought~\cite{wei2022cot}
+reasoning, and tool-use formalisations such as
+Toolformer~\cite{schick_toolformer_2023} and self-consistency
+sampling~\cite{wang_selfconsistency_2023}; multi-LLM evaluation
+practice follows HELM~\cite{liang_helm_2023} and the
+open-source-LLM reproducibility argument
+of~\cite{llm_open_advantage}. Tool use in the sense of agentic
+loops is out of scope here.
+
+\subsection{Provenance models}
+\label{sec:bg-prov}
+
+The W3C PROV data model~\cite{lebo_provo_2013, w3c_prov_dm} describes
+provenance as a graph of three kinds of nodes (Entity, Activity, Agent)
+linked by edges (used, wasGeneratedBy, wasAttributedTo). Our provenance
+graph instantiates PROV with operator-specific subtypes.
+
+%%% ===================================================================
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{architecture_redesigned.png}
+\caption{\textbf{System architecture.}
+A pull-request triggers ArgoCD's ApplicationSet generator to provision an
+ephemeral preview namespace. The \texttt{preview-operator} reconciles the
+deployment, the migration Job, the test suite and the routing; on
+\texttt{failureDetected} it runs six evidence collectors and persists a
+cluster-scoped \fp{} CR. Because the CR is cluster-scoped, it
+\emph{outlives} the namespace teardown by Kubernetes invariant. The
+diagnostic harness (rule + LLM-A + LLM-B) reads the persisted
+\fp{} and emits a JSON \texttt{diagnosis}. External baselines (B0
+vanilla LLM, B2a K8sGPT, B2b Kagent) bypass the operator and consume
+raw \texttt{kubectl} output directly --- this is the comparator that
+distinguishes the operator's contribution from the LLM's intrinsic
+capability.}
+\Description{Architecture diagram showing the pull-request trigger, preview namespace, operator evidence collection, persisted FailureReport, diagnostic harness, and external baselines.}
+\label{fig:architecture}
+\end{figure*}
+
+\section{Motivation: a walk-through failure}
+\label{sec:motivation}
+
+\textbf{The failure (illustrative).} A pull request touches the
+backend service. The PR's preview environment deploys, runs the smoke
+suite, and a contract test fails on \texttt{/api/lists}. The operator
+detects the failure during the reconcile that observes the test job
+exit code, before the teardown phase runs.
+
+\paragraph{What the operator captures, with timestamps.} On
+\texttt{failureDetectedAt}, the operator runs the evidence collectors
+enabled by the configured evidence level \Cn{5} (\S\ref{sec:eval-design}),
+producing a \fp{} CR with: the PR diff (\texttt{ChangeContext}, captured
+on \texttt{Preview.spec} creation), the failing test result
+(\texttt{TestResult}), the relevant pod logs (\texttt{PodLog} for
+backend and postgres), the Kubernetes events
+(\texttt{KubernetesEvent} for the failing pods), and the provenance
+graph (\S\ref{sec:approach-graph}). The persist step takes a median
+of $\mathbf{< 1\,\text{ms}}$ on the matrix (\S\ref{sec:rq4-overhead}).
+
+\paragraph{What is otherwise lost.} After teardown
+($\sim 30\,\text{s}$ after the failure), the namespace is gone; the
+\texttt{Preview.status.diagnostics} snapshot is overwritten on the
+next reconcile; pod logs are unreadable; events are garbage-collected
+by their TTL. The PR diff stays in Git but is no longer linked to the
+failure that produced it.
+
+\paragraph{What our captured artefact lets the diagnoser do.}
+The persisted \fp{} (cluster-scoped, survives teardown) is the input
+of the LLM diagnoser in \Cn{5}-grounded mode: the model receives the
+typed evidence items + the provenance graph + a fixed system schema,
+and produces a single-component diagnosis (the article reports the
+aligned top-1 accuracy in \S\ref{sec:rq2}).
+
+%%% ===================================================================
+\section{Approach}
+\label{sec:approach}
+
+\subsection{The failure evidence model}
+\label{sec:approach-evidence}
+
+An evidence \emph{item} is a tuple
+$(\text{type}, \text{source}, \text{resource}, \text{message},
+\text{relevance}, \text{redacted})$ --- typed as a PROV
+\emph{entity}~\cite{lebo_provo_2013} --- with a deterministic
+identifier:
+\[
+\begin{aligned}
+\mathrm{ID} &= \mathrm{lowercase(type)} \mathbin{\Vert}
+  \mathrm{hex}_{12}\!\left(\mathrm{SHA\mbox{-}256}(m)\right),\\
+m &= \mathrm{type} \mathbin{\Vert} \mathrm{source} \mathbin{\Vert}
+  \mathrm{resource} \mathbin{\Vert} \mathrm{content}.
+\end{aligned}
+\]
+The hash deliberately excludes volatile fields (timestamps, counters)
+so repeated reconciliation of the same logical evidence does not
+produce duplicate items.
+
+Six evidence classes are defined: \texttt{KubernetesEvent},
+\texttt{PodLog}, \texttt{JobLog}, \texttt{TestResult},
+\texttt{ChangedFile}, \texttt{PreviewCondition}.
+
+\subsection{The provenance graph}
+\label{sec:approach-graph}
+
+Per W3C PROV~\cite{w3c_prov_dm}, the graph contains:
+\begin{itemize}
+  \item \textbf{Entities}: PR, Preview, Namespace, EvidenceItem, FailureReport.
+  \item \textbf{Activities}: \texttt{EvidenceCollection},
+    \texttt{Diagnosis} (when populated).
+  \item \textbf{Agents}: \texttt{PreviewOperator}, optional human reviewer.
+  \item \textbf{Edges}: \texttt{wasDerivedFrom} (PR$\to$Preview),
+    \texttt{used} (\texttt{EvidenceCollection}$\to$Preview),
+    \texttt{wasGeneratedBy} (each evidence item).
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{provenance_graph_redesigned.png}
+\caption{\textbf{Provenance graph schema} (W3C PROV typing).
+PR/Preview/Namespace and the four evidence classes are \emph{entities};
+\texttt{EvidenceCollection} is an \emph{activity} triggered at
+\texttt{failureDetectedAt} by the \emph{agent} \texttt{preview-operator};
+edges instantiate \texttt{wasDerivedFrom}, \texttt{used},
+\texttt{wasAssociatedWith}, \texttt{wasGeneratedBy}. The \fp{} CR
+collects all four evidence types and outlives the namespace.}
+\Description{Provenance graph schema linking pull request, preview, namespace, evidence collection activity, evidence items, and diagnostic outputs.}
+\label{fig:provenance-graph}
+\end{figure}
+
+\subsection{The \texttt{FailureReport} CRD}
+\label{sec:approach-crd}
+
+\fp{} is a cluster-scoped CR. Its \texttt{spec} carries the
+\texttt{previewRef}, \texttt{prNumber}, \texttt{commitSHA},
+\texttt{failedSuite}; its \texttt{status} carries the typed evidence
+items, the provenance graph (at \Cn{5}), the bundle size in bytes, the
+collection duration in microseconds (RQ5), the heap-bytes delta during
+assembly (RQ5), and a \texttt{diagnosis} sub-document (populated
+post-hoc by the diagnostic harness).
+
+\subsection{Storage, lifetime, and retention}
+\label{sec:approach-storage}
+
+\fp{} is persisted as a standard Kubernetes object: a cluster-scoped
+custom resource served by the apiserver and stored in etcd. Three
+deliberate consequences follow.
+
+\textbf{Survival.} Being cluster-scoped, a \fp{} is independent of the
+(namespace-scoped) preview namespace --- the central mechanism behind
+\RQ{1}. The artifact carries no \texttt{ownerReference} back to its
+\texttt{Preview} either, so deleting the \texttt{Preview} (for example
+when an old PR is cleaned up) does not garbage-collect the report; the
+audit trail outlives both the namespace and the \texttt{Preview} CR.
+
+\textbf{Access.} Reports are retrievable through the standard
+Kubernetes API: \texttt{kubectl get failurereports} (short name
+\texttt{fr}), \texttt{-o yaml} for the full evidence bundle and
+provenance graph. Tools that already read Kubernetes resources
+(Argo CD, Prometheus, the kagent agents, custom dashboards) read \fp{}s
+through the same path; no special storage layer is introduced.
+
+\textbf{Deterministic naming.} The report name is derived from the
+Preview name (\texttt{<preview>-failure}), so repeated reconciliation
+creates-or-updates the same object: at most one \fp{} per Preview,
+with no duplicates and no churn.
+
+\paragraph{Lifecycle phases.} The \texttt{status.phase} field tracks
+the report through four phases: \texttt{Captured} (just created),
+\texttt{Persisted} (post-teardown survival confirmed),
+\texttt{Archived} (bulk moved to external storage --- only a compact
+stub remains in etcd), and \texttt{Expired} (deleted from etcd).
+
+\paragraph{Retention and tiered storage.} The implementation evaluated
+in this paper writes every \fp{} to etcd and applies no retention.
+This is adequate for our $\sim$100-report evaluation and deliberately
+avoids confounding the runtime measurements. At deployment scale it is
+\emph{not} sufficient: a \fp{} ranges 10--100\,kB, etcd's default
+2--8\,GB budget caps practical capacity at $\sim$$10^4$--$10^5$
+reports, and \texttt{LIST} performance degrades long before that.
+
+The CRD therefore reserves \texttt{status.storageRef}, a URL that
+points to an external object store, to enable a two-tier deployment:
+a \emph{hot} tier (etcd) retains recent and pinned reports in full,
+and a \emph{cold} tier (e.g. S3, Azure Blob Storage) holds the older
+bulk while a compact stub remains in etcd. A dedicated retention
+controller --- watching \fp{} resources with a policy such as
+\emph{``keep the last $K$ reports per pull request, archive after
+$N$ days, expire after $M$ days, and never expire reports annotated
+\texttt{keep=true}''} --- implements the \texttt{Captured} $\to$
+\texttt{Archived} $\to$ \texttt{Expired} transitions. The two-tier
+design and the retention controller are deployment concerns kept out
+of scope for the present evaluation; we sketch them as future work in
+§\ref{sec:future} and discuss the scaling limit explicitly in
+§\ref{sec:threats}.
+
+\subsection{The diagnostic harness}
+\label{sec:approach-harness}
+
+\texttt{fp-diagnose} reads a persisted \fp{}, down-samples to the
+target evidence level (\Cn{1}--\Cn{5}), and drives either the rule-based
+diagnoser or an LLM (LLM-A: \texttt{gpt-4o-mini}; LLM-B:
+\texttt{cohere-command-a}) in grounded or free-form mode. Each
+diagnosis is written next to the \fp{} as \texttt{diag-C\textit{N}-llm-grounded[-llmb].json}.
+The exact system prompts (grounded and free-form), the user-prompt
+template, the sampling configuration (temperature 0, pinned model
+versions), and the post-processing rules are reproduced verbatim in
+Appendix~\ref{app:prompts} for full reproducibility.
+
+%%% ===================================================================
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Research questions}
+\label{sec:eval-rq}
+
+\begin{description}
+  \item[\RQ{1}] Can the operator produce a complete, persistent
+    post-teardown evidence artifact for each injected preview failure?
+  \item[\RQ{2}] What diagnostic utility and limitations does the
+    structured evidence provide across scenarios and engines?
+  \item[\RQ{3}] How long does the operator take to detect and persist a
+    failure? (\emph{MTTD})
+  \item[\RQ{4}] What runtime overhead does evidence collection impose
+    on the operator?
+  \item[\RQ{5}] How should external baselines be interpreted when some
+    operate on live namespaces and others consume post-teardown artifacts?
+\end{description}
+
+We report hallucination on the \fn{10} flaky-test control as an
+exploratory safety check rather than as a primary research question,
+because the planned human agreement column is not yet complete.
+
+\subsection{Experimental design}
+\label{sec:eval-design}
+
+\begin{itemize}
+  \item \textbf{Applications.} Five subjects covering four
+    language/runtime stacks: S1 \texttt{idp-preview} (Flask/Python),
+    S2 \texttt{listmonk} (Go/Chi), S3 \texttt{healthchecks} (Django),
+    S4 \texttt{umami} (Next.js), S5 \texttt{petclinic-rest} (Spring
+    Boot). All five are treated as equal subjects in the
+    evaluation; some per-scenario tables (e.g.\
+    Table~\ref{tab:rq2-s1}) are reported on a single subject when the
+    per-scenario detail is needed but uniform across the others.
+  \item \textbf{Fault scenarios \fn{1}--\fn{10}.} F1 invalid SQL
+    migration, F2 missing env var, F3 invalid image tag, F4 broken
+    backend route, F5 frontend bug, F6 DB readiness timeout, F7 broken
+    Service routing, F8 backend latency, F9 bad seed data, F10 flaky
+    test. Each scenario has one deterministic root cause known
+    ahead of run-time, in the chaos-engineering
+    tradition~\cite{basiri_chaos_2016} and adjacent to CNCF
+    Kubernetes chaos tooling~\cite{litmus_chaos_cncf,
+    chaos_mesh_cncf}. Delta-debugging~\cite{zeller_delta_2002}
+    underpins the one-root-cause-per-scenario discipline.
+  \item \textbf{Evidence configurations \Cn{1}--\Cn{5}.} Increasing
+    coverage of evidence collectors.
+  \item \textbf{Diagnostic engines.} \texttt{rule}-grounded,
+    \texttt{llm}-grounded (LLM-A and LLM-B), \texttt{llm}-free-form.
+  \item \textbf{Replication.} 10 repetitions per cell on the AKS
+    \texttt{idp-preview-test} cluster, Kubernetes 1.34.7, operator
+    image \texttt{fp-rq5instr}.
+  \item \textbf{Matrix.} $5 \text{ subjects} \times 10 \text{ scenarios}
+    \times 10 \text{ reps} = 500$ \fp{} runs; $\times 5$ configurations
+    $\times 2$ LLMs $\times 1$ mode $= 5000$ diagnoses (some engines
+    re-run only on a subset of subjects for cost containment, see
+    per-section $n$ values).
+\end{itemize}
+
+\subsection{\RQ{1}---Evidence preservation}
+\label{sec:rq1}
+
+For each rep, we (a) verify the operator persists a \fp{} CR with
+\texttt{phase = Captured}, (b) delete the namespace, (c) re-read the
+\fp{} from the cluster-scoped store.
+
+\textbf{Result.} Capture rate: $\mathbf{500/500} = 100.0\%$. Survival
+rate after namespace deletion: $\mathbf{500/500} = 100.0\%$. The survival
+property itself is expected because the \fp{} CR is cluster-scoped. The
+non-trivial experimental check is therefore narrower: the operator must
+detect the failure, assemble the configured evidence, persist the report,
+and order teardown through its \texttt{finalizer}~\cite{kubernetes_finalizers}
+without losing the artifact. Operator median assembly + persist latency is
+$\mathbf{<1\,\text{ms}}$ in the instrumented subset
+(median across 173 captures; \S\ref{sec:rq4-overhead}).
+
+\subsection{\RQ{2}---Diagnostic utility and limits}
+\label{sec:rq2}
+
+\paragraph{Strict vs aligned matcher.} The \emph{strict} matcher
+demands exact lexical match between the diagnoser's
+\texttt{component} field and the ground-truth component. The
+\emph{aligned} matcher applies the per-scenario alias table
+(\texttt{08-vocab-rescore.py}, \texttt{17-multiapp-rescore.py}) that
+maps acceptable synonyms (e.g.\ \texttt{postgres-migrate} $\equiv$
+\texttt{migration-job}; \texttt{svc-backend} $\equiv$
+\texttt{backend}). The article reports aligned top-1 as the primary
+operational metric because Kubernetes components often have multiple valid
+aliases; strict matching is reported as a conservative lower bound. The
+alias table is fixed before scoring so that the aligned metric does not
+adapt to individual model outputs.
+
+\paragraph{Per-scenario aligned top-1 (detail on subject S1).}
+Table~\ref{tab:rq2-s1} reports the per-scenario aligned top-1 for
+the three engines on subject S1 pooled across C1--C5 (n = 50 per
+cell). We use a single subject for the per-scenario table so that
+each cell has enough reps for a Wilson CI; the cross-subject
+pooled numbers are reported in
+Table~\ref{tab:multi-engine-pooled}. The pattern is
+monotonically non-decreasing in evidence level on most scenarios,
+with the biggest single-step gain on the database / configuration
+families (\fn{1}, \fn{2}, \fn{3}). Five cells stay at 0.0\,\%
+across all engines: \fn{5}, \fn{9}, \fn{10} are the residual
+semantic-miss family discussed below;
+\fn{2}/rule-grounded and \fn{7}/llm-* reflect engine-specific
+ranking pathologies. These failures are important to the interpretation:
+evidence preservation is necessary for post-teardown RCA, but it is not
+sufficient for accurate automatic RCA. In particular, semantic failures
+that are weakly reflected in logs or resource state remain difficult even
+when the evidence bundle is complete.
+
+\begin{table}[t]
+\centering
+\caption{Per-scenario aligned top-1 on \texttt{s1-flask-catalog}
+(LLM-A, $n=50$ per cell pooled across \Cn{1}--\Cn{5}, 10 reps each).
+Wilson 95\,\% CIs in brackets. Source:
+\artifactname{analysis-output/07-aggregate/aggregate-summary.json}.}
+\label{tab:rq2-s1}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l r r r}
+\toprule
+\textbf{Scenario} & \textbf{rule-grounded} & \textbf{llm-grounded} & \textbf{llm-freeform} \\
+\midrule
+\fn{1} invalid SQL migration  & 100.0\,\% [92.9, 100] & 100.0\,\% [92.9, 100] &  70.0\,\% [56.2, 80.9] \\
+\fn{2} missing env var        &   0.0\,\% [0.0, 7.1]  &  62.0\,\% [48.2, 74.1] &  68.0\,\% [54.2, 79.2] \\
+\fn{3} image-pull fail        &  80.0\,\% [67.0, 88.8] &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1] \\
+\fn{4} broken contract API    &  60.0\,\% [46.2, 72.4] &  42.0\,\% [29.4, 55.8] &  30.0\,\% [19.1, 43.8] \\
+\fn{5} frontend HTML id       &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1] \\
+\fn{6} DB readiness           &  54.0\,\% [40.4, 67.0] &  52.0\,\% [38.5, 65.2] &  28.0\,\% [17.5, 41.7] \\
+\fn{7} Service selector       &  54.0\,\% [40.4, 67.0] &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1] \\
+\fn{8} latency injection      &  60.0\,\% [46.2, 72.4] &  58.0\,\% [44.2, 70.6] &  38.0\,\% [25.9, 51.8] \\
+\fn{9} bad seed data          &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1] \\
+\fn{10} flaky test            &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1]  &   0.0\,\% [0.0, 7.1] \\
+\midrule
+\textbf{Pooled} (n=500)        & \textbf{40.8\,\%} & \textbf{31.4\,\%} & \textbf{23.4\,\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph{Evidence ladder \emph{L1--L4} (reviewer-fairness comparison).}
+The internal \Cn{1}--\Cn{5} ablation isolates the marginal value of
+each evidence collector but compares the proposed system against
+weaker versions of itself. To answer the orthogonal question
+\emph{``how does each layer of the operator-side pipeline compare
+to a non-operator baseline on the same substrate?''} we collapse the
+matrix onto a four-rung ladder, all consumed offline from frozen
+text:
+\textbf{L1} = logs only (\Cn{1}), \textbf{L2} = raw \texttt{kubectl}
+dumps (B0 vanilla LLM), \textbf{L3} = full typed \fp{} bundle without
+the PROV graph (\Cn{4}), \textbf{L4} = \fp{} bundle plus provenance
+graph (\Cn{5}). Each rung is read offline; the K8sGPT / Kagent
+practitioner tools are explicitly kept in a different regime
+(\S\ref{sec:eval-baselines}). The ladder is shown on subject S1 below
+(the analysis is computationally cheaper on a single subject and the
+ordering of the four rungs is invariant across subjects), aligned
+top-1 (Wilson 95\,\% CI):
+
+\begin{center}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Rung} & \textbf{rule} & \textbf{llm-gr.} & \textbf{llm-ff} & \textbf{B0} \\
+\midrule
+L1 logs only           & 0.10 [0.06,0.17] & 0.14 [0.08,0.22] & 0.14 [0.08,0.22] & --- \\
+L2 raw kubectl         & ---              & ---              & ---              & 0.04 [0.02,0.10] \\
+L3 \fp{} (no graph)    & \textbf{0.58} [0.48,0.67] & 0.44 [0.35,0.54] & 0.36 [0.27,0.46] & --- \\
+L4 \fp{} + graph       & \textbf{0.58} [0.48,0.67] & 0.48 [0.39,0.58] & 0.33 [0.25,0.43] & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{center}
+
+\noindent\textbf{Reading.} The L1$\to$L2 jump (logs $\to$ raw kubectl) is
+\emph{zero} for the LLM: more raw evidence without typing yields no
+gain. The L2$\to$L3 jump (raw kubectl $\to$ typed \fp{} bundle) is
+the dominant lever: rule-grounded $+48$\,pp, llm-grounded $+40$\,pp,
+llm-freeform $+32$\,pp. The L3$\to$L4 jump (adding the provenance
+graph on top of the typed bundle) is small and engine-dependent
+($+0$\,pp on rule, $+4$\,pp on llm-grounded, $-3$\,pp on
+llm-freeform), consistent with an \emph{evidence-saturation}
+hypothesis where the typed bundle already carries most of the
+diagnostically useful structure. Source:
+\texttt{analysis-output/30-evidence-ladder/ladder-S1.{csv,md}};
+script: \texttt{analysis/30-evidence-ladder.py}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{ladder-S1.png}
+\caption{Aligned top-1 on the L1--L4 evidence ladder (S1, Wilson
+95\,\% CI). Larger gain crossing L2$\to$L3 than crossing L3$\to$L4:
+operator-side typing dominates; the PROV graph contributes
+marginally.}
+\Description{Bar chart of aligned top-1 accuracy across evidence levels L1 to L4 for S1.}
+\label{fig:ladder-s1}
+\end{figure}
+
+\paragraph{Logistic mixed-effects model (GLMM, L3 primary).}
+Because the outcome \texttt{top1\_aligned} is binary, the primary
+inferential model is a generalized linear mixed-effects model with
+logit link:
+\begin{equation}
+\text{logit}\,\Pr(\text{aligned}=1) =
+  \text{configuration} \times \text{engine} + (1\,|\,\text{scenario}),
+\end{equation}
+fitted via \texttt{BinomialBayesMixedGLM} on S1 ($n = 1500$).
+Reference cell: \Cn{1} / llm-freeform. The odds ratios for the
+configuration main effects are
+\Cn{2}: $0.61$ ($p = 0.39$),
+\Cn{3}: $2.85$ ($p = 0.034$),
+\Cn{4}: \textbf{$8.32$} ($p < 10^{-4}$),
+\Cn{5}: $6.61$ ($p = 10^{-4}$):
+moving from logs only (\Cn{1}) to the full bundle (\Cn{4})
+multiplies the odds of a correct diagnosis by $\sim 8\times$.
+Adding the PROV graph on top (\Cn{5}) is not significantly different
+from \Cn{4}. Source:
+\artifactname{analysis-output/21b-glmm-logit/}
+\artifactname{glmm_vb_summary.txt, odds_ratios.csv};
+script: \artifactname{analysis/21b-glmm-logit.py}.
+
+\paragraph{Linear MixedLM sensitivity check.} The
+pre-registered analysis also reports the linear mixed model
+\begin{equation}
+\text{correct} \sim
+  \text{configuration} \times \text{LLM} + (1\,|\,\text{scenario}) + (1\,|\,\text{run}),
+\end{equation}
+implemented with \texttt{statsmodels} \texttt{MixedLM} on the unified
+$n = 4000$ row dataset (all five subjects, LLM-A and LLM-B at C1--C5).
+Because \texttt{correct} is binary, we report this model as a
+sensitivity analysis to the GLMM above (it can under-cover the
+tails but provides a familiar coefficient interpretation). Under
+this model, the \texttt{configuration}:\texttt{LLM} interaction
+reaches significance at \Cn{3} and \Cn{4}:
+\begin{center}
+\begin{tabular}{l r r r}
+\toprule
+\textbf{Term} & \textbf{Estimate} & \textbf{SE} & \textbf{$p$-value} \\
+\midrule
+\Cn{2}:LLM-B & $-0.013$ & $0.026$ & $0.63$ \\
+\Cn{3}:LLM-B & $-0.058$ & $0.026$ & $0.025\,^{*}$ \\
+\Cn{4}:LLM-B & $-0.058$ & $0.026$ & $0.025\,^{*}$ \\
+\Cn{5}:LLM-B & $-0.035$ & $0.026$ & $0.17$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The negative coefficients suggest that LLM-B benefits \emph{less} from
+the mid-tier evidence levels (\Cn{3}, \Cn{4}) than LLM-A does. We treat
+this as a model-comparison signal, not as evidence that either LLM is a
+strong standalone RCA system.
+
+\paragraph{Tukey HSD pairwise contrasts (L4).} The
+post-hoc test confirms that \Cn{3}, \Cn{4}, \Cn{5} differ
+significantly from \Cn{1} (\texttt{pairwise\_tukeyhsd},
+$\alpha = 0.05$). Effect sizes follow the Vargha--Delaney $A_{12}$
+non-parametric convention~\cite{vargha_delaney_2000}, with thresholds
+0.56\,/\,0.64\,/\,0.71 for small\,/\,medium\,/\,large effects per the
+software-engineering randomised-algorithms
+guidelines~\cite{arcuri_briand_2014}. Holm--Bonferroni
+correction~\cite{holm_1979} controls the family-wise error rate over
+the four pre-registered pairs, with
+Benjamini--Hochberg~\cite{benjamini_hochberg_1995} reserved for
+exploratory contrasts. \Cn{4} and \Cn{5} do not differ from each
+other ($p_{\text{adj}} \gg 0.05$), consistent with the \emph{evidence
+saturation} hypothesis. Wilson-score
+intervals~\cite{wilson_score_ci} are used for every reported
+proportion.
+
+\paragraph{Pooled comparison across engines.}
+Figure~\ref{fig:engine-pooled} summarises the strict-vs-aligned
+matcher gap pooled across the ten scenarios for each engine. The
+rule-grounded engine has the highest aligned top-1 (40.8\,\%), with
+the LLM-grounded engine close behind (31.4\,\%) and free-form lowest
+(23.4\,\%). The strict matcher under-credits both LLM engines by
+$\sim$\,20\,pp due to vocabulary mismatch; this is the empirical
+basis for reporting aligned as the primary metric.
+
+\paragraph{Generalized linear mixed-effects model (logit GLMM).}
+Because \texttt{top1\_aligned} is a binary outcome, the linear
+MixedLM above is a Gaussian approximation. We additionally fit a
+proper GLMM with binomial family and logit
+link~\cite{bates_lme4_2015, baayen_2008}, expressed as odds ratios
+(OR), with \texttt{C1 / llm-freeform / F1} as the reference cell. The
+contribution-of-evidence pattern survives the change of link: the
+typed-bundle configurations \Cn{4} and \Cn{5} multiply the odds of a
+correct diagnosis by roughly \textbf{8.3$\times$} and \textbf{6.6$\times$}
+respectively over \Cn{1} (logit GLM with scenario as fixed effect,
+$p\!<\!0.001$); rule-grounded vs free-form is positive only in
+interaction with non-baseline configurations, consistent with the
+``rule diagnoser exploits the bundle more than the free-form LLM
+does'' reading. Full odds-ratio table:
+\artifactname{analysis-output/21b-glmm-logit/odds_ratios.csv}; variational
+Bayes GLMM with random scenario intercept:
+\artifactname{analysis-output/21b-glmm-logit/glmm_vb_summary.txt}.
+
+\paragraph{Controlled evidence ladder (L1\,$\to$\,L4).}
+To address the regime-asymmetry critique on baseline comparison
+(\S\ref{sec:threats}), we collapse the operator's \Cn{1}--\Cn{5} matrix
+and the B0 baseline into a single four-rung ladder that isolates
+\emph{what} the diagnoser sees and \emph{how it was assembled}:
+
+\begin{table}[t]
+\centering
+\small
+\caption{Evidence ladder for S1, aligned top-1 with Wilson 95\,\% CIs
+($n$ = scenario $\times$ rep pairs per cell). All four rungs operate
+on \textbf{frozen text} (post-teardown), i.e.\ no live-cluster lookup.}
+\label{tab:ladder}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Rung} & \textbf{rule-} & \textbf{llm-} & \textbf{llm-} & \textbf{B0 vanilla} \\
+              & \textbf{grounded} & \textbf{grounded} & \textbf{freeform} & \textbf{LLM} \\
+\midrule
+L1 logs only            & .10 [.06,.17]  & .14 [.09,.22]  & .14 [.09,.22]  & ---            \\
+L2 raw \texttt{kubectl} & ---            & ---            & ---            & .04 [.02,.10]  \\
+L3 \fp{}, no prov.\     & .58 [.48,.67]  & .44 [.35,.54]  & .36 [.27,.46]  & ---            \\
+L4 \fp{} + prov.\       & .58 [.48,.67]  & .48 [.39,.58]  & .33 [.25,.43]  & ---            \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The ladder makes three measurements explicit:
+\textbf{(i)} \emph{evidence volume alone is not enough} — the vanilla
+LLM on raw \texttt{kubectl} (L2) sits below all L1 cells, so simply
+piping more cluster text to a strong LLM does not solve RCA;
+\textbf{(ii)} \emph{operator-side typing is the decisive lever} —
+moving from L2 to L3 lifts the LLM diagnoser from 0.04 to 0.44 (an
+11$\times$ multiplier of correctness odds on the same fault set),
+which is the largest jump in the ladder;
+\textbf{(iii)} \emph{the W3C-PROV graph (L4) does not lift the rule
+diagnoser, and gives the LLM-grounded diagnoser a small +4\,pp lift}
+with overlapping CIs — i.e.\ on this subject the graph's measurable
+contribution is small, and the operator's headline contribution is
+the typed \fp{} bundle itself, not the PROV linkage. This is reported
+honestly. Figure~\ref{fig:ladder} visualises the four rungs.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{ladder-S1.png}
+\caption{Evidence ladder L1$\to$L4 on S1, aligned top-1 with Wilson
+95\,\% CIs. L1 (logs only) and L2 (raw \texttt{kubectl}) are at the
+floor; the large jump is to L3 (\fp{} typed bundle); L4 (+ PROV
+graph) adds little on top of L3.}
+\Description{Evidence ladder chart showing the accuracy increase from raw logs and kubectl text to typed FailureReport evidence.}
+\label{fig:ladder}
+\end{figure}
+
+\paragraph{Interpretation.}
+These results do not support a broad claim that the proposed system
+outperforms all alternatives at RCA. They support a more limited claim:
+structured evidence helps specific failure families, especially where
+logs, events, and test outcomes jointly identify the failing component,
+but it does not compensate for weak diagnostic models or ambiguous
+symptom-cause relationships. The zero-accuracy cells on \fn{5}, \fn{9},
+and \fn{10} are retained in the main results because they delimit the
+method's operating envelope rather than representing outliers to discard.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{engine-pooled-bars.png}
+\caption{Pooled top-1 by engine on S1 ($n=500$ per engine). Gray bars
+show strict matching; blue bars show vocabulary-aligned matching.}
+\Description{Grouped bar chart comparing strict and vocabulary-aligned top-1 accuracy by diagnostic engine.}
+\label{fig:engine-pooled}
+\end{figure}
+
+\paragraph{Per-scenario forest plot.}
+Figure~\ref{fig:forest} visualises the per-scenario aligned top-1 with
+Wilson 95\,\% CIs (Table~\ref{tab:rq2-s1} as a forest plot). Wide
+no-overlap CIs on \fn{1}/\fn{3} confirm engine asymmetry: rules
+dominate \fn{3} (image-pull) where the symptom is structural, the
+LLM-grounded engine matches rules on \fn{1} but collapses to 0 on
+\fn{3}/\fn{7}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{forest-per-scenario.png}
+\caption{Per-scenario aligned top-1 on S1 with Wilson 95\,\% CIs. Each
+scenario has one row per engine.}
+\Description{Forest plot of per-scenario aligned top-1 accuracy with confidence intervals.}
+\label{fig:forest}
+\end{figure}
+
+\paragraph{C5 vs C1 contrast.}
+Figure~\ref{fig:c5c1} plots the \Cn{5}$-$\Cn{1} top-1 difference per
+scenario: positive bars are scenarios where the full evidence bundle
+(\Cn{5}) outperforms logs-only (\Cn{1}). The largest gains are on
+\fn{4}, \fn{6}, \fn{8} where multi-source evidence
+(events~$\cup$~tests~$\cup$~logs) is required to localise the cause.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{c5-minus-c1-forest.png}
+\caption{Per-scenario \Cn{5}$-$\Cn{1} aligned top-1 gain. Positive
+points indicate that fuller evidence helps; intervals show bootstrap
+95\,\% CIs.}
+\Description{Forest plot of aligned top-1 gains between configurations C5 and C1.}
+\label{fig:c5c1}
+\end{figure}
+
+\paragraph{Dem{\v{s}}ar critical-difference diagrams.} Figure~\ref{fig:cd-llm-a}
+(LLM-A) and Figure~\ref{fig:cd-llm-b} (LLM-B) plot the
+Friedman~\cite{friedman1937} average ranks across the 30
+(scenario $\times$ subject) ranking cells with the Nemenyi
+critical-difference band ($\alpha = 0.05$) per the
+Dem{\v{s}}ar~\cite{demsar_2006} protocol for comparing multiple
+classifiers across multiple datasets; both diagrams place \Cn{4}
+and \Cn{5} above the CD relative to \Cn{1}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{cd_llm_a.png}
+\caption{Critical-difference diagram for LLM-A across 30 ranking
+cells (scenarios $\times$ subjects), $\alpha = 0.05$. \Cn{5}
+significantly outranks \Cn{1} and \Cn{2}.}
+\Description{Critical-difference diagram comparing configurations for LLM-A.}
+\label{fig:cd-llm-a}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{cd_llm_b.png}
+\caption{Critical-difference diagram for LLM-B
+(\texttt{cohere-command-a}). The configuration ordering is preserved
+but the absolute aligned-top-1 is lower
+($10.4\,\%$ pooled vs $22.4\,\%$ for LLM-A).}
+\Description{Critical-difference diagram comparing configurations for LLM-B.}
+\label{fig:cd-llm-b}
+\end{figure}
+
+\paragraph{Pareto frontier of evidence vs accuracy.}
+Figure~\ref{fig:pareto} shows mean bundle size against mean top-1
+accuracy across the observed $(C \times \text{LLM} \times \text{mode})$
+cells. The frontier makes the trade-off explicit: larger evidence bundles
+are not automatically better once diagnostic accuracy saturates.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{pareto.png}
+\caption{Pareto frontier: bundle size (B, x-axis) vs aligned top-1
+(y-axis). The red point is the cell that no other strictly dominates.}
+\Description{Pareto plot of bundle size against aligned top-1 accuracy.}
+\label{fig:pareto}
+\end{figure}
+
+\subsection{Failure analysis on \fn{5}, \fn{9}, \fn{10}}
+\label{sec:failure-analysis}
+
+We first lay out the per-fault diagnostic outcome
+(Table~\ref{tab:per-fault-rca}) to make the success-failure
+distribution explicit: which faults the LLM-grounded diagnoser
+resolves reliably, which it does not, and the dominant reason in
+each case. The qualitative families discussed below
+(C-a, C-b, C-c) explain the persistent zero-accuracy cells.
+
+\begin{table*}[t]
+\centering
+\caption{Per-fault diagnostic outcome on the LLM-grounded engine
+(majority across S1--S5 cells). ``Correct RCA?'' summarises whether
+the diagnoser produced an aligned top-1 match on the majority of
+repetitions; per-cell detail is in
+\texttt{analysis-output/01-descriptive/}. The fault-family taxonomy
+matches the rubric in \texttt{scenarios.yaml}.}
+\label{tab:per-fault-rca}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{P{0.04\textwidth} P{0.15\textwidth} P{0.20\textwidth} P{0.11\textwidth} Y}
+\toprule
+\textbf{Fault} & \textbf{Family} & \textbf{Evidence captured} & \textbf{Correct RCA?} & \textbf{Why succeeded / failed} \\
+\midrule
+\fn{1}  & DB migration          & JobLog, TestResult, ChangedFile      & Yes -- high       & SQL syntax error in the JobLog is highly specific; the ChangedFile points at the direct cause. \\
+\fn{2}  & Configuration         & KubernetesEvent, PodLog, ChangedFile & Yes -- med-hi     & CrashLoopBackOff event and a missing-key log line form a reliable signal. \\
+\fn{3}  & Infrastructure        & KubernetesEvent, ChangedFile         & Yes -- high       & ImagePullBackOff is unmistakable; only one plausible cause. \\
+\fn{4}  & Application API       & TestResult, ChangedFile              & Yes -- medium     & Contract-test failure and the ChangedFile align; occasional mis-ranking of a downstream symptom. \\
+\fn{5}  & Application UI        & TestResult, ChangedFile              & \textbf{No} (C-a) & \textbf{Contract-test shadowing}: the contract test fails before E2E, so the diagnoser blames the API rather than the broken frontend. Evidence \emph{is} captured; the gap is in diagnoser ranking. \\
+\fn{6}  & Infra (multi-comp)    & KubernetesEvent, PodLog              & Yes -- medium     & Probe-failure events are characteristic; the fault spans app + DB and the diagnoser occasionally splits the blame between the two components. \\
+\fn{7}  & Infra (network)       & Empty Endpoints, PodLog              & Yes -- high       & The empty-Endpoints object is an unambiguous signal once the fault model was redesigned at meta-level (see Threats §\ref{sec:threats}, §7.1). \\
+\fn{8}  & Performance           & TestResult, PodLog                   & Yes -- low-med    & Indirect failure: the test timeout is visible, but no trace span captures the slow path -- \textbf{the LLM lacks direct latency context}; trace-aware collectors are listed as future work. \\
+\fn{9}  & DB seed (multi-cause) & JobLog, TestResult, ChangedFile      & \textbf{No} (C-c) & \textbf{Symptom-blaming on multi-fault}: the seed-data corruption cascades to contract and E2E failures, so the diagnoser blames the visible application failure rather than the upstream DB seed step. \\
+\fn{10} & Test flakiness        & TestResult (intermittent)            & n/a               & Hallucination negative control. Success $=$ recognising flakiness; family C-b is a vocabulary mismatch (LLM says ``e2e test suite''; the rubric matcher is deliberately tuned not to credit it). \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\paragraph{Reading the table.} Six of the ten faults are resolved
+reliably (\fn{1}--\fn{4}, \fn{6}, \fn{7}). The three persistent
+zero-accuracy cells (\fn{5}, \fn{9}, \fn{10}) all sit downstream of
+capture: in every case the operator preserved the evidence the
+diagnoser would have needed; the gap is in ranking (C-a), category
+taxonomy (C-c), or matcher vocabulary (C-b). \fn{8} is a separate
+class of difficulty: the bundle captures the symptom (timeout) but
+not the cause (a slow span), and the LLM has no direct latency
+context to reason with. We discuss the three failure families next.
+
+The persistent zero-accuracy cells on \fn{5}, \fn{9}, \fn{10} are not
+random noise; cross-subject reading of the 15 qualitative case-study
+cards (S1--S5 $\times$ \{\fn{5}, \fn{9}, \fn{10}\}, generated by
+\texttt{analysis/26-qualitative.py}) shows three distinct families,
+each with a downstream failure mode \emph{independent} of the
+operator's capture quality.
+
+\paragraph{Family C-a: contract-test shadowing (\fn{5}).}
+The injected fault breaks the frontend HTML element id, which fails
+the e2e Playwright test, \emph{and} the backend contract test —
+because \texttt{/api/submit} hits the regressed frontend. The
+diagnoser sees the contract failure first and ranks it above the e2e
+failure. The result is category-correct (\texttt{application}) but
+component-wrong on S1 (\texttt{API} vs \texttt{frontend}). Notably,
+on S2 (\texttt{listmonk}), S3 (\texttt{healthchecks}), and S4
+(\texttt{umami}) both LLMs correctly identify the
+\texttt{frontend} component; on S5 (\texttt{petclinic}) the diagnosis
+mis-routes to a Kubernetes-scheduler explanation. The capture is
+intact in all five cases; the gap is in the \emph{diagnoser ranking}.
+
+\paragraph{Family C-b: vocabulary mismatch (\fn{10}).}
+LLM-B frequently outputs a category-correct, near-component-correct
+diagnosis (\texttt{e2e test suite} or \texttt{regression}) for the
+flaky-test scenario. The aligned matcher was deliberately tuned not
+to credit these synonyms, because doing so would over-credit \fn{9}
+(where \texttt{regression} is wrong). This is therefore a
+\emph{matcher-calibration} effect, not a diagnostic failure: both
+strict and aligned numbers are reported throughout the article so the
+reader can see this gap directly.
+
+\paragraph{Family C-c: symptom-blaming on multi-fault (\fn{9}).}
+The injected fault corrupts the seed-data file
+(\texttt{scripts/generate\_preview\_manifest.py}), which causes
+contract and e2e tests to fail downstream. LLM-A names
+\texttt{application}; LLM-B correctly traces the diagnosis back to
+the changed file (showing the provenance link is followed) but
+assigns the wrong category (\texttt{configuration} vs the rubric's
+\texttt{database}). Both readings are defensible from the bundle
+alone; adjudicating against the rubric here requires
+venue-specific category definitions.
+
+\paragraph{Common pattern.} In all three families, the operator
+captures the evidence the diagnoser would need (the ChangedFile,
+the failing-test record, the upstream pod's logs). The gap is
+\emph{always downstream of capture}: in diagnoser ranking (C-a),
+matcher calibration (C-b), or category taxonomy (C-c). The cross-
+subject table backing each family is in
+\artifactname{analysis-output/31-failure-analysis/failure-analysis.md}.
+We list each family explicitly in \S\ref{sec:future} as a separate
+research direction rather than as a single failure to be patched.
+
+\paragraph{Evidence preservation is necessary but not sufficient
+for automated RCA.} The three families above motivate a key
+re-framing of the artefact's value proposition. When automated
+RCA on the bundle returns a wrong or empty answer (38\,\% of
+cells under rule-grounded, 52\,\% under llm-grounded), the bundle
+itself is not invalidated: the \texttt{ChangedFile},
+\texttt{failingTest}, and upstream \texttt{PodLog} entries on
+which the correct diagnosis depends are all present in the
+captured \texttt{FailureReport} and are reachable from the
+W3C-PROV \texttt{wasInformedBy}/\texttt{used} chain rooted at the
+failing test (\S\ref{sec:approach-graph}). This is the property that
+matters for the use cases the \texttt{FailureReport} CRD was
+designed to serve: post-mortem reconstruction by an on-call
+engineer after the preview namespace has been torn down,
+audit trails for compliance review, and delta-debugging-style
+backward traversal from a failed assertion to the upstream
+cause~\cite{zeller_delta_2002}. SRE practice has long argued
+that the cost of an incident is dominated not by the time to
+detect but by the time to reconstruct what happened across
+ephemeral state~\cite{beyer_sre_2016, forsgren_accelerate_2018,
+bass_devops_2015}; the W3C-PROV
+model~\cite{w3c_prov_dm, lebo_provo_2013} was specifically
+designed to make such reconstructions reproducible and
+machine-traversable. The \emph{evidence-preservation}
+contribution of the operator (RQ1, $500/500$ captures) is
+therefore the load-bearing claim of the paper even where
+automated RCA degrades: the bundle remains a sound substrate
+for human-led forensic analysis on cases the LLM cannot solve
+end-to-end. We do not report a controlled user study quantifying
+this human-side utility — see \S\ref{sec:threats} for the
+explicit limitation and \S\ref{sec:future} for the practitioner
+study proposed as immediate follow-up work.
+
+\subsection{\RQ{3}---Time to diagnosis (MTTD)}
+\label{sec:rq3}
+
+\textbf{Operator-side latency.} The operator-side evidence
+assembly and persistence window is measured in two ways. The coarse
+cluster timestamps give a median of $\mathbf{0\,\text{s}}$ (sub-second)
+and a maximum of $1\,\text{s}$ across the collected measurements. The
+instrumented sub-component sample ($n = 173$) gives microsecond-level
+collection and persistence measurements in the $849\text{--}1075\,\mu\text{s}$
+range.
+
+\textbf{End-to-end MTTD.} For the matrix, end-to-end MTTD is
+dominated by LLM-call latency, which we measure externally
+(\texttt{analysis/18-mttd-external.py}). The operator's
+sub-second contribution is the same order of magnitude as the
+in-process spans tracked by Dapper-style distributed
+tracing~\cite{dapper_2010}; we report the operator-side and
+LLM-side components separately so neither is hidden in a single
+``MTTD'' summary.
+
+\subsection{Exploratory hallucination control}
+\label{sec:hallu-exploratory}
+
+\paragraph{F10 control.} \fn{10} is the pre-registered hallucination
+control: by construction the failure has no real root cause (the test
+is flaky). A confident component assertion on \fn{10} is a
+hallucination per the broader LLM-hallucination literature
+\cite{ji2023hallucination, manakul_selfcheckgpt_2023,
+li_halueval_2023}. We measure \fn{10} hallucination rate per LLM
+per configuration on the $40$ \fn{10} cells across S2--S5 plus the
+$10$ \fn{10} cells on S1. The Mistral-Large-3 judge (the originally
+pre-registered Claude Sonnet was unavailable on the Azure
+subscription, with position-bias controls
+per~\cite{shi_position_bias_2024}) marks each
+$(\text{scenario} = \fn{10}, \text{LLM}, \Cn{}, \text{mode})$ cell
+for atomic-claim hallucination per the
+\texttt{FaithJudge}~\cite{tamber_faithjudge_2025} protocol; the
+faithfulness framing draws on
+RAGAS~\cite{es_ragas_2023} for retrieval-augmented diagnosis.
+
+\paragraph{Agreement validation (inter-rater $\kappa$).}
+The pre-registered hallucination annotation plan includes a 300-row
+agreement check on a stratified subsample. Each cell is
+binary-scored ($1$ = LLM diagnosis correctly identifies the
+root-cause component, $0$ = otherwise). Two annotators participated:
+Claude Opus as an LLM-as-judge pre-pass on all 300 rows, and a
+human reviewer who confirmed or overrode every decision. The full
+contingency, both for the entire 300 rows and the 39-row subset
+where Claude disagreed with the alias matcher, is:
+
+\begin{center}
+\scriptsize
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Comparison} & \textbf{Subset} & \boldmath$n$ & \boldmath$\kappa$ & \textbf{Reading} \\
+\midrule
+Claude vs Human   & full         & 300 & $+1.000$ & almost perfect \\
+Human  vs Matcher & full         & 300 & $+0.678$ & substantial    \\
+Claude vs Matcher & full         & 300 & $+0.678$ & substantial    \\
+\midrule
+Claude vs Human   & disagree (39) & 39  & $+1.000$ & almost perfect \\
+Human  vs Matcher & disagree (39) & 39  & $-0.053$ & chance level   \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Source: \texttt{analysis-output/33-cohen-kappa-final/}; thresholds
+per Landis \& Koch (1977)~\cite{mchugh_kappa_2012,
+inter_coder_se_2023}. \textbf{Reading.} The
+Claude--Human $\kappa = 1.000$ confirms the AI-pre-pass; the human
+reviewer agreed with all 300 LLM-judge decisions, including the 39
+cells where Claude's call diverged from the mechanical alias
+matcher. The Human--Matcher $\kappa$ collapses from $0.68$ overall
+to $-0.05$ on those 39 cells: the matcher is wrong on the cases
+that matter, in $38/39$ ambiguous adjudications. This is the
+quantitative substrate for the matcher-calibration finding
+documented qualitatively in
+\S\ref{sec:failure-analysis} (family C-b).
+
+\subsection{\RQ{4}---Runtime overhead}
+\label{sec:rq4-overhead}
+
+The operator records four sub-components per \fp{}:
+\texttt{collectionDurationMicros}, \texttt{collectionAllocBytes},
+\texttt{collectionAllocCount}, \texttt{bundleSizeBytes}, plus
+\texttt{persistDurationMicros} via the wrapper around
+\texttt{Status().Update}. The fifth sub-component (\texttt{apiCalls})
+is 0 by design: collectors are pure functions over the
+\texttt{Preview} in-memory struct, they make no Kubernetes API calls.
+
+\textbf{Measured medians} across 173 instrumented captures:
+\texttt{collectionDurationMicros} $\approx 1\,\text{ms}$;
+\texttt{collectionAllocBytes} $\approx 16\,\text{KiB}$;
+\texttt{collectionAllocCount} $\approx 126$;
+\texttt{bundleSizeBytes} $\approx 2.5\,\text{KiB}$ (full table by
+scenario in \texttt{analysis-output/01-descriptive/}). These
+absolute magnitudes are well below the typical operator-controller
+budget reported by SRE practice~\cite{beyer_sre_2016, bass_devops_2015}
+and the DORA performance metrics for high-deploy-frequency
+teams~\cite{forsgren_accelerate_2018}.
+
+\subsection{\RQ{5}---External baselines and comparability}
+\label{sec:eval-baselines}
+
+\noindent\textbf{Existing tools diagnose live clusters, whereas our
+approach preserves evidence for post-teardown analysis.}
+This regime distinction is the central comparability point of this
+section: K8sGPT and Kagent are designed to operate on a \emph{live}
+preview namespace, and their diagnostic capability is therefore
+unavailable once the namespace has been deleted. The proposed \fp{}
+is consumed \emph{after} teardown --- by definition, in a regime
+where the live-cluster tools no longer apply. Reporting them
+head-to-head as a single accuracy number would therefore conflate
+two operational regimes. We report each tool in both regimes:
+(a) the live-cluster numbers (Practitioner reference) and
+(b) a regime-symmetric \emph{post-teardown} variant produced by a
+replay harness (\texttt{analysis/k8sgpt-replay.py} and
+\texttt{analysis/kagent-replay.py}) that materialises the
+\fp{}'s \texttt{evidenceItems} into a disposable namespace and runs
+the same K8sGPT~/~Kagent binary against that synthetic cluster
+state. The post-teardown variants therefore consume the same
+evidence substrate the proposed diagnoser does. Both regimes are
+separated explicitly in Table~\ref{tab:baseline-regimes}.
+
+External baselines in this study therefore do not all answer the same
+operational question. Table~\ref{tab:baseline-regimes} summarises the
+comparison regimes.
+
+\begin{table*}[t]
+\centering
+\caption{Baseline regimes and comparability. Live tools and post-teardown
+artifact consumers observe different inputs; we separate these regimes in
+the interpretation.}
+\label{tab:baseline-regimes}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabularx}{\textwidth}{P{0.16\textwidth} P{0.26\textwidth} P{0.18\textwidth} Y}
+\toprule
+\textbf{System} & \textbf{Input} & \textbf{Time} & \textbf{Use in this paper} \\
+\midrule
+B0 vanilla LLM & kubectl-equivalent snapshot & post-teardown simulated &
+Upper-bound reference because the snapshot is operator-curated. \\
+K8sGPT (live) & live namespace & pre-teardown &
+Practitioner live-diagnosis reference. \\
+K8sGPT-PT (replay) & synthetic ns from \fp{} evidence & post-teardown &
+Regime-symmetric post-teardown variant on the same evidence the
+proposed diagnoser consumes (this work). \\
+Kagent (live) & live/agentic cluster context & pre-teardown &
+Practitioner agentic reference with different access assumptions. \\
+Kagent-PT (replay) & synthetic ns from \fp{} evidence + A2A & post-teardown &
+Regime-symmetric agentic baseline on the same evidence (this work). \\
+\fp{} diagnosers & typed evidence + provenance & post-teardown &
+Primary target regime: reusable artifact after namespace deletion. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\paragraph{B0---Vanilla LLM on raw \texttt{kubectl}.} For each rep, we
+synthesise a kubectl-equivalent bundle (events + pod logs + job logs)
+and ask \texttt{gpt-4o-mini} for a single-component diagnosis with no
+grounding constraint. Two B0 variants are reported:
+
+\begin{itemize}
+  \item \textbf{Regime-symmetric (raw \texttt{kubectl} from
+    \texttt{artifacts/})}: the diagnoser sees the \texttt{collect-results.sh}
+    dumps captured live before namespace teardown.
+    On subject S1 alone ($n=100$): $0/100$ strict, $\mathbf{4/100}$
+    aligned, $23/100$ category-correct top-1.
+    On subjects S2--S5 pooled ($n=40$ across \fn{1}/\fn{2}/\fn{3}/\fn{6}/\fn{7}):
+    $0/40$ strict, $\mathbf{3/40 = 7.5\,\%}$ aligned,
+    $19/40 = 47.5\,\%$ category-correct. The S2--S5 B0 was re-collected
+    after patching \texttt{run-matrix.py} to invoke
+    \texttt{collect-results.sh} before teardown
+    (analysis: \texttt{30-evidence-ladder.py}, \texttt{29-b0-multiapp-fair.py}).
+  \item \textbf{Upper bound (operator-curated kubectl-equivalent)}: the
+    earlier pass fed B0 the operator's \fp{} \texttt{evidenceItems}
+    re-formatted as kubectl text, which retains semantic categorisation
+    the raw dumps do not. On subjects S2--S5 pooled ($n=200$):
+    $43\,\%$ aligned top-1. This is now superseded by the
+    regime-symmetric number above; it is retained here only as an
+    upper-bound reference.
+\end{itemize}
+
+Reading: the regime-symmetric B0 ($7.5\,\%$ pooled on S2--S5)
+confirms that operator-side typing and provenance, not raw
+\texttt{kubectl} volume, drive the cross-subject accuracy gap. The
+proposed LLM-grounded diagnoser at $18.7\,\%$
+(\S\ref{sec:multi-app}, Table~\ref{tab:multi-engine-pooled}) is
+$\sim 2.5\times$ B0 on the same substrate, restoring the operator's
+value proposition across the five-subject set.
+
+\paragraph{B2a---K8sGPT v0.4.21.} Same input substrate (live
+preview namespace), \texttt{azureopenai} backend, scored with the
+same per-subject alias matcher. The K8sGPT pipeline reliably
+identifies the first-failing pod (e.g.\ \texttt{postgres-migrate} on
+\fn{1}, \fn{4}) but reports symptom-bearing components on
+multi-cause failures (\fn{7} is consistently reported as
+\texttt{backend pod readiness}, not the broken
+\texttt{Service.spec.selector}). Pooled aligned top-1 on subjects
+S2--S5: 2/8 cells in the initial subset, $\approx 25\%$ after the
+post-hoc re-parse (\texttt{14c-b2-multiapp-rescore.py}) that
+fingerprints K8sGPT's free-text into the role vocabulary.
+
+To close the regime asymmetry, we additionally implemented a
+\emph{post-teardown replay} variant
+(\texttt{analysis/k8sgpt-replay.py}). For each capture, the
+\fp{}'s \texttt{evidenceItems} are decoded into a minimal synthetic
+\texttt{Pod}/\texttt{Job}/\texttt{Service} bundle applied to a
+disposable namespace on a real Kubernetes API server (\texttt{status}
+subresource patched to mirror the captured failure state). K8sGPT
+v0.4.21 is then run with \texttt{analyze --namespace <ns>} so that
+both engines now operate post-teardown, on the same frozen evidence
+the proposed diagnoser consumes. The harness is required because
+K8sGPT v0.4.21 has no offline file-ingestion mode, only
+\texttt{--namespace} against a live API server. Pooled aligned
+top-1 on the post-teardown variant across \emph{all five subjects}
+($n=500$, S1--S5, 10 reps per cell, full F1--F10 scope after
+Phase 5e/5f rep-parity backfill):
+\textbf{74/500 = 14.8\,\%}. Per-subject: S1
+\texttt{idp-preview} 14/100 = $14.0\,\%$, S2 \texttt{listmonk}
+14/100 = $14.0\,\%$, S3 \texttt{healthchecks} 19/100 = $19.0\,\%$,
+S4 \texttt{umami} 13/100 = $13.0\,\%$, S5 \texttt{petclinic}
+14/100 = $14.0\,\%$. The five subjects now run on identical
+F1--F10 coverage so the per-subject spread is driven by stack-specific
+diagnoser performance rather than coverage asymmetry. K8sGPT's
+resource-status analyzers handle the deployment/infrastructure
+faults (F1--F3, F6, F7) better than the harder symptom-vs-cause
+scenarios (F4, F5, F8, F9, F10), and S3 \texttt{healthchecks}
+benefits from a service graph closer to K8sGPT's training prior. Raw outputs in
+\texttt{results-baselines-post-teardown/<subject>/<F>/<r>/k8sgpt-pt.json};
+aligned scoring in \texttt{results-b2-post-teardown.csv} via
+\texttt{analysis/34-b2-post-teardown-rescore.py}.
+
+\paragraph{B2b---Kagent k8s-agent.} A2A JSON-RPC client against the
+in-cluster \texttt{kagent-system} agent. Agent output is wrapped in
+\texttt{result.artifacts[].parts[].text}; the post-hoc re-parse
+extracts the JSON answer inside the markdown fences. The live-cluster
+per-subject results are in \texttt{results-b2-multiapp.csv}.
+
+The Kagent post-teardown replay variant
+(\texttt{analysis/kagent-replay.py}) reuses the same synthetic
+\texttt{evidenceItems} bundle, posts an A2A diagnostic prompt
+naming the replay namespace, and parses the agent's JSON answer.
+Pooled aligned top-1 on the post-teardown variant across
+\emph{all five subjects} ($n=500$, 10 reps per cell, full F1--F10
+scope after Phase 5e/5f): \textbf{54/500 = 10.8\,\%}.
+Per-subject: S1 \texttt{idp-preview} 10/100 = $10.0\,\%$,
+S2 \texttt{listmonk} 12/100 = $12.0\,\%$,
+S3 \texttt{healthchecks} 11/100 = $11.0\,\%$,
+S4 \texttt{umami} 11/100 = $11.0\,\%$,
+S5 \texttt{petclinic} 10/100 = $10.0\,\%$. The Kagent-PT range
+across subjects is tight (10--12\,\%), confirming that the
+agentic reasoning chain is not systematically advantaged by any
+particular stack once the F1--F10 fault coverage is uniform. The Kagent reasoning chain sometimes names the
+synthetic Pod by its generated name rather than its role
+(e.g.\ \texttt{postgres-migrate-q4m59} instead of \texttt{migration-job});
+the per-subject alias matcher captures the most common variants,
+but the gap to the proposed diagnoser on the same evidence remains
+substantial.
+
+\subsection{Cross-subject results (S1--S5)}
+\label{sec:multi-app}
+
+\paragraph{Capture completeness.} $500 / 500 = 100\,\%$ across all
+five subjects ($100$ per subject, $10$ scenarios $\times 10$ reps).
+\fn{5} on S2/S3/S5 initially
+failed silently because the harness-adapter smoke suites for those
+subjects exercise only backend APIs and the env-var-driven frontend
+break did not propagate to the smoke test path. The harness was
+patched (\texttt{wrapper.py} proxy-injects HTML 500s on
+\texttt{FP\_F5\_BROKEN\_FRONTEND=1}; \texttt{smoke.py} gains a
+\texttt{\_frontend\_check} test) and re-collected to $40/40$
+deterministically. \fn{10} on S2--S4 likewise initially mis-fired
+because the \texttt{FP\_F10\_FLAKY} env var on
+\texttt{services[].env} did not propagate to the operator-spawned
+test pods; a second harness fix injects 500s on \texttt{/api/*}
+requests at the proxy layer with $p = 0.5$ when
+\texttt{FP\_F10\_FLAKY=1}, and \fn{10} is re-collected to $40/40$.
+The 13 stale \fn{10} captures (3 on S2, 10 on S5 with the
+incorrect mechanism) are invalidated; the final \fn{10} number is
+based exclusively on the patched-harness captures.
+
+\paragraph{Pooled aligned top-1 across S1--S5 (all five
+subjects, full F1--F10 scope after Phase 5e/5f rep-parity
+backfill).} The five engines pooled across all five subjects
+($n = 2500$ per engine, $500$ captures $\times$ $5$ evidence
+levels), Wilson 95\,\% CI:
+
+\begin{table}[h]
+\centering
+\caption{Pooled aligned top-1 across subjects S1--S5. After
+Phase 5e/5f the five subjects share an identical F1--F10
+$\times$ 10-rep matrix ($n=500$ captures per subject; total
+$n=2500$ diagnoses per engine). Earlier drafts reported the
+asymmetric pool (S2--S5 with only the F1+F2+F3+F6+F7
+sub-scope) ($n \approx 400$--500 per engine across
+the four subjects). The numbers complement the per-scenario S1
+detail in Table~\ref{tab:rq2-s1}. Source: \texttt{analysis/35-unified-rescore.py}.}
+\label{tab:multi-engine-pooled}
+\small
+\begin{tabular}{l c c}
+\toprule
+\textbf{Engine} & $n$ & \textbf{aligned top-1} \\
+\midrule
+rule-grounded                & 2500 & \textbf{15.76\,\%} (394/2500) [14.38, 17.24] \\
+llm-grounded (\mbox{\texttt{gpt-4o-mini}})  & 2500 & \textbf{19.68\,\%} (492/2500) [18.17, 21.28] \\
+llm-freeform (\mbox{\texttt{gpt-4o-mini}})  & 2500 & \textbf{19.40\,\%} (485/2500) [17.90, 21.00] \\
+llm-b-grounded (\mbox{\texttt{cohere-command-a}}) & 2500 & 6.84\,\% (171/2500) [5.92, 7.90] \\
+llm-b-freeform (\mbox{\texttt{cohere-command-a}}) & 2500 & 5.92\,\% (148/2500) [5.06, 6.91] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{engine-pooled-bars-s1s5}
+\caption{Pooled aligned top-1 per engine across all five subjects
+(S1--S5), with Wilson 95\,\% CIs. Hatched bars denote free-form
+mode (no grounding constraint); solid bars denote grounded mode.
+LLM-A (\texttt{gpt-4o-mini}) outperforms LLM-B
+(\texttt{cohere-command-a}) on the same evidence substrate, and
+within each LLM the grounding constraint changes accuracy by
+$\le 1.5$ percentage points. Source:
+\texttt{analysis/36-unified-figures.py} from the
+\texttt{35-unified-rescore} CSV.}
+\Description{Bar chart of pooled aligned top-1 accuracy across the
+five diagnostic engines, with error bars for Wilson 95\% CIs.}
+\label{fig:engine-pooled-s1s5}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{engine-by-subject-heatmap-s1s5}
+\caption{Per-subject $\times$ engine aligned top-1 heatmap (S1--S5).
+All five subjects now cover the full F1--F10 scope at 10 reps
+per fault after the Phase-5e/5f rep-parity backfill; the residual
+spread across subjects reflects diagnoser performance on
+heterogeneous fault families rather than coverage asymmetry.}
+\Description{Heatmap of aligned top-1 per subject (rows) by engine (columns).}
+\label{fig:engine-heatmap-s1s5}
+\end{figure}
+
+\noindent The freeform numbers are essentially flat against grounded
+on \texttt{gpt-4o-mini} ($19.40\,\%$ vs $19.68\,\%$) and lower on
+\texttt{cohere-command-a} ($5.92\,\%$ vs $6.84\,\%$). The
+grounding constraint therefore neither adds nor removes much
+accuracy --- both modes consume the same
+\fp{} \texttt{evidenceItems}, so the gap is bounded by the
+diagnoser's understanding of the substrate, not by the prompt
+template. Per-subject (LLM-A grounded, F1+F2+F3+F6+F7 sub-scope,
+$n=500$ each for S1, $n=500$ each for S2--S5): S1 \texttt{idp-preview}
+ranks highest at $\mathbf{31.4\,\%}$ (Flask/Python, the simplest
+stack), followed by S3 \texttt{healthchecks} $20.0\,\%$, S2
+\texttt{listmonk} $15.0\,\%$, S4 \texttt{umami} $13.8\,\%$, S5
+\texttt{petclinic} $13.4\,\%$. The substantial gap between S1
+and the other four subjects reflects stack complexity: S1's
+shallow service graph and concise log lines suit the diagnoser
+better than S5's Spring Boot stack traces or S4's TypeScript
+build-time errors. Across the full F1--F10 scope (the harder
+symptom-vs-cause scenarios F4/F8/F9/F10 are included), accuracy
+drops further on S2--S5, showing that the harder scenarios remain
+poorly solved by the current diagnosers, even though the failure
+evidence is preserved.
+
+\subsection{Evidence Precision (M6)}
+\label{sec:precision}
+
+For each rep, precision is the fraction of operator-captured
+evidence items whose type is on the scenario's expected-evidence
+whitelist (\texttt{scenarios.yaml}). Median per-scenario precision
+ranges from $0.29$ (\fn{1}) to $0.50$ (\fn{3}). These values suggest
+moderate evidence selectivity: the operator captures the relevant signal,
+but the bundle still contains contextual material that downstream
+diagnosers must filter.
+
+%%% ===================================================================
+\section{Threats to validity}
+\label{sec:threats}
+
+\paragraph{Internal validity.} Five engineering defects were
+discovered and closed during the live campaign (see
+\texttt{experimentations.md \S{}10.3}): \texttt{SUBJECT\_IDX}
+collision (commit \texttt{b7e5a23}); \fn{7} post-deploy patch
+race against the operator's reconciler, redesigned at meta-level
+(\texttt{ca5a88a}); \texttt{collectionDurationMillis} rounding to
+zero, fixed with microseconds field (\texttt{e0eae6f}); \fn{5}
+env-var-only injection inert on backend-only smoke, fixed at the
+proxy layer (\texttt{d57da07}); \fn{10} env-var non-propagation to
+test pods, fixed at the proxy layer (\texttt{d677885}). Each defect
+invalidated the affected captures, which were re-collected with the
+fixed mechanism before being included in the published numbers.
+
+\paragraph{Construct validity.} The \emph{aligned} top-1 matcher
+relies on a per-scenario alias table. We commit to publishing the
+table (\texttt{08-vocab-rescore.py}, \texttt{17-multiapp-rescore.py})
+and report the \emph{strict} top-1 as a lower bound. The
+practice follows the SE empirical-research
+guidelines~\cite{kitchenham_2002} for baseline-and-comparator
+transparency.
+
+\paragraph{External validity.} The five applications cover four
+language stacks (Python, Go, Java, TypeScript) and multiple database
+schemas. Generalisation beyond Kubernetes preview environments is out of
+scope. The controlled scenarios are useful for isolating one root cause at
+a time, but they cannot cover all production incident patterns, especially
+multi-cause, long-running, or cross-service failures.
+
+\paragraph{Baseline comparability.} The external baselines operate under
+different observability regimes. K8sGPT and Kagent diagnose live cluster
+state, while the proposed artifact is designed for post-teardown analysis.
+Conversely, B0 consumes raw \texttt{kubectl} text dumps stored alongside
+the FailureReport. The fully symmetric, four-rung post-teardown ladder
+(L1\,$\to$\,L4, Table~\ref{tab:ladder} and Figure~\ref{fig:ladder}) is now
+the article's primary controlled comparison and replaces a direct claim that
+the system ``beats'' practitioner tools. A regime-symmetric post-teardown
+K8sGPT and Kagent variant (consuming the same \texttt{evidenceItems} the
+operator's diagnoser sees, replayed via a synthetic namespace harness in
+\texttt{analysis/k8sgpt-replay.py} and \texttt{analysis/kagent-replay.py})
+is reported in \S\ref{sec:eval-baselines} alongside the live numbers, so
+the same evidence substrate is compared end-to-end.
+
+\paragraph{Environment validity.} All reported runs use one AKS cluster
+configuration. The results demonstrate feasibility for the evaluated
+cluster and workloads, but not cross-provider generality. Repeating the
+study on kind, EKS, GKE, and on-prem clusters would strengthen the claim
+that the capture mechanism is robust to provider-specific controllers,
+event retention, and networking behaviour.
+
+\paragraph{Scaling and retention.} The evaluation produces $\sim$100
+\fp{}s, well within etcd's practical budget. The implementation
+applies no retention --- every report stays in etcd, deliberately so
+to avoid confounding the runtime measurements. At deployment scale
+($\sim$$10^4$--$10^5$ reports or more) this is insufficient: a \fp{}
+ranges 10--100\,kB and etcd's default 2--8\,GB ceiling caps in-cluster
+capacity. The two-tier storage design and the retention controller
+sketched in §\ref{sec:approach-storage} address this; their full
+implementation and an at-scale operational study are out of scope here
+and listed as future work (§\ref{sec:future}).
+
+\paragraph{Conclusion validity.} We report the pre-registered analysis
+layers and use Wilson-score intervals for proportions~\cite{wilson_score_ci}.
+Multiplicity is controlled with Holm-Bonferroni~\cite{holm_1979};
+Benjamini-Hochberg~\cite{benjamini_hochberg_1995} is reserved for
+exploratory contrasts. Because RCA correctness is binary and scenario
+heterogeneity is high, we interpret mixed-effects model coefficients as
+supporting evidence rather than as the sole basis for the paper's claims.
+
+\paragraph{Reproducibility.} Operator image
+\artifactname{testagentdevops.azurecr.io/preview-operator:fp-rq5instr},
+adapter images \artifactname{:fp-f10v2}, and the analysis pipeline are
+released alongside the article.
+
+%%% ===================================================================
+\section{Future work}
+\label{sec:future}
+
+(i)~\emph{Scaling the fair post-teardown comparator to more reps and
+more LLM-tool combinations}: the replay harness
+(\texttt{analysis/k8sgpt-replay.py}, \texttt{analysis/kagent-replay.py})
+produces a regime-symmetric K8sGPT-PT/Kagent-PT pair on the same
+\texttt{evidenceItems} the operator's diagnoser consumes (60 cells across
+S2--S5, reported in \S\ref{sec:eval-baselines}). Extending the replay to
+HolmesGPT and a larger rep budget per cell is left for future work; the
+current B2a-PT/B2b-PT cells answer the regime-symmetry question, not the
+high-precision-statistics question.
+(ii)~\emph{Fair B0 on S2--S5}: \texttt{analysis/29-b0-multiapp-fair.py}
+re-runs B0 on raw \texttt{kubectl} text from the four breadth subjects
+(replacing the upper-bound B0 of \S\ref{sec:eval-baselines}).
+(iii)~Address Family C-a (contract-test shadowing on \fn{5}) with a
+ranking-aware diagnoser; Family C-b (vocabulary mismatch on \fn{10}) with
+an expanded, venue-justified alias table; Family C-c (multi-fault
+symptom-blaming on \fn{9}) with a refined category taxonomy
+(\S\ref{sec:failure-analysis}).
+(iv)~Replace proxy-layer fault injection for \fn{4}, \fn{5}, and \fn{8}
+with fork-and-rebuild variants that inject faults directly in the upstream
+source.
+(v)~Complete the human-reviewed hallucination annotation and publish the
+Cohen's~$\kappa$ agreement table.
+(vi)~Add trace-aware evidence collectors based on
+OpenTelemetry, and repeat the study across additional Kubernetes
+providers (kind, EKS, GKE, on-prem) and production-like incident patterns.
+(vii)~\emph{Retention controller and tiered storage}: implement the
+two-tier (hot etcd / cold object store) design and the policy-driven
+retention controller sketched in §\ref{sec:approach-storage}, with an
+at-scale operational study (target $\sim$$10^5$--$10^6$ reports across
+months of CI traffic) reporting etcd usage, list latency, archive
+throughput, and end-to-end cost.
+
+%%% ===================================================================
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Microservice and cloud-incident RCA.} OpenRCA proposes
+the LLM-RCA benchmark on Kubernetes incidents~\cite{openrca_2025}.
+RCACopilot is the production LLM-RCA pipeline at
+Microsoft~\cite{rcacopilot_2024}. Zhang et al. survey the field
+comprehensively~\cite{zhang_microservice_diagnosis_survey_2025}.
+MicroRCA~\cite{microrca_2020}, MicroDiag~\cite{microdiag_2021},
+CausalRCA~\cite{causalrca_2023}, PAL~\cite{pal_2011}, and
+Eadro~\cite{eadro_2023} are causal / graph-based RCA on
+microservices; RCAEval benchmarks 15 such methods on three
+microservice systems~\cite{rcaeval_2024}. Log-based pipelines
+build on Drain~\cite{drain_2017}, Spell~\cite{spell_2016},
+DeepLog~\cite{deeplog_2017}, and the Loghub
+benchmarks~\cite{loghub_2023}. Our contribution is upstream of all
+of these: a \emph{persistent, structured, provenance-linked}
+evidence artefact that any diagnoser can consume.
+
+\paragraph{Preview environments and GitOps.} ArgoCD~\cite{argocd_cncf,
+argocd_pr_generator}, Argo Workflows~\cite{argo_workflows_cncf},
+Jenkins X~\cite{jenkinsx_preview_envs},
+Signadot~\cite{signadot_preview_envs}, and
+Okteto~\cite{okteto_preview_envs} are the dominant preview-environment
+platforms. None of them captures structured failure evidence
+on teardown.
+
+\paragraph{Kubernetes diagnostic practitioner tools.}
+K8sGPT~\cite{k8sgpt_cncf}, Kagent~\cite{kagent}, and
+HolmesGPT~\cite{holmesgpt_robusta} run LLM RCA against \emph{live}
+cluster state. Our article uses K8sGPT and Kagent as external
+baselines (\S\ref{sec:eval-baselines}).
+
+\paragraph{Cluster management and orchestration lineage.}
+Borg~\cite{borg_2015} (the Kubernetes ancestor),
+Mesos~\cite{mesos_2011}, and Omega~\cite{omega_2013} formalised
+the cluster-management substrate; Operator
+SDK~\cite{operator_sdk_cncf} and Kubebuilder~\cite{kubebuilder_sigs}
+provide the operator-pattern SDKs.
+
+\paragraph{Observability and tracing.} OpenTelemetry~\cite{opentelemetry_docs,
+opentelemetry_operator} descends from Dapper~\cite{dapper_2010};
+Prometheus~\cite{prometheus_cncf}, Jaeger~\cite{jaeger_cncf},
+Istio~\cite{istio_service_mesh}, and Falco~\cite{falco_cncf} are
+the de-facto cloud-native observability and runtime-security
+components our operator interoperates with.
+
+\paragraph{Fault injection and chaos engineering.}
+Basiri et al.\ formalised the chaos-engineering
+hypothesis~\cite{basiri_chaos_2016}; LitmusChaos~\cite{litmus_chaos_cncf}
+and Chaos Mesh~\cite{chaos_mesh_cncf} are CNCF Kubernetes-native
+chaos engines. We share the deterministic-fault discipline (and
+not the steady-state-hypothesis focus) of this lineage.
+Delta-debugging~\cite{zeller_delta_2002} underpins
+one-root-cause-per-scenario design.
+
+\paragraph{LLM reasoning, tool use, and faithfulness.}
+GPT-3 few-shot~\cite{brown_gpt3_2020}, chain-of-thought~\cite{wei2022cot},
+self-consistency~\cite{wang_selfconsistency_2023},
+ReAct~\cite{yao2023react}, Tree-of-Thoughts~\cite{yao_tot_2023}, and
+Toolformer~\cite{schick_toolformer_2023} formalise the
+LLM-reasoning conventions we use in the grounded diagnostic
+harness. The HELM~\cite{liang_helm_2023} framework grounds the
+multi-LLM evaluation protocol; HotpotQA~\cite{yang_hotpotqa_2018}
+is the multi-hop QA dataset whose
+supporting-fact pattern is the QA-side analogue of our
+evidence-grounding constraint. Hallucination in NLG is surveyed
+in~\cite{ji2023hallucination}; SelfCheckGPT~\cite{manakul_selfcheckgpt_2023},
+HaluEval~\cite{li_halueval_2023}, and RAGAS~\cite{es_ragas_2023}
+provide hallucination-evaluation benchmarks.
+FaithJudge~\cite{tamber_faithjudge_2025} formalises
+faithfulness-as-judge; position-bias in LLM-as-judge is mitigated
+in~\cite{shi_position_bias_2024}. The open-source-LLM
+reproducibility argument is in~\cite{llm_open_advantage}.
+
+\paragraph{LLM for software engineering.} Empirical studies of
+GPT-4 on real-world SE tasks~\cite{gpt4_vulnerability_2024,
+zhang_gpt4_se_replicate_2024} and the systematic LLM-APR
+survey~\cite{llm_apr_survey_2024} provide context for our LLM-RCA
+findings.
+
+\paragraph{SE empirical methodology.} Wohlin's
+\emph{Experimentation in Software Engineering}~\cite{wohlin_experimentation},
+the Kitchenham et al.\ preliminary
+guidelines~\cite{kitchenham_2002}, the Sj{\o}berg et al.\
+controlled-experiment survey~\cite{sjoberg_2005}, and the Runeson
+and H{\"o}st case-study guidelines~\cite{runeson_host_2009} set the
+protocol. Evaluation guidelines for empirical studies involving
+LLMs in SE are formalised in~\cite{se_llm_guidelines}.
+Mixed-effects modelling follows~\cite{bates_lme4_2015,
+baayen_2008, brown_lmm_2021}; non-parametric SE
+testing~\cite{arcuri_briand_2014} and the
+Dem{\v{s}}ar~\cite{demsar_2006} protocol for comparing multiple
+classifiers across multiple datasets; effect sizes via
+Vargha--Delaney $A_{12}$~\cite{vargha_delaney_2000};
+Cohen's $\kappa$~\cite{mchugh_kappa_2012}.
+
+\paragraph{Provenance modelling.} W3C PROV-O~\cite{lebo_provo_2013}
+and PROV-DM~\cite{w3c_prov_dm} define the underlying graph model.
+
+\paragraph{DevOps and SRE foundations.} The DevOps architectural
+framing~\cite{bass_devops_2015}, Site Reliability
+Engineering~\cite{beyer_sre_2016}, and the DORA performance
+metrics~\cite{forsgren_accelerate_2018} situate the contribution
+within the broader operational-engineering literature.
+
+%%% ===================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This article presents a post-teardown evidence and provenance substrate for
+ephemeral Kubernetes preview failures. Across a 500-run, five-application,
+ten-fault matrix, the operator produced a persisted \fp{} in every run and
+every report survived namespace teardown. This survival is expected from
+the cluster-scoped storage design; the contribution is the end-to-end
+capture, typing, linking, and reuse of failure evidence at the operator
+control point before the namespace disappears.
+
+The diagnostic findings are intentionally cautious. Structured evidence
+improves several deployment, configuration, and readiness scenarios, but
+RCA accuracy remains modest, scenario-dependent, and uneven across
+subjects: the simplest subject (S1) is reasonably well solved, while
+S2--S5 (Go, Django, Next.js, Spring Boot) yield substantially lower
+aligned top-1 numbers. A vanilla LLM over an operator-curated
+kubectl-equivalent snapshot can outperform the proposed LLM-grounded
+diagnoser on parts of the broader subject set, so the paper should not
+be read as claiming RCA superiority. The supported claim is narrower and more
+operational: a typed, provenance-linked \fp{} makes ephemeral failures
+persistent, auditable, and reproducible after teardown. That artifact can
+serve rule-based diagnosers, LLM diagnosers, and future hybrid methods, but
+accurate automatic RCA remains an open problem.
+
+%%% ===================================================================
+\appendix
+
+\section{Diagnostic prompts (reproducibility)}
+\label{app:prompts}
+
+For full reproducibility of the LLM-in-the-loop results
+(§\ref{sec:rq2}, §\ref{sec:hallu-exploratory}) we reproduce the
+diagnostic prompts verbatim from
+\artifactname{internal/diagnosis/llm.go}. The two modes
+(\emph{grounded} and \emph{free-form}) differ \emph{only} in the
+grounding instruction and the JSON shape requested; this is the
+controlled difference the RQ4 ablation measures. The user prompt
+is generated mechanically from the captured \fp{} bundle by
+\texttt{LLMDiagnoser.userPrompt}, deterministic given the same
+bundle.
+
+\subsection{Base system prompt (shared by both modes)}
+
+\begin{quote}\small\itshape
+You are a root-cause analysis assistant for Kubernetes pull-request
+preview environments.\\
+You are given the evidence captured from one failed preview
+environment.\\
+Diagnose the single most probable root cause.\\[0.3em]
+The ``category'' field must be exactly one of:\\
+database, configuration, infrastructure, application, observability,
+test-reliability, unknown.\\
+The ``confidence'' field must be exactly one of: low, medium, high.\\
+If the evidence does not support a confident diagnosis, set category
+to ``unknown'' and confidence to ``low''.
+\end{quote}
+
+\subsection{Grounded-mode addition (the RQ4 treatment)}
+
+The base prompt above is suffixed with:
+
+\begin{quote}\small\itshape
+Each evidence item is prefixed with a stable ID in square brackets,
+e.g.\ \texttt{[podlog-1a2b3c]}.\\[0.3em]
+\textbf{GROUNDING CONSTRAINT}: every ID you place in
+``evidenceRefs'' MUST be the ID of an evidence item shown below.
+Do not invent IDs. Cite only the items you actually used to reach
+the diagnosis.\\[0.3em]
+Respond ONLY with a JSON object of exactly this shape:\\
+\texttt{\{}\\
+\hspace*{1em}\texttt{"probableCause": "one or two sentences",}\\
+\hspace*{1em}\texttt{"component": "the component most likely responsible",}\\
+\hspace*{1em}\texttt{"category": "<category>",}\\
+\hspace*{1em}\texttt{"confidence": "<confidence>",}\\
+\hspace*{1em}\texttt{"evidenceRefs": ["<evidence id>", "..."],}\\
+\hspace*{1em}\texttt{"recommendations": ["actionable step", "..."]}\\
+\texttt{\}}
+\end{quote}
+
+\subsection{Free-form mode addition (the RQ4 control)}
+
+The base prompt is suffixed with the same JSON template
+\emph{minus} the \texttt{evidenceRefs} field and without the
+grounding constraint:
+
+\begin{quote}\small\itshape
+Respond ONLY with a JSON object of exactly this shape:\\
+\texttt{\{}\\
+\hspace*{1em}\texttt{"probableCause": "one or two sentences",}\\
+\hspace*{1em}\texttt{"component": "the component most likely responsible",}\\
+\hspace*{1em}\texttt{"category": "<category>",}\\
+\hspace*{1em}\texttt{"confidence": "<confidence>",}\\
+\hspace*{1em}\texttt{"recommendations": ["actionable step", "..."]}\\
+\texttt{\}}
+\end{quote}
+
+\subsection{User prompt template}
+
+The user message is assembled deterministically from the
+\fp{} bundle, in the following structure (literal newlines reproduced):
+
+\begin{verbatim}
+Failed preview environment
+preview: <PreviewName>
+pull request: #<PRNumber>
+failed suite: <FailedSuite>
+failed test: <FailedTest>
+
+Evidence:
+
+[<itemID>] type=<EvidenceType> resource=<Resource> relevance=<low|med|high>
+  <Message, indented two spaces, truncated to 1500 chars>
+
+...one stanza per evidence item, sorted by item ID for determinism...
+
+Failure provenance graph (PR change context -> resources -> evidence):
+  <NodeTypeA>(<labelA>) --<relation>--> <NodeTypeB>(<labelB>)
+  ...one line per edge, sorted lexicographically...
+\end{verbatim}
+
+In \emph{free-form} mode each evidence stanza omits the
+\texttt{[\textit{itemID}]} prefix and the
+\texttt{type=/resource=/relevance=} header (becomes
+``\texttt{<EvidenceType> (<Resource>)}'') so the model has nothing
+to cite. The provenance-graph block is rendered only when the
+diagnoser is configured with a graph (the \Cn{5} configuration)
+\emph{and} the mode is grounded; this is the controlled treatment
+that distinguishes \Cn{5} from \Cn{4} for the LLM.
+
+\subsection{Sampling configuration and pinned model versions}
+
+For every LLM call:
+
+\begin{itemize}
+  \item \textbf{Temperature}: $0$ (deterministic decoding).
+  \item \textbf{Top-$p$}: provider default; not overridden.
+  \item \textbf{Max evidence-item length}: $1500$ characters per
+    item (\texttt{maxMessageChars} in \texttt{llm.go}); longer
+    messages are truncated with an ellipsis to prevent a single
+    log excerpt from crowding the prompt.
+  \item \textbf{Maximum bundle size shipped}: bounded by
+    \texttt{maxMessageChars} times the number of evidence items;
+    typical bundles fit comfortably under the 128k-token context
+    window of both models.
+\end{itemize}
+
+\paragraph{Model identifiers (pinned).}
+LLM-A: \texttt{gpt-4o-mini-2024-07-18} (Azure OpenAI, region
+\texttt{eastus}). LLM-B: \texttt{cohere-command-a} served through
+Azure AI Foundry (region \texttt{eastus}). Each per-row CSV
+output of \texttt{fp-score} records the resolved
+\texttt{model=<id>; temperature=0; provider=<endpoint>;
+called\_at=<UTC-ISO8601>} string in the \texttt{notes} column for
+audit (per Guideline 2 of the SE empirical-study guidelines
+recommended in §\ref{sec:approach-harness}).
+
+\paragraph{Post-processing.} The model's JSON response is parsed
+by \texttt{parseDiagnosis} (\texttt{llm.go}), which extracts the
+outermost JSON object (tolerating markdown code fences), normalises
+\texttt{category} onto the closed vocabulary (default
+\texttt{unknown}), normalises \texttt{confidence} onto
+\texttt{low|medium|high}, deduplicates \texttt{evidenceRefs}, and
+returns a \texttt{FailureDiagnosis}. In grounded mode, any
+\texttt{evidenceRef} pointing to an ID not present in the bundle
+is dropped at the operator boundary (the
+\texttt{Bundle.SetDiagnosis} grounding check) --- never reaching
+the persisted \fp{}.
+
+\paragraph{Source of truth.} The authoritative versions of the
+prompts and the renderer live in
+\artifactname{internal/diagnosis/llm.go}; the reproducible release
+artefact pins the exact commit.
+
+%%% ===================================================================
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bibliography,bibliography-augment}
+
+\end{document}

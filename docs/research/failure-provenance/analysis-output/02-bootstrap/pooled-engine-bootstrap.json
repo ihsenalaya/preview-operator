@@ -1,0 +1,41 @@
+{
+  "rule-grounded": {
+    "n": 500,
+    "strict": {
+      "mean": 0.24,
+      "lo": 0.202,
+      "hi": 0.278
+    },
+    "aligned": {
+      "mean": 0.408,
+      "lo": 0.364,
+      "hi": 0.45
+    }
+  },
+  "llm-grounded": {
+    "n": 500,
+    "strict": {
+      "mean": 0.04,
+      "lo": 0.024,
+      "hi": 0.058
+    },
+    "aligned": {
+      "mean": 0.314,
+      "lo": 0.274,
+      "hi": 0.354
+    }
+  },
+  "llm-freeform": {
+    "n": 500,
+    "strict": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    "aligned": {
+      "mean": 0.234,
+      "lo": 0.198,
+      "hi": 0.272
+    }
+  }
+}

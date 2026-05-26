@@ -1,0 +1,72 @@
+id: s3-healthchecks
+name: "Healthchecks Cron Monitor"
+description: "Django/PostgreSQL cron-job monitoring service with REST API v3"
+origin:
+  repo: healthchecks/healthchecks
+  version: v3.6
+  license: BSD-3-Clause
+language: Python
+framework: Django 5
+database: postgresql
+
+seed_entity: checks
+seed_count: 2
+
+# Migrate, create superuser, seed 2 checks, create API key
+migration_command:
+  - sh
+  - -c
+  - |
+    python3 << 'PYEOF'
+    import os, urllib.parse, subprocess, sys
+    u = urllib.parse.urlparse(os.environ.get('DATABASE_URL', ''))
+    os.environ['DB'] = 'postgres'
+    os.environ['DB_HOST'] = u.hostname or 'postgres'
+    os.environ['DB_PORT'] = str(u.port or 5432)
+    os.environ['DB_NAME'] = (u.path or '/hc').lstrip('/')
+    os.environ['DB_USER'] = u.username or 'postgres'
+    os.environ['DB_PASSWORD'] = u.password or ''
+    os.environ['DB_SSLMODE'] = 'disable'
+    os.environ['SECRET_KEY'] = 'harness-init-key'
+    os.environ['ALLOWED_HOSTS'] = '*'
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'hc.settings'
+    os.chdir('/opt/healthchecks')
+    sys.path.insert(0, '/opt/healthchecks')
+    r = subprocess.run([sys.executable, 'manage.py', 'migrate', '--noinput'], capture_output=True, text=True)
+    print(r.stdout[-500:] if r.stdout else ''); print(r.stderr[-200:] if r.stderr else '')
+    if r.returncode != 0: sys.exit(1)
+    import django; django.setup()
+    from django.contrib.auth.models import User
+    from hc.accounts.models import Profile
+    from hc.api.models import Check, Project
+    u_obj, _ = User.objects.get_or_create(username='harness',
+        defaults={'email': 'harness@exp.local', 'is_superuser': True, 'is_staff': True})
+    u_obj.set_password('harness123'); u_obj.save()
+    prof, _ = Profile.objects.get_or_create(user=u_obj)
+    proj = Project.objects.filter(owner=u_obj).first()
+    if not proj:
+        proj = Project.objects.create(owner=u_obj, name='Harness')
+    # Healthchecks REST API auth: Project.api_key (NOT Profile.api_key);
+    # X-Api-Key header; key length must be exactly 32 chars.
+    proj.api_key = 'harness-api-key-aaaaaaaaaaaaaaaa'  # 32 chars
+    proj.save()
+    for name in ['Seed Check 1', 'Seed Check 2']:
+        Check.objects.get_or_create(name=name, project=proj)
+    print('PASS migration healthchecks: OK')
+    PYEOF
+
+services:
+  - name: backend
+    image_key: app
+    port: 8000
+    path_prefix: /
+  - name: probe
+    image_key: probe
+    port: 9090
+    path_prefix: /probe
+
+notes: |
+  Django app wrapped with a Python proxy (wrapper.py) that serves /healthz.
+  API key for tests: harness-api-key-exp0000000000000000 (created in migration).
+  Tests use Authorization: ApiKey harness-api-key-exp0000000000000000.
+  Isolation probes use PROBE_URL=http://svc-probe:9090.

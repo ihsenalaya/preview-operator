@@ -945,15 +945,15 @@ type PreviewStatus struct {
 
 // Condition types
 const (
-	ConditionReady              = "Ready"
-	ConditionApproved           = "Approved"
-	ConditionExpired            = "Expired"
-	ConditionDatabaseReady      = "DatabaseReady"
-	ConditionMigrationReady     = "MigrationReady"
-	ConditionSeedReady          = "SeedReady"
-	ConditionAIEnrichmentReady  = "AIEnrichmentReady"
-	ConditionContractTestReady  = "ContractTestReady"
-	ConditionTestSuiteReady     = "TestSuiteReady"
+	ConditionReady             = "Ready"
+	ConditionApproved          = "Approved"
+	ConditionExpired           = "Expired"
+	ConditionDatabaseReady     = "DatabaseReady"
+	ConditionMigrationReady    = "MigrationReady"
+	ConditionSeedReady         = "SeedReady"
+	ConditionAIEnrichmentReady = "AIEnrichmentReady"
+	ConditionContractTestReady = "ContractTestReady"
+	ConditionTestSuiteReady    = "TestSuiteReady"
 )
 
 // DatabaseStatus describes the observed database state for the preview environment.

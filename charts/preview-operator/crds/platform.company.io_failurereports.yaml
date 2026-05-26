@@ -1,0 +1,377 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: failurereports.platform.company.io
+spec:
+  group: platform.company.io
+  names:
+    kind: FailureReport
+    listKind: FailureReportList
+    plural: failurereports
+    shortNames:
+    - fr
+    singular: failurereport
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.previewRef.name
+      name: Preview
+      type: string
+    - jsonPath: .spec.prNumber
+      name: PR
+      type: integer
+    - jsonPath: .spec.failedSuite
+      name: Suite
+      type: string
+    - jsonPath: .status.evidenceLevel
+      name: Level
+      type: string
+    - jsonPath: .status.diagnosis.component
+      name: Component
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          FailureReport is an auditable, cluster-scoped artifact that preserves the failure
+          evidence of an ephemeral preview environment before its namespace is torn down.
+          Being cluster-scoped, it survives deletion of the preview namespace.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FailureReportSpec identifies the preview failure this report
+              is about.
+            properties:
+              commitSHA:
+                description: CommitSHA is the head commit SHA of the change under
+                  preview.
+                type: string
+              failedSuite:
+                description: FailedSuite is the test suite that failed, when the failure
+                  is test-related.
+                type: string
+              failedTest:
+                description: FailedTest is the individual test that failed, when known.
+                type: string
+              namespace:
+                description: Namespace is the ephemeral preview namespace (which may
+                  already be deleted).
+                type: string
+              prNumber:
+                description: |-
+                  PRNumber is the pull request number. Kept as an int for consistency with
+                  PreviewSpec.PRNumber and DiffRef.PullRequestNumber.
+                type: integer
+              previewRef:
+                description: PreviewRef references the Preview whose failure produced
+                  this report.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - previewRef
+            type: object
+          status:
+            description: FailureReportStatus holds the captured failure evidence bundle
+              and diagnosis.
+            properties:
+              bundleSizeBytes:
+                description: |-
+                  BundleSizeBytes is the JSON-serialised size of the evidence items — the
+                  storage footprint measured by RQ5.
+                format: int64
+                type: integer
+              collectionDurationMillis:
+                description: |-
+                  CollectionDurationMillis is the wall-clock time the operator spent
+                  assembling the evidence bundle — the in-process collection overhead
+                  measured by RQ5.
+                format: int64
+                type: integer
+              diagnosis:
+                description: Diagnosis is the probable cause grounded in the evidence
+                  items.
+                properties:
+                  category:
+                    description: Category classifies the failure family.
+                    enum:
+                    - database
+                    - configuration
+                    - infrastructure
+                    - application
+                    - observability
+                    - test-reliability
+                    - unknown
+                    type: string
+                  component:
+                    description: Component identifies the component most likely responsible.
+                    type: string
+                  confidence:
+                    description: |-
+                      Confidence estimates the strength of the diagnostic signal.
+                      Kept as a string (low|medium|high) for consistency with the existing
+                      DiagnosticsStatus.Confidence field used elsewhere in this operator.
+                    enum:
+                    - low
+                    - medium
+                    - high
+                    type: string
+                  evidenceRefs:
+                    description: |-
+                      EvidenceRefs lists the FailureEvidenceItem IDs that support this diagnosis.
+                      A diagnosis with no evidence reference is, by construction, ungrounded.
+                    items:
+                      type: string
+                    type: array
+                  probableCause:
+                    description: ProbableCause is the human-readable probable root
+                      cause.
+                    type: string
+                  recommendations:
+                    description: Recommendations lists suggested remediation actions.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              diagnosisAvailableAt:
+                description: |-
+                  DiagnosisAvailableAt is when a diagnosis was first attached to this report.
+                  With FailureDetectedAt it yields the time-to-diagnosis measured by RQ3.
+                format: date-time
+                type: string
+              evidenceItems:
+                description: EvidenceItems is the typed, addressable evidence bundle.
+                items:
+                  description: |-
+                    FailureEvidenceItem is one typed, addressable item of failure evidence.
+                    It corresponds to a W3C PROV Entity. The ID is stable and deterministic so that
+                    repeated reconciliation produces the same item and a diagnosis can reference it.
+                  properties:
+                    id:
+                      description: |-
+                        ID is the stable, deterministic identifier of this evidence item.
+                        It is derived from the item's logical identity (type, source, resource,
+                        content) so repeated reconciliation yields the same ID.
+                      type: string
+                    message:
+                      description: Message is the (redacted) content of the evidence
+                        item.
+                      type: string
+                    redacted:
+                      description: Redacted is true when secret-bearing content was
+                        redacted from Message.
+                      type: boolean
+                    relevance:
+                      description: Relevance ranks the item against the probable cause.
+                      enum:
+                      - high
+                      - medium
+                      - low
+                      type: string
+                    resource:
+                      description: Resource identifies the Kubernetes object or file
+                        the evidence is about.
+                      type: string
+                    source:
+                      description: Source identifies what produced the evidence (an
+                        activity, tool, or collector).
+                      type: string
+                    timestamp:
+                      description: Timestamp is when the evidence was observed, when
+                        known.
+                      format: date-time
+                      type: string
+                    type:
+                      description: Type classifies the evidence item.
+                      enum:
+                      - GitDiff
+                      - ChangedFile
+                      - KubernetesEvent
+                      - PodLog
+                      - JobLog
+                      - TestResult
+                      - TraceSpan
+                      - Metric
+                      - PreviewCondition
+                      - ReconcileEvent
+                      type: string
+                  required:
+                  - id
+                  - type
+                  type: object
+                type: array
+              evidenceLevel:
+                description: |-
+                  EvidenceLevel records the evidence configuration (C1..C5) used to produce
+                  this report, so each report self-documents which comparison configuration
+                  of the evaluation it belongs to. Empty means the full default capability.
+                type: string
+              evidenceSummary:
+                description: EvidenceSummary is a short human-readable summary of
+                  the captured evidence.
+                type: string
+              failureDetectedAt:
+                description: FailureDetectedAt is when the failure was detected by
+                  the operator.
+                format: date-time
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the FailureReport generation last
+                  processed.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the lifecycle phase of the report.
+                enum:
+                - Pending
+                - Collecting
+                - Captured
+                - Persisted
+                - Failed
+                type: string
+              preservedAfterTeardown:
+                description: |-
+                  PreservedAfterTeardown is true once the report is confirmed readable after
+                  the preview namespace has been deleted.
+                type: boolean
+              provenanceGraph:
+                description: |-
+                  ProvenanceGraph links change context, resources, evidence, and diagnosis
+                  into one auditable W3C PROV-aligned graph (Contribution 2).
+                properties:
+                  edges:
+                    description: Edges are the directed provenance relations between
+                      nodes.
+                    items:
+                      description: |-
+                        ProvenanceEdge is one directed edge of the failure provenance graph. Relation is
+                        a W3C PROV relation (wasDerivedFrom, wasGeneratedBy, used, wasAssociatedWith) or
+                        a domain relation (supports, caused, observedIn).
+                      properties:
+                        from:
+                          description: From is the ID of the source node.
+                          type: string
+                        relation:
+                          description: Relation names the provenance relation.
+                          type: string
+                        to:
+                          description: To is the ID of the target node.
+                          type: string
+                      required:
+                      - from
+                      - relation
+                      - to
+                      type: object
+                    type: array
+                  nodes:
+                    description: Nodes are the provenance graph nodes.
+                    items:
+                      description: ProvenanceNode is one node of the failure provenance
+                        graph.
+                      properties:
+                        id:
+                          description: ID uniquely identifies the node within the
+                            graph.
+                          type: string
+                        kind:
+                          description: Kind is the W3C PROV core type of the node.
+                          enum:
+                          - entity
+                          - activity
+                          - agent
+                          type: string
+                        label:
+                          description: Label is a short human-readable label for the
+                            node.
+                          type: string
+                        type:
+                          description: |-
+                            Type is the domain type of the node (e.g. PullRequest, Commit, ChangedFile,
+                            Preview, Namespace, EvidenceCollection, Diagnosis, PreviewOperator).
+                          type: string
+                      required:
+                      - id
+                      - kind
+                      type: object
+                    type: array
+                type: object
+              storageRef:
+                description: |-
+                  StorageRef optionally points to an external store holding the full artifact
+                  (for example an object-storage URL). Empty when the report is self-contained.
+                type: string
+              timeToDiagnosisMillis:
+                description: |-
+                  TimeToDiagnosisMillis is DiagnosisAvailableAt - FailureDetectedAt in
+                  milliseconds. It is zero until a diagnosis is available (RQ3).
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

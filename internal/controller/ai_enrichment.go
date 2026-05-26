@@ -248,15 +248,26 @@ func (r *PreviewReconciler) generateAndStoreAIContent(ctx context.Context, c *pl
 		return false, fmt.Errorf("AI API URL is not configured")
 	}
 
+	// Resolve the PR diff for the AI prompt. Prefer the diff the manifest
+	// generator already embedded in the Preview spec: it is authoritative and,
+	// unlike a GitHub fetch, works for previews whose PR does not exist on
+	// GitHub (e.g. the failure-provenance experiment's synthetic PRs). A GitHub
+	// fetch failure is non-fatal — the AI can still generate seed data from the
+	// database schema alone, so a 404 must not fail the whole enrichment.
 	var diff string
-	if githubEnabled(c) {
+	switch {
+	case c.Spec.ChangeContext != nil && strings.TrimSpace(c.Spec.ChangeContext.DiffPatch) != "":
+		diff = c.Spec.ChangeContext.DiffPatch
+	case githubEnabled(c):
 		token, err := r.aiGitHubToken(ctx, c)
 		if err != nil {
 			return false, err
 		}
-		diff, err = r.fetchPRDiff(ctx, c, token)
-		if err != nil {
-			return false, err
+		if d, ferr := r.fetchPRDiff(ctx, c, token); ferr != nil {
+			log.FromContext(ctx).Info("AI enrichment: GitHub diff fetch failed; continuing without a diff",
+				"error", ferr.Error())
+		} else {
+			diff = d
 		}
 	}
 
@@ -305,7 +316,7 @@ func (r *PreviewReconciler) generateAndStoreAIContent(ctx context.Context, c *pl
 		}
 		configMap.Labels = map[string]string{
 			labelManagedBy:                "preview-operator",
-			labelPreviewName:             c.Name,
+			labelPreviewName:              c.Name,
 			"app.kubernetes.io/component": "ai-enrichment",
 		}
 		configMap.Data = map[string]string{
@@ -368,7 +379,7 @@ func (r *PreviewReconciler) aiSchemaDumpJob(c *platformv1alpha1.Preview, nsName 
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "ai-enrichment",
 				"platform.company.io/task":    "schema-dump",
 			},
@@ -380,7 +391,7 @@ func (r *PreviewReconciler) aiSchemaDumpJob(c *platformv1alpha1.Preview, nsName 
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": "schema-dump",
 					},
 				},
@@ -675,7 +686,7 @@ func (r *PreviewReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Preview, ns
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "ai-enrichment",
 				"platform.company.io/task":    jobName,
 			},
@@ -687,7 +698,7 @@ func (r *PreviewReconciler) aiConfigMapBackedJob(c *platformv1alpha1.Preview, ns
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},

@@ -151,8 +151,21 @@ func AgentTimeoutSeconds(preview *platformv1alpha1.Preview) int {
 	return preview.Spec.TestStrategy.AgentTimeoutSeconds
 }
 
+// LabelExperimentOwned, when set to "true" on a Preview, forces FullSuite mode
+// regardless of the spec. The failure-provenance evaluation harness uses this
+// label so the LLM test-plan strategist cannot non-deterministically drop the
+// very suite that would exercise the injected fault (e.g. dropping `contract`
+// for an injection that breaks a contract endpoint).
+const LabelExperimentOwned = "failure-provenance.experiment/owned"
+
 // EffectiveMode returns the test strategy mode, defaulting to FullSuite.
+// Previews labelled with LabelExperimentOwned=true are always run in FullSuite
+// — the failure-provenance evaluation requires deterministic suite coverage
+// and the AI strategist's selection is intentionally bypassed for those runs.
 func EffectiveMode(preview *platformv1alpha1.Preview) platformv1alpha1.TestStrategyMode {
+	if preview.Labels[LabelExperimentOwned] == "true" {
+		return platformv1alpha1.TestStrategyFullSuite
+	}
 	if preview.Spec.TestStrategy == nil || preview.Spec.TestStrategy.Mode == "" {
 		return platformv1alpha1.TestStrategyFullSuite
 	}

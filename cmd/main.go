@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -23,6 +24,7 @@ import (
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
 	"github.com/ihsenalaya/preview-operator/internal/controller"
+	"github.com/ihsenalaya/preview-operator/internal/evidence"
 	webhookv1alpha1 "github.com/ihsenalaya/preview-operator/internal/webhook/v1alpha1"
 )
 
@@ -77,6 +79,27 @@ func main() {
 	}
 	previewDomain := os.Getenv("PREVIEW_DOMAIN")
 
+	// Failure-provenance instrumentation (see docs/research/failure-provenance/).
+	// EVIDENCE_COLLECTION=disabled turns evidence capture off — the overhead
+	// baseline for RQ5. EVIDENCE_LEVEL selects the comparison configuration
+	// C1..C5 for RQ2; an empty value defaults to the full capability.
+	evidenceCollection := true
+	if v := os.Getenv("EVIDENCE_COLLECTION"); v != "" {
+		switch strings.ToLower(strings.TrimSpace(v)) {
+		case "disabled", "false", "off", "0", "no":
+			evidenceCollection = false
+		}
+	}
+	evidenceLevel, err := evidence.ParseLevel(os.Getenv("EVIDENCE_LEVEL"))
+	if err != nil {
+		setupLog.Error(err, "invalid EVIDENCE_LEVEL environment variable")
+		os.Exit(1)
+	}
+	setupLog.Info("failure-provenance instrumentation",
+		"evidenceCollection", evidenceCollection,
+		"evidenceLevel", evidenceLevel,
+		"description", evidenceLevel.Description())
+
 	metricsOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
 		SecureServing: secureMetrics,
@@ -107,16 +130,18 @@ func main() {
 	}
 
 	if err = (&controller.PreviewReconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		APIReader:         mgr.GetAPIReader(),
-		OperatorNamespace: operatorNamespace,
-		GitHubAPIBaseURL:  "https://api.github.com",
-		GitHubHTTPClient:  &http.Client{Timeout: 15 * time.Second},
-		KubeClient:        kubeClient,
-		AIAPIBaseURL:      aiAPIURL,
-		AIHTTPClient:      &http.Client{Timeout: 60 * time.Second},
-		PreviewDomain:     previewDomain,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		APIReader:          mgr.GetAPIReader(),
+		OperatorNamespace:  operatorNamespace,
+		GitHubAPIBaseURL:   "https://api.github.com",
+		GitHubHTTPClient:   &http.Client{Timeout: 15 * time.Second},
+		KubeClient:         kubeClient,
+		AIAPIBaseURL:       aiAPIURL,
+		AIHTTPClient:       &http.Client{Timeout: 60 * time.Second},
+		PreviewDomain:      previewDomain,
+		EvidenceCollection: evidenceCollection,
+		EvidenceLevel:      evidenceLevel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Preview")
 		os.Exit(1)

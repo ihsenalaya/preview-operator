@@ -20,10 +20,10 @@ import (
 
 // a2aMessage is the JSON-RPC 2.0 envelope sent to a kagent agent.
 type a2aMessage struct {
-	JSONRPC string     `json:"jsonrpc"`
-	Method  string     `json:"method"`
-	ID      string     `json:"id"`
-	Params  a2aParams  `json:"params"`
+	JSONRPC string    `json:"jsonrpc"`
+	Method  string    `json:"method"`
+	ID      string    `json:"id"`
+	Params  a2aParams `json:"params"`
 }
 
 type a2aParams struct {
@@ -31,9 +31,9 @@ type a2aParams struct {
 }
 
 type a2aUserMessage struct {
-	Role      string     `json:"role"`
-	MessageID string     `json:"messageId"`
-	Parts     []a2aPart  `json:"parts"`
+	Role      string    `json:"role"`
+	MessageID string    `json:"messageId"`
+	Parts     []a2aPart `json:"parts"`
 }
 
 type a2aPart struct {
@@ -48,8 +48,8 @@ type a2aResponse struct {
 }
 
 type a2aResult struct {
-	Status    *a2aStatus     `json:"status"`
-	Artifacts []a2aArtifact  `json:"artifacts"`
+	Status    *a2aStatus    `json:"status"`
+	Artifacts []a2aArtifact `json:"artifacts"`
 }
 
 type a2aArtifact struct {
@@ -57,7 +57,7 @@ type a2aArtifact struct {
 }
 
 type a2aStatus struct {
-	State   string     `json:"state"`
+	State   string           `json:"state"`
 	Message *a2aAgentMessage `json:"message"`
 }
 
@@ -456,4 +456,3 @@ func (r *PreviewReconciler) setKagentPhase(ctx context.Context, c *platformv1alp
 	}
 	_ = r.Status().Update(ctx, c)
 }
-

@@ -1,0 +1,11 @@
+term,estimate,std_err,p_value
+Intercept,0.02635,0.03823,0.490704
+C(configuration)[T.C2],0.04043,0.01142,0.000402
+C(configuration)[T.C3],0.15426,0.01142,0.000000
+C(configuration)[T.C4],0.17340,0.01142,0.000000
+C(configuration)[T.C5],0.16383,0.01142,0.000000
+C(llm)[T.B],-0.02340,0.01142,0.040483
+C(configuration)[T.C2]:C(llm)[T.B],-0.02447,0.01616,0.129884
+C(configuration)[T.C3]:C(llm)[T.B],-0.12128,0.01616,0.000000
+C(configuration)[T.C4]:C(llm)[T.B],-0.09468,0.01616,0.000000
+C(configuration)[T.C5]:C(llm)[T.B],-0.08085,0.01616,0.000001

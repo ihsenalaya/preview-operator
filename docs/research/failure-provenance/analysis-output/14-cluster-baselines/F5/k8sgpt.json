@@ -1,0 +1,397 @@
+{
+  "provider": "azureopenai",
+  "errors": null,
+  "status": "ProblemDetected",
+  "problems": 35,
+  "results": [
+    {
+      "kind": "Node",
+      "name": "aks-nodepool1-21128521-vmss000001",
+      "error": [
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentContainerdRestart, reason NoFrequentContainerdRestart: containerd is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "bHhpemgpQHUweTFjWWdIRGopd3RJJkM7JkdRPFpfTHlI"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type VMEventScheduled, reason NoVMEventScheduled: VM has no scheduled event",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "Kl9IKXlkamQpQ1krMis9OER0I1Fqc2k4SngvJ2VuO04m"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type ContainerRuntimeProblem, reason ContainerRuntimeIsUp: container runtime service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "ODw2YStTJUorRTBXeHlmd2IhYWZITiw8OXJtTipMJXJx"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentUnregisterNetDevice, reason NoFrequentUnregisterNetDevice: node is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "I0tHe05LeXRHW3MzSSktcyclU3VqW192TipXSSQmJSVL"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type ReadonlyFilesystem, reason FilesystemIsNotReadOnly: Filesystem is not read-only",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "LzpOQ3I6ZnNXLV9lT1V6clk5Jm1DNkJbUEh0OEFnNUVB"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type KubeletProblem, reason KubeletIsUp: kubelet service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "cHpMI1RvdUBEYkFzUVVJeU5vRXl6KlVSeCl1K3goUSJj"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentKubeletRestart, reason NoFrequentKubeletRestart: kubelet is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "UHMrMElPMm5qemZFTWpMXVFiLXlDYSJGaFlIcUskclhy"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FilesystemCorruptionProblem, reason FilesystemIsOK: Filesystem is healthy",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "WnNeeVVfUC4yUTxyZVoteDpteW5MeScuLGtzSTZkXzht"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type KernelDeadlock, reason KernelHasNoDeadlock: kernel has no deadlock",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "cVg3PWVsQWtiRko6NFojajUtQ2wyeH1beXU4dHV8c0Rr"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentDockerRestart, reason NoFrequentDockerRestart: docker is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "dkxzfXkuPiZDXjxCZkp4SCh3VS07Z01kfUldcVsqIVBV"
+            }
+          ]
+        }
+      ],
+      "details": "**Error:** The node \"aks-nodepool1-21128521-vmss000001\" is healthy. All reported conditions (e.g., container runtime, kubelet, filesystem, etc.) show no issues or abnormal behavior. No actual error is present.\n\n**Solution:**  \n1. No action is needed as the node is functioning properly.  \n2. If monitoring, consider this a status check rather than an error.  \n3. Verify if this message was logged unnecessarily for debugging.  \n4. Continue normal operations.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Node",
+      "name": "aks-nodepool1-21128521-vmss000002",
+      "error": [
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type KernelDeadlock, reason KernelHasNoDeadlock: kernel has no deadlock",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "ZGdHT3UlZWEnejd5XUB8cTYvcHdvKyNPa0s1Zlp2Njhz"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FilesystemCorruptionProblem, reason FilesystemIsOK: Filesystem is healthy",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "QSd4PiM5MEBubT1zeHFXPE5xVCl8KTxEQls/M0Apa19t"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type ContainerRuntimeProblem, reason ContainerRuntimeIsUp: container runtime service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "I2lSXiNfZHpWZXZAI3R5fTZKIXlKUS0nZkckLj05RTly"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type ReadonlyFilesystem, reason FilesystemIsNotReadOnly: Filesystem is not read-only",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "PSEpO0tlKk5Wa0ZLa0g9eFdibiNwZSZZK0w5dVo3emth"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentContainerdRestart, reason NoFrequentContainerdRestart: containerd is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "MDZUM1kqby5heCFIMU0mTiRhKF5nQzc+KkxQTydqIzlW"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentUnregisterNetDevice, reason NoFrequentUnregisterNetDevice: node is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "VV09K15ZOW4mTCpjN3k3IkBsaGwlb3ZqKEBaWlMqVSRY"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type VMEventScheduled, reason NoVMEventScheduled: VM has no scheduled event",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "OU4oWlo9RDpFNU4pekkuPlJpejhITWYkaUJYQF1YVTZi"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentKubeletRestart, reason NoFrequentKubeletRestart: kubelet is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "ZG5OYmJNd0U0SjxDczJkdilIRkRGS0whU3QzP00xP0tq"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentDockerRestart, reason NoFrequentDockerRestart: docker is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "S0dPMzFVcShuN29aJmtIXnE4KU1LWnF3OGwxeEpYVzRS"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type KubeletProblem, reason KubeletIsUp: kubelet service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "O2pfL1EkclZObHJ1dHxTZl1Aaz80ZyFSb1ZMSDxNVjVG"
+            }
+          ]
+        }
+      ],
+      "details": "Error: The error message reports no actual issues; all node conditions indicate normal operation, such as no kernel deadlocks, a healthy filesystem, and functioning services (kubelet, container runtime, etc.).\n\nSolution:  \n1. Confirm node health via `kubectl describe node`.  \n2. Check workloads if issues persist.  \n3. Monitor logs periodically for anomalies.  \n4. No immediate action required.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Node",
+      "name": "aks-nodepool1-21128521-vmss000003",
+      "error": [
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentUnregisterNetDevice, reason NoFrequentUnregisterNetDevice: node is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "Tk93VTBlSl1kejBAODI4d3tKKkcnV0YoZkMlZztjSjJS"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type ContainerRuntimeProblem, reason ContainerRuntimeIsUp: container runtime service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "MXpFdHh7Ym51bCghRTRhS1Y+LG0oMTg5MzBeIiJ1Q3JA"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentKubeletRestart, reason NoFrequentKubeletRestart: kubelet is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "bGYidWg4al8tR0FsRjApTlBNUm1RU1JiMkozNmhGO1Mj"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type VMEventScheduled, reason NoVMEventScheduled: VM has no scheduled event",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "NEgvSDJrJjdzQyooPzoiL0o/dyE1RUdZLGUwKjYvZjo+"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type KernelDeadlock, reason KernelHasNoDeadlock: kernel has no deadlock",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "KCZvSi1IPVkpLDs/YU1YU2R4KERZciUvYi1uMChmPVs0"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type ReadonlyFilesystem, reason FilesystemIsNotReadOnly: Filesystem is not read-only",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "bypzcmUkbG41Tl9DU3lPVyFlM0Zkdmx3Y3RMYiw3VFJF"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentDockerRestart, reason NoFrequentDockerRestart: docker is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "VUMzR1dIOE5tTEhkcGNaeDZuQCRxPDlVR0NvdV8iVzVR"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentContainerdRestart, reason NoFrequentContainerdRestart: containerd is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "LktIZzJjSk45OTlUQUc/cE0xZyYlVV1nKGEoZCwjV1JS"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type KubeletProblem, reason KubeletIsUp: kubelet service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "Ujk9dHRGM218Q19LVV45TUVwRS1WOHYsZ1RTai1XMS1y"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FilesystemCorruptionProblem, reason FilesystemIsOK: Filesystem is healthy",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "KkFWOUMtOCF1Iz9HfUZsI0dWN0dKI0RUQ0h0UjN9RyQt"
+            }
+          ]
+        }
+      ],
+      "details": "```plaintext\nError: No error detected; node aks-nodepool1-21128521-vmss000003 is functioning properly with all system checks (e.g., kubelet, filesystem, kernel, container runtime) passing without issues.\nSolution: No action needed. Monitor logs for anomalies and maintain regular checks.\n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9801/ai-enrichment",
+      "error": [
+        {
+          "Text": "ConfigMap ai-enrichment is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```plaintext\nError: The ConfigMap `ai-enrichment` exists but is not associated with any pods in the namespace.\n\nSolution: \n1. Check if any pods need the ConfigMap.\n2. Link the ConfigMap in your pod spec (under `envFrom`, `env`, or `volume`).\n3. If unused, delete it using `kubectl delete configmap ai-enrichment` to save resources.\n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9801/db-checkpoint-after-seed",
+      "error": [
+        {
+          "Text": "ConfigMap db-checkpoint-after-seed is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "**Error:** The ConfigMap `db-checkpoint-after-seed` exists but is not being referenced by any pods in the namespace.\n\n**Solution:**  \n1. Check if the ConfigMap is required.  \n2. Update your pod specs to reference it if needed.  \n3. If unused, delete the ConfigMap: `kubectl delete configmap db-checkpoint-after-seed`.",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9801/istio-ca-root-cert",
+      "error": [
+        {
+          "Text": "ConfigMap istio-ca-root-cert is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```\nError: The ConfigMap `istio-ca-root-cert` is not being referenced or used by any pods in the namespace, making it unnecessary.\n\nSolution: \n1. Verify usage by checking pod configs (`kubectl describe pod <pod-name>`).  \n2. If unused, delete it (`kubectl delete configmap istio-ca-root-cert`).  \n3. Avoid creating unnecessary ConfigMaps in future.\n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9801/kube-root-ca.crt",
+      "error": [
+        {
+          "Text": "ConfigMap kube-root-ca.crt is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```plaintext\nError: The ConfigMap `kube-root-ca.crt` is not referenced or used by any pods in the namespace, making it redundant.  \nSolution:  \n1. Verify if the ConfigMap is needed for future workloads.  \n2. If unused, delete it with `kubectl delete configmap kube-root-ca.crt`.  \n3. If needed, ensure your pods reference it in their configurations.  \n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9801/preview-diff-pr-9801",
+      "error": [
+        {
+          "Text": "ConfigMap preview-diff-pr-9801 is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```\nError: The ConfigMap `preview-diff-pr-9801` is not referenced or used by any pods in the namespace.\nSolution: \n1. Verify the ConfigMap is needed.\n2. Check pod specs for proper ConfigMap reference.\n3. Update pod spec to use the ConfigMap if required.\n4. Delete the ConfigMap if it's no longer needed.\n```",
+      "parentObject": ""
+    }
+  ]
+}

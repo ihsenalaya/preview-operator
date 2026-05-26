@@ -399,9 +399,9 @@ func (s *Server) cmdSetPrompt(ctx context.Context, args []string) string {
 				Name:      cmName,
 				Namespace: aiPromptNamespace,
 				Labels: map[string]string{
-					"app.kubernetes.io/managed-by":      "preview-operator",
+					"app.kubernetes.io/managed-by":     "preview-operator",
 					"platform.company.io/preview-name": name,
-					"app.kubernetes.io/component":       "ai-prompt",
+					"app.kubernetes.io/component":      "ai-prompt",
 				},
 			},
 			Data: map[string]string{aiPromptKey: instructions},

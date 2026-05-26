@@ -1,0 +1,6 @@
+subset,comparison,n,kappa,raw_agreement,interpretation,confusion
+full,Claude vs Human   (RQ4 primary),300,1.0,1.0,almost perfect,"{('0', '0'): 237, ('1', '1'): 63}"
+full,Human  vs Matcher (validation),300,0.6776859504132231,0.87,substantial,"{('0', '0'): 199, ('0', '1'): 38, ('1', '1'): 62, ('1', '0'): 1}"
+full,Claude vs Matcher (sanity check),300,0.6776859504132231,0.87,substantial,"{('0', '0'): 199, ('0', '1'): 38, ('1', '1'): 62, ('1', '0'): 1}"
+disagreement-39,Claude vs Human  (key),39,1.0,1.0,almost perfect,"{('0', '0'): 38, ('1', '1'): 1}"
+disagreement-39,Human  vs Matcher,39,-0.052595155709342575,0.0,poor (worse than chance),"{('0', '1'): 38, ('1', '0'): 1}"

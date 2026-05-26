@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	smokeJobName       = "smoke-tests"
-	microcksImportJob  = "microcks-import"
-	microcksJobName    = "microcks-contract-tests"
-	regressionJobName  = "regression-tests"
-	e2eJobName         = "e2e-tests"
+	smokeJobName               = "smoke-tests"
+	microcksImportJob          = "microcks-import"
+	microcksJobName            = "microcks-contract-tests"
+	regressionJobName          = "regression-tests"
+	e2eJobName                 = "e2e-tests"
 	suiteStepSaving            = "saving"
 	suiteStepSmoke             = "smoke"
 	suiteStepMigration         = "migration"
@@ -40,6 +40,14 @@ const (
 
 	testJobCPURequest    = "50m"
 	testJobMemoryRequest = "128Mi"
+
+	// testJobActiveDeadlineSeconds caps the wall-clock of every test Job. A
+	// healthy suite finishes well under this; a hung suite (HTTP client with no
+	// timeout against a broken endpoint, Playwright waiting for a missing UI
+	// element, kube-proxy still routing nowhere) is terminated by the kubelet
+	// with a DeadlineExceeded JobFailed condition — which the operator picks up
+	// and turns into a FailureReport instead of waiting indefinitely.
+	testJobActiveDeadlineSeconds = 300
 	testJobCPULimit      = "500m"
 	testJobMemoryLimit   = "512Mi"
 
@@ -375,6 +383,11 @@ func (r *PreviewReconciler) reconcileTestSuite(ctx context.Context, c *platformv
 	r.setTestSuiteCondition(c)
 	if err := r.Status().Update(ctx, c); err != nil {
 		return ctrl.Result{}, err
+	}
+	if anyFailed {
+		// Preserve the failure evidence as a cluster-scoped FailureReport before
+		// the preview namespace is eventually torn down (best-effort).
+		r.captureFailureReport(ctx, c)
 	}
 	r.postTestResultsComment(ctx, c)
 	r.triggerKagentAnalysis(ctx, c)
@@ -722,7 +735,7 @@ func (r *PreviewReconciler) e2eTestJob(c *platformv1alpha1.Preview, nsName, prev
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": e2eJobName,
 					},
 				},
@@ -746,6 +759,7 @@ func (r *PreviewReconciler) e2eTestJob(c *platformv1alpha1.Preview, nsName, prev
 func (r *PreviewReconciler) testJob(c *platformv1alpha1.Preview, nsName, jobName, image string, cmd []string, cmName, fileName, containerName string, withPostgres bool) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttl := int32(300)
+	activeDeadline := int64(testJobActiveDeadlineSeconds)
 
 	container := corev1.Container{
 		Name:            containerName,
@@ -774,11 +788,15 @@ func (r *PreviewReconciler) testJob(c *platformv1alpha1.Preview, nsName, jobName
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            &backoffLimit,
 			TTLSecondsAfterFinished: &ttl,
+			// Bound the Job wall-clock so a hung test (no client timeout, dead
+			// Service, missing UI element) cannot keep the pod Running forever —
+			// see testJobNoMount for the full rationale.
+			ActiveDeadlineSeconds: &activeDeadline,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -804,6 +822,7 @@ func (r *PreviewReconciler) testJob(c *platformv1alpha1.Preview, nsName, jobName
 func (r *PreviewReconciler) testJobNoMount(c *platformv1alpha1.Preview, nsName, jobName, image string, cmd []string, containerName string, withPostgres bool) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttl := int32(300)
+	activeDeadline := int64(testJobActiveDeadlineSeconds)
 
 	container := corev1.Container{
 		Name:            containerName,
@@ -829,11 +848,17 @@ func (r *PreviewReconciler) testJobNoMount(c *platformv1alpha1.Preview, nsName, 
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            &backoffLimit,
 			TTLSecondsAfterFinished: &ttl,
+			// Bound the Job wall-clock. Without this, a test that hangs (e.g. an
+			// HTTP request to a broken Service with no client timeout, or a
+			// Playwright e2e waiting for a UI element that no longer exists)
+			// keeps the pod Running forever, never reaches JobFailed, and the
+			// operator stays in phaseRunning — so no FailureReport is produced.
+			ActiveDeadlineSeconds: &activeDeadline,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": jobName,
 					},
 				},
@@ -866,7 +891,7 @@ func testJobResources() corev1.ResourceRequirements {
 func testJobLabels(c *platformv1alpha1.Preview, jobName string) map[string]string {
 	return map[string]string{
 		labelManagedBy:                "preview-operator",
-		labelPreviewName:             c.Name,
+		labelPreviewName:              c.Name,
 		"app.kubernetes.io/component": "test-suite",
 		"platform.company.io/task":    jobName,
 	}

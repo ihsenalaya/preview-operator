@@ -23,9 +23,9 @@ func makeTestPreview(name string, mode platformv1alpha1.TestStrategyMode) *platf
 			Image:    "nginx:alpine",
 			TTL:      "24h",
 			TestStrategy: &platformv1alpha1.TestStrategySpec{
-				Mode:                  mode,
-				AgentTimeoutSeconds:   30,
-				ConfidenceThreshold:   70,
+				Mode:                   mode,
+				AgentTimeoutSeconds:    30,
+				ConfidenceThreshold:    70,
 				FallbackOnAgentTimeout: platformv1alpha1.TestStrategyFallbackFull,
 			},
 		},

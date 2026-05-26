@@ -10,11 +10,11 @@ import (
 type ReconcileEventType string
 
 const (
-	ReconcileEventProvisioned   ReconcileEventType = "Provisioned"
-	ReconcileEventTestStarted   ReconcileEventType = "TestStarted"
-	ReconcileEventTestFinished  ReconcileEventType = "TestFinished"
-	ReconcileEventError         ReconcileEventType = "Error"
-	ReconcileEventReady         ReconcileEventType = "Ready"
+	ReconcileEventProvisioned  ReconcileEventType = "Provisioned"
+	ReconcileEventTestStarted  ReconcileEventType = "TestStarted"
+	ReconcileEventTestFinished ReconcileEventType = "TestFinished"
+	ReconcileEventError        ReconcileEventType = "Error"
+	ReconcileEventReady        ReconcileEventType = "Ready"
 )
 
 // ReconcileEventSpec defines the content of one event.

@@ -1,0 +1,54 @@
+# Multi-app failure-provenance harness configuration.
+#
+# All subject images are imported into the cluster-attached ACR
+# (testagentdevops) so the AKS cluster pulls them with no imagePullSecret —
+# see `az acr import` step in PROGRESS.md / multi-app-plan.md. The originals
+# live in ghcr.io/ihsenalaya (private) from the preview-experiments repo.
+
+subjects:
+  probe_image: testagentdevops.azurecr.io/harness-probe:cached
+  enabled:
+    - s1-flask-catalog
+    - s2-listmonk
+    - s3-healthchecks
+    - s4-umami
+    - s5-petclinic
+  images:
+    s1-flask-catalog: testagentdevops.azurecr.io/idp-preview:exp-20260514-e2efix-2089
+    # 2026-05-23 :fp-f10 (FP_F10_FLAKY hook) → :fp-f5 (also gained the
+    # FP_F5_BROKEN_FRONTEND hook in wrapper.py + a _frontend_check test
+    # in smoke.py). All four FP_* fault hooks now live in the same image.
+    s2-listmonk:       testagentdevops.azurecr.io/s2-listmonk-adapter:fp-f10v2
+    s3-healthchecks:   testagentdevops.azurecr.io/s3-healthchecks-adapter:fp-f10v2
+    s4-umami:          testagentdevops.azurecr.io/s4-umami-adapter:fp-f10v2
+    s5-petclinic:      testagentdevops.azurecr.io/s5-petclinic-adapter:fp-f10v2
+
+registry: testagentdevops          # ACR for fault-image builds (code faults)
+ai_api_url: https://preview-openai-idp.openai.azure.com/openai/deployments/gpt-4o-mini
+
+# Fault scope per subject (see multi-app-plan.md §3b).
+# S1 is built from source → full F1-F10. S2-S5 wrap pre-built upstream
+# images → only the manifest/infra-injectable subset.
+faults:
+  s1-flask-catalog: [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  # Multi-app extension (2026-05-23, closes the Q1-COMPLIANCE symmetry
+  # gap): F4 via post-migration DB-table-rename, F5 via env-var frontend
+  # break (N/A on petclinic-rest), F8 via pg_sleep BEFORE trigger, F9 via
+  # post-seed UPDATE that NULLs a NOT-NULL column, F10 via the
+  # FP_F10_FLAKY env var read by the harness-adapter wrapper. Injectors
+  # in injectors_multiapp/dispatch.py.
+  # Multi-app extension complete: F4 (DB rename), F5 (env-var frontend
+  # break; N/A on petclinic-rest), F8 (pg_sleep trigger), F9 (post-seed
+  # corruption), F10 (FP_F10_FLAKY env var read by the patched smoke
+  # tests). Adapter images rebuilt with the F10 hook as :fp-f10.
+  # F5 fully re-enabled 2026-05-23 20:15 UTC for all 4 multi-app
+  # subjects after wrapper.py + smoke.py were patched and adapters
+  # rebuilt as :fp-f5. The proxy now serves a 500 + broken-frontend
+  # marker when FP_F5_BROKEN_FRONTEND=1; smoke.py's _frontend_check
+  # detects it. Even petclinic-rest gains a frontend GET-`/` test that
+  # the proxy can break — petclinic's wrapper.py serves Spring's
+  # actuator HTML at `/` which the test now checks.
+  s2-listmonk:       [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  s3-healthchecks:   [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  s4-umami:          [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]
+  s5-petclinic:      [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10]

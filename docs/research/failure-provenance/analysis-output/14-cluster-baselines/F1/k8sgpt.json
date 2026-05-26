@@ -1,0 +1,419 @@
+{
+  "provider": "azureopenai",
+  "errors": null,
+  "status": "ProblemDetected",
+  "problems": 36,
+  "results": [
+    {
+      "kind": "Job",
+      "name": "preview-pr-9401/postgres-migrate",
+      "error": [
+        {
+          "Text": "Job postgres-migrate has failed",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "preview-pr-9401",
+              "Masked": "YSN1dCJGUys/TisqO005"
+            },
+            {
+              "Unmasked": "postgres-migrate",
+              "Masked": "KFdLJEZybCRhWXExbyUrPg=="
+            }
+          ]
+        }
+      ],
+      "details": "Error: Job `postgres-migrate` failed, likely due to misconfiguration, container failure, or resource limits.\n\nSolution:  \n1. Run `kubectl describe job postgres-migrate` for details.  \n2. Inspect Pod logs: `kubectl logs <pod-name>`.  \n3. Check Job specs for image, env vars, or resource limits.  \n4. Fix issues & redeploy.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Node",
+      "name": "aks-nodepool1-21128521-vmss000001",
+      "error": [
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type KubeletProblem, reason KubeletIsUp: kubelet service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "X2guY0pmWWZRQlQ1aVlmeSYqOUVkLUhuWUc1WGs1VTRB"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentKubeletRestart, reason NoFrequentKubeletRestart: kubelet is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "N3RIKnRYcywzJCFYbSFSSDc7U0BaMW5OTlMtbHZPdFQ4"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FilesystemCorruptionProblem, reason FilesystemIsOK: Filesystem is healthy",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "dSV3cChlJGJsN1FYS2FsJV5TT2JpdkwveWUnfSRsLXkx"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type KernelDeadlock, reason KernelHasNoDeadlock: kernel has no deadlock",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "O3cxXnpZcE80ay02RHM9OXIxejVMQC5TNUc5dXgpdl9v"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentDockerRestart, reason NoFrequentDockerRestart: docker is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "aVo2bDM4ZChVQGtzV0MhJ1NSMzhEOV91Z0JvMz4xfTA3"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentContainerdRestart, reason NoFrequentContainerdRestart: containerd is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "MVA9RTRYcDh7SkV4aStnfEhsTzA7U1UleVZ1dVRwVnst"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type VMEventScheduled, reason NoVMEventScheduled: VM has no scheduled event",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "I2E5NGlXNGQrTWFtPUpqbGd2UyQkKU57RE19SXZObGZv"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type ContainerRuntimeProblem, reason ContainerRuntimeIsUp: container runtime service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "eiVUJWNDI0RVRWkxNkp3OyI5TSV1ZzAsJ2pZZV92JHd4"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type FrequentUnregisterNetDevice, reason NoFrequentUnregisterNetDevice: node is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "OFhOK1M4Pz17ZEMwZEZiR2khVjEneHxpZjFKQjJ2YU1r"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000001 has condition of type ReadonlyFilesystem, reason FilesystemIsNotReadOnly: Filesystem is not read-only",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000001",
+              "Masked": "RXBkMEg5dlk3Zl8qaVdnQUV0cFQlci06Y285UUVoRWNW"
+            }
+          ]
+        }
+      ],
+      "details": "Error: The node `aks-nodepool1-21128521-vmss000001` is functioning properly. All conditions indicate healthy operation, with no issues in kubelet, filesystem, kernel, container runtime, or other critical components.\n\nSolution:  \n1. No action is required as no errors are detected.  \n2. Regularly monitor the node for any changes.  \n3. If issues arise, review similar conditions for troubleshooting.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Node",
+      "name": "aks-nodepool1-21128521-vmss000002",
+      "error": [
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FilesystemCorruptionProblem, reason FilesystemIsOK: Filesystem is healthy",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "cy90WEhaRm9oTCZXbGklPGoydWMqZVhrdG8mKXF5a2pI"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type ContainerRuntimeProblem, reason ContainerRuntimeIsUp: container runtime service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "MHRXZTEzaGs2JSREPEl3U0knMXoyOW1tJkpALVsjayZt"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type ReadonlyFilesystem, reason FilesystemIsNotReadOnly: Filesystem is not read-only",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "eDMsYzl3LE9aPUNdT2VdJGpsMCR6VGdzbWFYIUU5SkFi"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentContainerdRestart, reason NoFrequentContainerdRestart: containerd is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "cD0tZVd0O3opdVd6b3dsNlFDKmJ0PCVyZnRtbCJ4SGYs"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentUnregisterNetDevice, reason NoFrequentUnregisterNetDevice: node is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "T2wpN1pZOCVqUCt9Z3NFJDdRNCFGdDVHSWwxeDJsV3lf"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type VMEventScheduled, reason NoVMEventScheduled: VM has no scheduled event",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "O1toQ0A9QCpSWmlwX2U5PDQ+M2FuXlFwcW9DJVNuY1lx"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentKubeletRestart, reason NoFrequentKubeletRestart: kubelet is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "M3pzbEMjRS1VJUdOP3Ujd15tPiZuJUk+KUBvdiwzbUxk"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type FrequentDockerRestart, reason NoFrequentDockerRestart: docker is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "R0N8SVhfWmNpeW9ePnA3RSJjR081IyJDUUFBemlKSCg5"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type KubeletProblem, reason KubeletIsUp: kubelet service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "S1tzeVomdWFUNH1JR2sjTnFoRF98LjRYc0YyPmk+d0xx"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000002 has condition of type KernelDeadlock, reason KernelHasNoDeadlock: kernel has no deadlock",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000002",
+              "Masked": "SHRaVUJDRjhIblhxcm4hYyRpTSJYZ0kkTEdDKTElRjFW"
+            }
+          ]
+        }
+      ],
+      "details": "Error: No actual error detected; all conditions reported for node `aks-nodepool1-21128521-vmss000002` indicate proper functionality (healthy filesystem, stable kubelet, container runtime, kernel, etc.).\n\nSolution:  \n1. No action needed.  \n2. Monitor node for future issues.  \n3. If debugging, verify logs for confirmation.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Node",
+      "name": "aks-nodepool1-21128521-vmss000003",
+      "error": [
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type KernelDeadlock, reason KernelHasNoDeadlock: kernel has no deadlock",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "KjEoOUloU0xsRllOJFRzWFJ9aHhIdWFqLldRdjZ4c3kk"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type ReadonlyFilesystem, reason FilesystemIsNotReadOnly: Filesystem is not read-only",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "Jm8sfCoydFJKOXJJJzwqR114JVYxNiM1WFtWd1BLSnNA"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentDockerRestart, reason NoFrequentDockerRestart: docker is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "VzllQmVUMHYlTC1VL2hvSnIjdS5lY3BNITlsUXxfR0B3"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentContainerdRestart, reason NoFrequentContainerdRestart: containerd is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "dzlwP1QlQDMvaHs1IVtuSFRvNDgxNllJY25rKnpsaDRL"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type KubeletProblem, reason KubeletIsUp: kubelet service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "Vyh9TGI7ZWNremJ6QXNzV0lLX3IkRUdsa0AjXz8nPzhe"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FilesystemCorruptionProblem, reason FilesystemIsOK: Filesystem is healthy",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "NEtyZl8mPUB4fHEsNj81TUQoLSZPQzkha0VbaDhjSzJa"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentUnregisterNetDevice, reason NoFrequentUnregisterNetDevice: node is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "KFlVeTx6P08hckc5ZyhaX0lYSUJMcj45ZS9rInd7JDtR"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type ContainerRuntimeProblem, reason ContainerRuntimeIsUp: container runtime service is up",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "XiYvU2hkRnEkZEAkIlFqZE9YOD0oYkVaRU98dVpCcC1X"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type FrequentKubeletRestart, reason NoFrequentKubeletRestart: kubelet is functioning properly",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "Q28/fSZzV1B2NHYlWUhNLyVtc3lVJCFtZktDRENJVk08"
+            }
+          ]
+        },
+        {
+          "Text": "aks-nodepool1-21128521-vmss000003 has condition of type VMEventScheduled, reason NoVMEventScheduled: VM has no scheduled event",
+          "KubernetesDoc": "",
+          "Sensitive": [
+            {
+              "Unmasked": "aks-nodepool1-21128521-vmss000003",
+              "Masked": "VDIodGViSjBWOXJJTSoieW4sZmwsKC1SQDJJJntTaEIj"
+            }
+          ]
+        }
+      ],
+      "details": "**Error:** The error message indicates no issues with the node \"aks-nodepool1-21128521-vmss000003,\" as all conditions are functioning normally (e.g., no kernel deadlock, filesystem healthy, kubelet & container runtime services up). Likely no real issue.\n\n**Solution:**  \n1. Confirm the node health via `kubectl get nodes`.  \n2. Check logs for specifics using `kubectl logs`.  \n3. Monitor workload performance for related issues.  \n4. Verify cluster/network configuration if symptoms persist.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Pod",
+      "name": "preview-pr-9401/postgres-migrate-knfpr",
+      "error": [
+        {
+          "Text": "the termination reason is Error exitCode=1 container=migration pod=postgres-migrate-knfpr",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "Error: The `migration` container in the `postgres-migrate-knfpr` pod terminated with an error (exitCode=1). Likely due to a failed migration script or configuration issue.\n\nSolution:\n1. Check pod logs: `kubectl logs pod/postgres-migrate-knfpr -c migration`.\n2. Review migration script errors.\n3. Validate DB connectivity/config.\n4. Fix script or config; redeploy pod.",
+      "parentObject": ""
+    },
+    {
+      "kind": "Pod",
+      "name": "preview-pr-9401/postgres-migrate-64gwj",
+      "error": [
+        {
+          "Text": "the termination reason is Error exitCode=1 container=migration pod=postgres-migrate-64gwj",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```\nError: The \"migration\" container in the \"postgres-migrate-64gwj\" pod terminated with an error (exit code 1), indicating a failure during migration.\nSolution: \n1. Check pod logs: `kubectl logs postgres-migrate-64gwj -c migration`.\n2. Review error details and debug accordingly.\n3. Verify migration script and dependencies.\n4. Redeploy after fixing issues.\n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9401/istio-ca-root-cert",
+      "error": [
+        {
+          "Text": "ConfigMap istio-ca-root-cert is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```\nError: The ConfigMap `istio-ca-root-cert` exists but is not being used by any pods in the namespace, likely indicating it's unused or misconfigured.\n\nSolution: \n1. Check if `istio-ca-root-cert` is required by any workloads.\n2. Verify pod configurations reference this ConfigMap.\n3. If unused, delete it to clean up resources: `kubectl delete configmap istio-ca-root-cert`.\n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9401/kube-root-ca.crt",
+      "error": [
+        {
+          "Text": "ConfigMap kube-root-ca.crt is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```\nError: The ConfigMap `kube-root-ca.crt` isn't referenced by any Pods in the namespace, making it unused.\n\nSolution: \n1. Confirm the ConfigMap is unnecessary.  \n2. If unused, delete it: `kubectl delete configmap kube-root-ca.crt -n <namespace>`.  \n3. If needed, update Pod manifests to reference it.\n```",
+      "parentObject": ""
+    },
+    {
+      "kind": "ConfigMap",
+      "name": "preview-pr-9401/preview-diff-pr-9401",
+      "error": [
+        {
+          "Text": "ConfigMap preview-diff-pr-9401 is not used by any pods in the namespace",
+          "KubernetesDoc": "",
+          "Sensitive": []
+        }
+      ],
+      "details": "```\nError: The ConfigMap `preview-diff-pr-9401` is not being referenced or used by any running Pods in the namespace.\n\nSolution: \n1. Check if the ConfigMap is still needed. \n2. Update Pod specs to reference it if necessary. \n3. If unused, delete it using `kubectl delete configmap preview-diff-pr-9401`.\n```",
+      "parentObject": ""
+    }
+  ]
+}

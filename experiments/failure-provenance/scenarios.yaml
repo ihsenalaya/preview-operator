@@ -1,0 +1,237 @@
+# Fault-injection scenarios F1-F10 for the failure-provenance evaluation.
+#
+# This file is the authoritative, machine-readable form of the scenario matrix in
+# docs/research/failure-provenance/experiments.md. The two MUST stay consistent.
+#
+# Injection points target the reference demo application `idp-preview`
+# (github.com/ihsenalaya/idp-preview). Each scenario has exactly one known root
+# cause. `ground_truth` is fixed before any run and is never changed afterwards.
+#
+# Schema per scenario:
+#   id                     short identifier (F1..F10)
+#   family                 failure family
+#   description            one-line summary
+#   injection.repo         repository the change is applied to
+#   injection.file         file modified (or "operator" / "ci" for non-app faults)
+#   injection.change       how the fault is injected
+#   expected_failed_suite  test suite expected to fail
+#   expected_k8s_signal    Kubernetes-level symptom
+#   expected_log_evidence  log line(s) a complete bundle should contain
+#   expected_trace_evidence  trace evidence when applicable, else "n/a"
+#   expected_diagnosis     human-readable probable cause
+#   ground_truth.component component at fault
+#   ground_truth.category  database|configuration|infrastructure|application|observability|test-reliability
+#   expected_evidence      evidence types (EvidenceType vocabulary) a complete
+#                          bundle should contain — the denominator of the
+#                          type-level Evidence Recall / Preservation metrics
+#                          (metrics.md §1, §7), consumed by cmd/fp-score
+#   success_criterion      when the run counts as a correct diagnosis
+
+apiVersion: failure-provenance/v1
+kind: ScenarioMatrix
+metadata:
+  demoApp: github.com/ihsenalaya/idp-preview
+  operator: github.com/ihsenalaya/preview-operator
+  repetitionsPerCell: 10
+  configurations: [C1, C2, C3, C4, C5]
+
+scenarios:
+  - id: F1
+    family: database
+    description: Invalid SQL migration
+    injection:
+      repo: idp-preview
+      file: migrations/versions/002_fault.py
+      change: Add a migration whose upgrade() runs invalid SQL (e.g. "CREATE INDX").
+    expected_failed_suite: migration
+    expected_k8s_signal: Migration Job reaches Failed (BackoffLimitExceeded)
+    expected_log_evidence: 'psycopg2 / SQL error: "syntax error at or near"'
+    expected_trace_evidence: n/a
+    expected_diagnosis: Database migration failed due to an invalid SQL statement.
+    ground_truth:
+      component: migration-job
+      category: database
+    expected_evidence: [JobLog, TestResult, ChangedFile]
+    success_criterion: >-
+      Diagnosis names the migration job, category database, and references the SQL
+      error log line and the changed migration file.
+
+  - id: F2
+    family: configuration
+    description: Missing environment variable
+    injection:
+      repo: idp-preview
+      file: app.py
+      change: Remove the DATABASE_URL default so the app has no database configuration.
+    expected_failed_suite: smoke
+    expected_k8s_signal: Application pod in CrashLoopBackOff
+    expected_log_evidence: Missing-configuration / KeyError on startup
+    expected_trace_evidence: n/a
+    expected_diagnosis: Application crashes because a required environment variable is missing.
+    ground_truth:
+      component: app-deployment
+      category: configuration
+    expected_evidence: [KubernetesEvent, PodLog, ChangedFile]
+    success_criterion: >-
+      Diagnosis names the app deployment, category configuration, and references
+      the CrashLoopBackOff state and the missing-variable log line.
+
+  - id: F3
+    family: infrastructure
+    description: Invalid container image tag
+    injection:
+      repo: ci
+      file: scripts/generate_preview_manifest.py
+      change: Set spec.image to a non-existent tag.
+    expected_failed_suite: none (environment never reaches Running)
+    expected_k8s_signal: Pod ImagePullBackOff; "Failed to pull image" warning event
+    expected_log_evidence: 'no container logs; evidence is the Kubernetes event'
+    expected_trace_evidence: n/a
+    expected_diagnosis: The specified container image tag does not exist and cannot be pulled.
+    ground_truth:
+      component: app-deployment
+      category: infrastructure
+    expected_evidence: [KubernetesEvent, ChangedFile]
+    success_criterion: >-
+      Diagnosis names the deployment, category infrastructure, and references the
+      ImagePullBackOff event and the offending image reference.
+
+  - id: F4
+    family: application
+    description: Removed or broken API endpoint
+    injection:
+      repo: idp-preview
+      file: app.py
+      change: Break a backend endpoint handler (wrong status code or broken SQL).
+    expected_failed_suite: contract
+    expected_k8s_signal: Pods healthy (application-logic fault, no infra symptom)
+    expected_log_evidence: Backend 4xx/5xx on the endpoint; contract-test mismatch
+    expected_trace_evidence: failed request span (optional, if tracing enabled)
+    expected_diagnosis: A backend API change broke a contract-tested endpoint.
+    ground_truth:
+      component: backend
+      category: application
+    expected_evidence: [TestResult, ChangedFile]
+    success_criterion: >-
+      Diagnosis names the backend, category application, and references the
+      contract-test failure and the changed backend route/handler.
+
+  - id: F5
+    family: application
+    description: Frontend breaking change
+    injection:
+      repo: idp-preview
+      file: frontend.py
+      change: Change a UI selector / data-testid / route the E2E tests depend on.
+    expected_failed_suite: e2e
+    expected_k8s_signal: Pods healthy (application-logic fault, no infra symptom)
+    expected_log_evidence: E2E/browser log shows element or route not found
+    expected_trace_evidence: n/a
+    expected_diagnosis: A frontend change broke an end-to-end user flow.
+    ground_truth:
+      component: frontend
+      category: application
+    expected_evidence: [TestResult, ChangedFile]
+    success_criterion: >-
+      Diagnosis names the frontend, category application, and references the E2E
+      failure and the changed frontend file.
+
+  - id: F6
+    family: infrastructure
+    description: Database readiness timeout
+    injection:
+      repo: idp-preview
+      file: app.py
+      change: Make the app connect at startup without waiting for the database.
+    expected_failed_suite: smoke
+    expected_k8s_signal: Readiness/liveness probe-failure events; database still starting
+    expected_log_evidence: App database connection timeout/refused
+    expected_trace_evidence: long/failed startup spans (optional, if tracing enabled)
+    expected_diagnosis: The application started before the database was ready and timed out.
+    ground_truth:
+      component: app-deployment
+      category: infrastructure
+    expected_evidence: [KubernetesEvent, PodLog]
+    success_criterion: >-
+      Diagnosis identifies the readiness/ordering problem, category infrastructure,
+      and references the probe-failure events and the connection-timeout log.
+
+  - id: F7
+    family: infrastructure
+    description: Broken Service selector
+    injection:
+      repo: operator
+      file: Preview CR (spec.services)
+      change: Apply a Service selector that does not match the application pods.
+    expected_failed_suite: e2e
+    expected_k8s_signal: Service has no endpoints; pods themselves healthy
+    expected_log_evidence: Test connection timeouts; no inbound requests in app logs
+    expected_trace_evidence: n/a
+    expected_diagnosis: The Service selector does not match the pods, so it has no endpoints.
+    ground_truth:
+      component: service
+      category: infrastructure
+    expected_evidence: [KubernetesEvent, TestResult]
+    success_criterion: >-
+      Diagnosis names the service, category infrastructure, and references the
+      empty-endpoints signal and the changed service manifest.
+
+  - id: F8
+    family: observability
+    description: Artificial latency / timeout
+    injection:
+      repo: idp-preview
+      file: app.py
+      change: Inject latency into a backend handler (e.g. pg_sleep or a sleep call).
+    expected_failed_suite: e2e
+    expected_k8s_signal: Pods healthy; no infrastructure symptom
+    expected_log_evidence: Test request timeout; slow handler in backend log
+    expected_trace_evidence: long-duration span for the slow operation (Jaeger)
+    expected_diagnosis: A slow backend operation exceeded the request timeout.
+    ground_truth:
+      component: backend
+      category: observability
+    expected_evidence: [TraceSpan, PodLog, TestResult]
+    success_criterion: >-
+      Diagnosis identifies the latency/timeout, category observability, and
+      references the timeout log and, where available, the long trace span.
+
+  - id: F9
+    family: database
+    description: Incorrect seed data
+    injection:
+      repo: idp-preview
+      file: AI seed job input / seed record
+      change: Make a required seed record missing or malformed.
+    expected_failed_suite: regression
+    expected_k8s_signal: Seed Job may succeed or fail; app pods healthy
+    expected_log_evidence: Seed job log; regression assertion failure; missing record
+    expected_trace_evidence: n/a
+    expected_diagnosis: Required seed data is missing or malformed, failing a regression test.
+    ground_truth:
+      component: seed-job
+      category: database
+    expected_evidence: [JobLog, TestResult]
+    success_criterion: >-
+      Diagnosis names the seed step, category database, and references the seed log
+      / regression failure and the missing record.
+
+  - id: F10
+    family: test-reliability
+    description: Flaky test
+    injection:
+      repo: idp-preview
+      file: tests/e2e.py
+      change: Introduce non-deterministic behaviour (race / unseeded randomness).
+    expected_failed_suite: any (intermittent across repetitions)
+    expected_k8s_signal: None consistent; infrastructure healthy
+    expected_log_evidence: Intermittent failure pattern; no stable infra/app cause
+    expected_trace_evidence: n/a
+    expected_diagnosis: The test is flaky; there is no stable infrastructure/application cause.
+    ground_truth:
+      component: test-suite
+      category: test-reliability
+    expected_evidence: [TestResult]
+    success_criterion: >-
+      Diagnosis identifies flakiness, category test-reliability, and does NOT
+      invent an infrastructure/application cause (negative control for RQ4).

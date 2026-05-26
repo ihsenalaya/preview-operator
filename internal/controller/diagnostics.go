@@ -239,6 +239,13 @@ func (r *PreviewReconciler) significantLogExcerpts(ctx context.Context, nsName s
 	}{
 		{component: componentMigration, container: componentMigration, labels: client.MatchingLabels{"platform.company.io/task": componentMigration}},
 		{component: componentSeed, container: componentSeed, labels: client.MatchingLabels{"platform.company.io/task": componentSeed}},
+		// Multi-service previews (spec.services) label their pods app=svc-<name>;
+		// the single-service preview uses app=preview-preview. Cover both, so the
+		// crashing application container's own log is captured — without these
+		// two entries a CrashLoopBackOff app left only a Kubernetes event in the
+		// evidence bundle, with no traceback to diagnose.
+		{component: componentApp, container: "backend", labels: client.MatchingLabels{"app": "svc-backend"}},
+		{component: componentApp, container: "frontend", labels: client.MatchingLabels{"app": "svc-frontend"}},
 		{component: componentApp, container: componentApp, labels: client.MatchingLabels{"app": "preview-preview"}},
 		{component: componentDatabase, container: "postgres", labels: client.MatchingLabels{"app": "postgres"}},
 	}
@@ -278,10 +285,23 @@ func (r *PreviewReconciler) firstPodName(ctx context.Context, nsName string, lab
 }
 
 func (r *PreviewReconciler) fetchPodLogs(ctx context.Context, nsName, podName, container string, lines int) []string {
+	if out := r.podLogStream(ctx, nsName, podName, container, lines, false); out != nil {
+		return out
+	}
+	// A CrashLoopBackOff container has no running current instance — GetLogs
+	// errors with "is waiting to start". The crash output (e.g. the Python
+	// traceback that pinpoints the fault) is in the previous, terminated
+	// instance, so fall back to it. Without this the only evidence of an
+	// application crash is the Kubernetes Back-off event.
+	return r.podLogStream(ctx, nsName, podName, container, lines, true)
+}
+
+func (r *PreviewReconciler) podLogStream(ctx context.Context, nsName, podName, container string, lines int, previous bool) []string {
 	tailLines := int64(lines)
 	req := r.KubeClient.CoreV1().Pods(nsName).GetLogs(podName, &corev1.PodLogOptions{
 		Container: container,
 		TailLines: &tailLines,
+		Previous:  previous,
 	})
 	stream, err := req.Stream(ctx)
 	if err != nil {
@@ -322,13 +342,19 @@ func selectSignificantLines(lines []string, limit int) []string {
 					}
 					selected = append(selected, trimmed)
 					seen[trimmed] = struct{}{}
-					if len(selected) == limit {
-						return selected
-					}
 				}
 				break
 			}
 		}
+	}
+	// A failure log's conclusive line — the final traceback exception, the
+	// PostgreSQL "syntax error", the panic message — is at the END. When more
+	// significant lines were found than the limit, keep the LAST `limit` so the
+	// actual error is never dropped in favour of earlier stack frames. (The
+	// previous head-biased truncation captured only the middle of tracebacks,
+	// leaving the rule diagnoser without the keywords it needs.)
+	if len(selected) > limit {
+		selected = selected[len(selected)-limit:]
 	}
 	return selected
 }

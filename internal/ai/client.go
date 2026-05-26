@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +20,17 @@ var routeDecoratorRE = regexp.MustCompile(`@\w+\.(?:route|get|post|put|patch|del
 
 const defaultTemperature = 0.2
 
+// maxAttempts caps how many times a chat-completion request is retried when the
+// AI endpoint throttles (HTTP 429) or fails transiently. Azure OpenAI answers
+// 429 under load — and AI enrichment shares its deployment with the experiment
+// harness — so without retry, enrichment fails and the preview catalogue is
+// never seeded. The default backoff between six attempts spans 1+2+4+8+16 = 31s.
+const maxAttempts = 6
+
+// defaultRetryBaseDelay is the first backoff interval; each further attempt
+// doubles it. A field on the client overrides it so tests need not wait.
+const defaultRetryBaseDelay = 1 * time.Second
+
 // Client is an OpenAI-compatible AI client.
 type Client struct {
 	BaseURL     string
@@ -25,6 +38,29 @@ type Client struct {
 	Model       string
 	Temperature float64
 	HTTPClient  *http.Client
+	// retryBaseDelay overrides the first backoff interval; zero means
+	// defaultRetryBaseDelay. It exists so tests need not wait whole seconds.
+	retryBaseDelay time.Duration
+}
+
+// retryableError marks an AI API failure worth retrying — a 429, a transient
+// 5xx, or a network error. Non-retryable errors are returned directly.
+type retryableError struct{ err error }
+
+func (e retryableError) Error() string { return e.err.Error() }
+func (e retryableError) Unwrap() error { return e.err }
+
+// parseRetryAfter reads a Retry-After header in delta-seconds form and returns
+// it as a duration, or 0 when the header is absent or unparsable.
+func parseRetryAfter(h http.Header) time.Duration {
+	v := strings.TrimSpace(h.Get("Retry-After"))
+	if v == "" {
+		return 0
+	}
+	if secs, err := strconv.Atoi(v); err == nil && secs >= 0 {
+		return time.Duration(secs) * time.Second
+	}
+	return 0
 }
 
 // NewClient creates a new AI client.
@@ -101,34 +137,9 @@ func (c *Client) generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		endpoint += "?api-version=2024-10-21"
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	respBody, err := c.postWithRetry(ctx, endpoint, isAzure, body)
 	if err != nil {
 		return nil, err
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	if isAzure {
-		httpReq.Header.Set("api-key", c.APIKey)
-	} else {
-		httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
-	}
-
-	client := c.HTTPClient
-	if client == nil {
-		client = http.DefaultClient
-	}
-
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("AI API error %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var apiResp struct {
@@ -154,6 +165,76 @@ func (c *Client) generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		SeedSQL:    generated.SeedSQL,
 		TestScript: generated.TestScript,
 	}, nil
+}
+
+// postWithRetry sends the chat-completion request, retrying 429 and transient
+// 5xx/network failures with exponential backoff (honouring a Retry-After header
+// when present) up to maxAttempts.
+func (c *Client) postWithRetry(ctx context.Context, endpoint string, isAzure bool, body []byte) ([]byte, error) {
+	base := c.retryBaseDelay
+	if base <= 0 {
+		base = defaultRetryBaseDelay
+	}
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		respBody, retryAfter, err := c.post(ctx, endpoint, isAzure, body)
+		if err == nil {
+			return respBody, nil
+		}
+		lastErr = err
+		if !errors.As(err, &retryableError{}) || attempt == maxAttempts {
+			return nil, err
+		}
+		delay := retryAfter
+		if delay <= 0 {
+			delay = base << (attempt - 1)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(delay):
+		}
+	}
+	return nil, lastErr
+}
+
+// post performs one chat-completion call. A 429 or transient 5xx/network error
+// is returned as a retryableError, with a Retry-After hint when the service
+// supplies one.
+func (c *Client) post(ctx context.Context, endpoint string, isAzure bool, body []byte) ([]byte, time.Duration, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	if isAzure {
+		httpReq.Header.Set("api-key", c.APIKey)
+	} else {
+		httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
+	}
+
+	client := c.HTTPClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, 0, retryableError{err} // connection resets and timeouts are transient
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, 0, retryableError{err}
+	}
+	if resp.StatusCode != http.StatusOK {
+		apiErr := fmt.Errorf("AI API error %d: %s", resp.StatusCode, string(respBody))
+		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			return nil, parseRetryAfter(resp.Header), retryableError{apiErr}
+		}
+		return nil, 0, apiErr
+	}
+	return respBody, 0, nil
 }
 
 // sqlInPythonViolation returns a short description of the first SQL-in-Python

@@ -28,12 +28,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	platformv1alpha1 "github.com/ihsenalaya/preview-operator/api/v1alpha1"
+	"github.com/ihsenalaya/preview-operator/internal/evidence"
 )
 
 const (
-	previewFinalizer  = "platform.company.io/finalizer"
+	previewFinalizer   = "platform.company.io/finalizer"
 	labelManagedBy     = "platform.company.io/managed-by"
-	labelPreviewName  = "platform.company.io/preview-name"
+	labelPreviewName   = "platform.company.io/preview-name"
 	postgresSecretName = "postgres-credentials"
 	postgresHost       = "postgres"
 	migrationJobName   = "postgres-migrate"
@@ -57,6 +58,15 @@ type PreviewReconciler struct {
 	KubeClient        kubernetes.Interface
 	PreviewDomain     string // base domain, e.g. "preview.ihsenalaya.xyz"
 	IstioEnabled      bool   // auto-detected at startup
+
+	// EvidenceCollection enables operator-captured failure provenance. When false
+	// (EVIDENCE_COLLECTION=disabled) the operator runs without persisting
+	// FailureReports — the overhead baseline measured by RQ5.
+	EvidenceCollection bool
+	// EvidenceLevel selects the evidence configuration C1..C5 (EVIDENCE_LEVEL),
+	// the comparison configurations of the controlled evaluation (RQ2). Empty
+	// means the full default capability (evidence.DefaultLevel).
+	EvidenceLevel evidence.Level
 }
 
 // +kubebuilder:rbac:groups=platform.company.io,resources=previews,verbs=get;list;watch;create;update;patch;delete
@@ -170,10 +180,24 @@ func (r *PreviewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return r.reconcileProvisioning(ctx, req.NamespacedName, preview, nsName)
 }
 
+// provisioningDeadline bounds how long a Preview may stay in Provisioning. A
+// fault that leaves a pod permanently un-pullable or a dependency that never
+// becomes ready would otherwise keep the Preview reconciling forever and no
+// FailureReport would ever be produced. Past the deadline the Preview is failed.
+const provisioningDeadline = 15 * time.Minute
+
 // reconcileProvisioning handles child resource reconciliation once the Preview is approved and ready.
 // Extracted from Reconcile to keep cyclomatic complexity manageable.
 func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types.NamespacedName, preview *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	// Provisioning deadline backstop — fail a Preview stuck in Provisioning
+	// rather than reconcile it indefinitely (so a FailureReport is captured).
+	if preview.Status.Phase == platformv1alpha1.PhaseProvisioning &&
+		time.Since(preview.CreationTimestamp.Time) > provisioningDeadline {
+		return r.setFailedStatus(ctx, preview, "ProvisioningTimeout",
+			fmt.Errorf("preview did not become ready within %s", provisioningDeadline))
+	}
 
 	if err := r.reconcileNamespace(ctx, preview, nsName); err != nil {
 		return r.setFailedStatus(ctx, preview, "NamespaceFailed", err)
@@ -331,6 +355,14 @@ func (r *PreviewReconciler) reconcileProvisioning(ctx context.Context, key types
 func (r *PreviewReconciler) reconcileDatabaseWait(ctx context.Context, preview *platformv1alpha1.Preview, nsName string) (ctrl.Result, error) {
 	ready, reason, err := r.reconcileDatabase(ctx, preview, nsName)
 	if err != nil {
+		// An optimistic-concurrency conflict is a normal, retryable controller
+		// error — not a database failure. Requeue instead of marking the
+		// Preview Failed (which would also capture a premature FailureReport
+		// while the migration Job is still running). Mirrors the guard already
+		// applied to the deployment, service and exposure reconcilers.
+		if errors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		}
 		return r.setFailedStatus(ctx, preview, reason, err)
 	}
 	if ready {
@@ -944,7 +976,7 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 			return err
 		}
 		deploy.Labels = map[string]string{
-			labelManagedBy:    "preview-operator",
+			labelManagedBy:   "preview-operator",
 			labelPreviewName: c.Name,
 		}
 		progressDeadlineSeconds := int32(60)
@@ -1004,7 +1036,6 @@ func (r *PreviewReconciler) reconcileSingleDeployment(ctx context.Context, c *pl
 	})
 	return err
 }
-
 
 // reconcileServiceDeployments creates/updates one Deployment per entry in spec.services.
 func (r *PreviewReconciler) reconcileServiceDeployments(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
@@ -1161,8 +1192,6 @@ func (r *PreviewReconciler) reconcileMultiServices(ctx context.Context, c *platf
 	return nil
 }
 
-
-
 func (r *PreviewReconciler) handleAppAvailability(ctx context.Context, c *platformv1alpha1.Preview, nsName string) (bool, ctrl.Result, error) {
 	deployNames := []string{"app"}
 	if multiServiceEnabled(c) {
@@ -1308,7 +1337,6 @@ func (r *PreviewReconciler) reconcileService(ctx context.Context, c *platformv1a
 	return err
 }
 
-
 // reconcilePostgresSecret creates a Secret with unique credentials the first time only.
 // If the Secret already exists its data is never overwritten, preserving credentials across reconcile loops.
 func (r *PreviewReconciler) reconcilePostgresSecret(ctx context.Context, c *platformv1alpha1.Preview, nsName string) error {
@@ -1337,7 +1365,7 @@ func (r *PreviewReconciler) reconcilePostgresSecret(ctx context.Context, c *plat
 			Name:      postgresSecretName,
 			Namespace: nsName,
 			Labels: map[string]string{
-				labelManagedBy:    "preview-operator",
+				labelManagedBy:   "preview-operator",
 				labelPreviewName: c.Name,
 			},
 			Annotations: map[string]string{
@@ -1381,7 +1409,7 @@ func (r *PreviewReconciler) reconcilePostgresDeployment(ctx context.Context, c *
 		}
 		deploy.Labels = map[string]string{
 			labelManagedBy:                "preview-operator",
-			labelPreviewName:             c.Name,
+			labelPreviewName:              c.Name,
 			"app.kubernetes.io/component": "database",
 		}
 		deploy.Spec = appsv1.DeploymentSpec{
@@ -1395,7 +1423,7 @@ func (r *PreviewReconciler) reconcilePostgresDeployment(ctx context.Context, c *
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app":                         "postgres",
-						labelPreviewName:             c.Name,
+						labelPreviewName:              c.Name,
 						labelManagedBy:                "preview-operator",
 						"app.kubernetes.io/component": "database",
 					},
@@ -1558,8 +1586,44 @@ func (r *PreviewReconciler) reconcileDatabaseTask(ctx context.Context, c *platfo
 		}
 	}
 
+	// A Job whose pod cannot pull its image (or has a bad image/config) never
+	// reaches JobFailed — the pod sits Waiting forever. Detect that and fail
+	// the task so the Preview does not hang in Provisioning.
+	if reason := r.jobPodImageError(ctx, nsName, jobName); reason != "" {
+		r.setDatabaseTaskStatus(c, taskName, phaseFailed)
+		return false, fmt.Errorf("database %s job %s/%s cannot start: %s", taskName, nsName, jobName, reason)
+	}
+
 	r.markDatabaseTaskRunning(c, taskName, conditionType, jobName)
 	return false, nil
+}
+
+// imagePullWaitReasons are container "waiting" reasons that do not recover on
+// their own; a Job whose pod is in one of them never reaches JobFailed.
+var imagePullWaitReasons = map[string]bool{
+	"ImagePullBackOff":           true,
+	"InvalidImageName":           true,
+	"CreateContainerConfigError": true,
+}
+
+// jobPodImageError returns a description when the Job's pod is stuck in an
+// unrecoverable image/config waiting state, or "" otherwise.
+func (r *PreviewReconciler) jobPodImageError(ctx context.Context, nsName, jobName string) string {
+	pods := &corev1.PodList{}
+	if err := r.List(ctx, pods, client.InNamespace(nsName),
+		client.MatchingLabels{"job-name": jobName}); err != nil {
+		return ""
+	}
+	for i := range pods.Items {
+		st := pods.Items[i].Status
+		statuses := append(append([]corev1.ContainerStatus{}, st.InitContainerStatuses...), st.ContainerStatuses...)
+		for _, cs := range statuses {
+			if w := cs.State.Waiting; w != nil && imagePullWaitReasons[w.Reason] {
+				return w.Reason + ": " + w.Message
+			}
+		}
+	}
+	return ""
 }
 
 func (r *PreviewReconciler) databaseTaskJob(c *platformv1alpha1.Preview, nsName, taskName, jobName string, task *platformv1alpha1.DatabaseTaskSpec) *batchv1.Job {
@@ -1576,7 +1640,7 @@ func (r *PreviewReconciler) databaseTaskJob(c *platformv1alpha1.Preview, nsName,
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "database-task",
 				"platform.company.io/task":    taskName,
 			},
@@ -1588,7 +1652,7 @@ func (r *PreviewReconciler) databaseTaskJob(c *platformv1alpha1.Preview, nsName,
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": taskName,
 					},
 				},
@@ -1704,6 +1768,7 @@ func (r *PreviewReconciler) setFailedStatus(ctx context.Context, c *platformv1al
 		LastTransitionTime: metav1.Now(),
 	})
 	_ = r.Status().Update(ctx, c)
+	r.captureFailureReport(ctx, c)
 	syncGitHubAfterStatus(ctx, r, c, c.Status.URL)
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 }

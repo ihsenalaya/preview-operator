@@ -1,0 +1,138 @@
+This is BibTeX, Version 0.99d (TeX Live 2022/dev/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: article.aux
+The style file: ACM-Reference-Format.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: bibliography.bib
+Database file #2: bibliography-augment.bib
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--empty address in bass_devops_2015
+Warning--no number and no volume in inter_coder_se_2023
+Warning--page numbers missing in both pages and numpages fields in inter_coder_se_2023
+Warning--empty address in beyer_sre_2016
+Warning--empty publisher in brown_gpt3_2020
+Warning--empty address in brown_gpt3_2020
+Warning--page numbers missing in both pages and numpages fields in brown_lmm_2021
+Warning--empty publisher in rcacopilot_2024
+Warning--empty address in rcacopilot_2024
+Warning--page numbers missing in both pages and numpages fields in rcacopilot_2024
+Warning--empty publisher in spell_2016
+Warning--empty address in spell_2016
+Warning--empty publisher in deeplog_2017
+Warning--empty address in deeplog_2017
+Warning--empty address in forsgren_accelerate_2018
+Warning--empty publisher in drain_2017
+Warning--empty address in drain_2017
+Warning--empty publisher in mesos_2011
+Warning--empty address in mesos_2011
+Warning--articleno or eid field, but no numpages field, in ji2023hallucination
+Warning--INFO: reduced pages = [1--38] to numpages = [38]
+Warning--empty publisher in zhang_gpt4_se_replicate_2024
+Warning--empty address in zhang_gpt4_se_replicate_2024
+Warning--page numbers missing in both pages and numpages fields in zhang_gpt4_se_replicate_2024
+Warning--empty publisher in gpt4_vulnerability_2024
+Warning--empty address in gpt4_vulnerability_2024
+Warning--page numbers missing in both pages and numpages fields in gpt4_vulnerability_2024
+Warning--empty publisher in eadro_2023
+Warning--empty address in eadro_2023
+Warning--empty publisher in li_halueval_2023
+Warning--empty address in li_halueval_2023
+Warning--page numbers missing in both pages and numpages fields in li_halueval_2023
+Warning--no number and no volume in liang_helm_2023
+Warning--page numbers missing in both pages and numpages fields in liang_helm_2023
+Warning--empty publisher in manakul_selfcheckgpt_2023
+Warning--empty address in manakul_selfcheckgpt_2023
+Warning--page numbers missing in both pages and numpages fields in manakul_selfcheckgpt_2023
+Warning--empty publisher in pal_2011
+Warning--empty address in pal_2011
+Warning--page numbers missing in both pages and numpages fields in pal_2011
+Warning--empty publisher in rcaeval_2024
+Warning--empty address in rcaeval_2024
+Warning--page numbers missing in both pages and numpages fields in rcaeval_2024
+Warning--empty publisher in schick_toolformer_2023
+Warning--empty address in schick_toolformer_2023
+Warning--page numbers missing in both pages and numpages fields in schick_toolformer_2023
+Warning--empty publisher in omega_2013
+Warning--empty address in omega_2013
+Warning--empty publisher in borg_2015
+Warning--empty address in borg_2015
+Warning--page numbers missing in both pages and numpages fields in borg_2015
+Warning--empty publisher in wang_selfconsistency_2023
+Warning--empty address in wang_selfconsistency_2023
+Warning--page numbers missing in both pages and numpages fields in wang_selfconsistency_2023
+Warning--empty publisher in wei2022cot
+Warning--empty address in wei2022cot
+Warning--page numbers missing in both pages and numpages fields in wei2022cot
+Warning--empty address in wohlin_experimentation
+Warning--empty publisher in microdiag_2021
+Warning--empty address in microdiag_2021
+Warning--page numbers missing in both pages and numpages fields in microdiag_2021
+Warning--empty publisher in microrca_2020
+Warning--empty address in microrca_2020
+Warning--page numbers missing in both pages and numpages fields in microrca_2020
+Warning--page numbers missing in both pages and numpages fields in causalrca_2023
+Warning--empty publisher in openrca_2025
+Warning--empty address in openrca_2025
+Warning--page numbers missing in both pages and numpages fields in openrca_2025
+Warning--empty publisher in yang_hotpotqa_2018
+Warning--empty address in yang_hotpotqa_2018
+Warning--page numbers missing in both pages and numpages fields in yang_hotpotqa_2018
+Warning--empty publisher in yao_tot_2023
+Warning--empty address in yao_tot_2023
+Warning--page numbers missing in both pages and numpages fields in yao_tot_2023
+Warning--empty publisher in yao2023react
+Warning--empty address in yao2023react
+Warning--page numbers missing in both pages and numpages fields in yao2023react
+Warning--no number and no volume in llm_apr_survey_2024
+Warning--page numbers missing in both pages and numpages fields in llm_apr_survey_2024
+Warning--empty publisher in loghub_2023
+Warning--empty address in loghub_2023
+Warning--page numbers missing in both pages and numpages fields in loghub_2023
+You've used 83 entries,
+            5981 wiz_defined-function locations,
+            2016 strings with 46815 characters,
+and the built_in function-call counts, 88574 in all, are:
+= -- 10374
+> -- 3564
+< -- 1
++ -- 1220
+- -- 1261
+* -- 6814
+:= -- 9142
+add.period$ -- 476
+call.type$ -- 83
+change.case$ -- 688
+chr.to.int$ -- 108
+cite$ -- 164
+duplicate$ -- 7466
+empty$ -- 5315
+format.name$ -- 1494
+if$ -- 20469
+int.to.chr$ -- 9
+int.to.str$ -- 1
+missing$ -- 219
+newline$ -- 1126
+num.names$ -- 575
+pop$ -- 3009
+preamble$ -- 1
+purify$ -- 1331
+quote$ -- 0
+skip$ -- 2703
+stack$ -- 0
+substring$ -- 5738
+swap$ -- 558
+text.length$ -- 30
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 2080
+warning$ -- 82
+while$ -- 464
+width$ -- 0
+write$ -- 2009
+(There were 82 warnings)

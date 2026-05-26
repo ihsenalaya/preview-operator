@@ -31,10 +31,10 @@ const (
 	checkpointSaveTaskLabel    = "checkpoint-save"
 	checkpointRestoreTaskLabel = "checkpoint-restore"
 
-	suiteCheckpointName        = "after-seed"
-	suiteCheckpointSaveJob     = "suite-checkpoint-save"
-	suiteRestoreRegressionJob  = "suite-restore-regression"
-	suiteRestoreE2EJob         = "suite-restore-e2e"
+	suiteCheckpointName       = "after-seed"
+	suiteCheckpointSaveJob    = "suite-checkpoint-save"
+	suiteRestoreRegressionJob = "suite-restore-regression"
+	suiteRestoreE2EJob        = "suite-restore-e2e"
 )
 
 var checkpointNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -287,7 +287,7 @@ func (r *PreviewReconciler) storeCheckpointConfigMap(ctx context.Context, c *pla
 		}
 		cm.Labels = map[string]string{
 			labelManagedBy:                "preview-operator",
-			labelPreviewName:             c.Name,
+			labelPreviewName:              c.Name,
 			"app.kubernetes.io/component": "db-checkpoint",
 		}
 		cm.Data = map[string]string{
@@ -309,7 +309,7 @@ func (r *PreviewReconciler) checkpointSaveJob(c *platformv1alpha1.Preview, nsNam
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "db-checkpoint",
 				"platform.company.io/task":    checkpointSaveTaskLabel,
 			},
@@ -321,7 +321,7 @@ func (r *PreviewReconciler) checkpointSaveJob(c *platformv1alpha1.Preview, nsNam
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": checkpointSaveTaskLabel,
 					},
 				},
@@ -375,7 +375,7 @@ func (r *PreviewReconciler) checkpointRestoreJob(c *platformv1alpha1.Preview, ns
 			Namespace: nsName,
 			Labels: map[string]string{
 				labelManagedBy:                "preview-operator",
-				labelPreviewName:             c.Name,
+				labelPreviewName:              c.Name,
 				"app.kubernetes.io/component": "db-checkpoint",
 				"platform.company.io/task":    checkpointRestoreTaskLabel,
 			},
@@ -387,7 +387,7 @@ func (r *PreviewReconciler) checkpointRestoreJob(c *platformv1alpha1.Preview, ns
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelManagedBy:             "preview-operator",
-						labelPreviewName:          c.Name,
+						labelPreviewName:           c.Name,
 						"platform.company.io/task": checkpointRestoreTaskLabel,
 					},
 				},

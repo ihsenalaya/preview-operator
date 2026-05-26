@@ -1,0 +1,7 @@
+Python port vs operator's live rule-grounded diagnoses
+=========================================================
+Total cells checked:          500
+Live diagnosis missing:       0
+Drift (port v1 != live):      0
+Drift: none — the port reproduces the frozen rule engine exactly.
+
