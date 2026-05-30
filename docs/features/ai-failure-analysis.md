@@ -50,6 +50,7 @@ When `tests.phase` flips to `Failed`, the reconciler sets `status.kagent.phase =
 - [Lifecycle & Provisioning](./lifecycle.md) — defines the phase machine; kagent is triggered off the `Failed` test phase within that lifecycle.
 - [Security](./security.md) — the troubleshooter agent inspects the cluster with read-only RBAC and has no secret access; the API key/credentials for reaching the agent stay with the controller.
 - [GitHub Integration](./github-integration.md) — the analysis is delivered by updating the existing test-results PR comment.
+- [MCP Servers & Agent Tools](./mcp-servers.md) — the read-only tools (`k8s_get_pod_logs`, `k8s_get_events`, …) this agent uses; [Customizing AI Prompts](./ai-prompts.md) — where its `systemMessage` lives.
 
 ## Configuration
 
