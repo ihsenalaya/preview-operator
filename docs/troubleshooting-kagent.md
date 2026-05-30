@@ -64,7 +64,7 @@ Sans `changeContext`, le controller ne peut pas passer le contexte à l'agent (l
 → Même vérification que Cause A.
 
 **Cause C — Timeout agent atteint avant que le plan soit rempli**
-Le timeout par défaut est 120s. Si l'agent met plus de temps (LLM lent, MCP lent) :
+Le timeout par défaut est 60s. Si l'agent met plus de temps (LLM lent, MCP lent) :
 ```yaml
 spec:
   testStrategy:
@@ -115,8 +115,8 @@ Le controller appelait directement `triggerTestStrategistAgent()` — une gorout
 
 **Résolution**
 - Supprimé `triggerTestStrategistAgent()` de `internal/controller/kagent.go`
-- Ajouté `k8s/kagent/agents/test-strategist-trigger.yaml` — CronJob externe qui réveille l'agent toutes les 60s
-- Le controller crée le stub TestPlan et attend. Aucun appel HTTP.
+- Le controller crée à la place un Job éphémère par TestPlan via `createTestStrategistTriggerJob()` (`internal/controller/testplan_strategy.go`). Le pod du Job (`curlimages/curl:8.7.1`) fait le POST HTTP vers l'agent puis se termine ; le Job est nettoyé par `ttlSecondsAfterFinished` (5 min).
+- Le controller lui-même ne fait aucun appel HTTP : il crée le stub TestPlan et le Job, puis attend que l'agent remplisse le plan.
 
 ---
 

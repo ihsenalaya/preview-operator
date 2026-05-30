@@ -142,12 +142,22 @@ spec:
 
 ## Controller behavior reference
 
+`detectedImpacts` feeds two consumers with different guarantees:
+
+**Deterministic controller gating** — the controller acts on these directly:
+
 | `detectedImpacts` field | Effect when `false` (and `changeContext` is set) |
 |---|---|
-| `database` | DB not provisioned even if `spec.database.enabled=true` |
-| `apiContract` | Microcks contract tests skipped |
-| `requiresSeedData` | AI seed-data job skipped |
-| `frontend && !backend` | Regression tests skipped |
+| `requiresSeedData` | AI seed-data job skipped (`internal/controller/ai_enrichment.go`) |
+
+**Advisory signals for the AI test-strategist** — the remaining impacts
+(`database`, `apiContract`, `backend`, `frontend`, `requiresContractTests`,
+`requiresRegressionTests`) are passed to the test-strategist agent, which reads
+them — together with `changedFiles` and the raw diff — to choose which suites to
+run. They are **not** hard controller gates: provisioning of the database and
+contract/regression suites is still governed by their own `spec.*` flags
+(`spec.database.enabled`, `spec.testSuite.contractTesting.enabled`, the generated
+`TestPlan`). See [agent-contract.md](agent-contract.md) for how the agent uses them.
 
 ## Backward compatibility
 

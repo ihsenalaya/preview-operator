@@ -4,7 +4,7 @@
 
 The agent is given a `TestPlan` CR in `status.phase=Pending`. It must:
 1. Read the referenced `Preview` and its `spec.changeContext`.
-2. Read recent `ReconcileEvent` resources (last 50 matching file patterns).
+2. Read recent `ReconcileEvent` resources (last 20 in the preview namespace).
 3. Produce a test plan and set `status.phase=Ready`.
 
 The controller then validates the plan and either accepts it or falls back to FullSuite.
@@ -28,9 +28,12 @@ spec.changeContext.changedFiles[]
   .path    → file path relative to repo root
   .type    → database-migration | api-contract | backend | frontend | docs | other
 
-spec.changeContext.diffPatch
-  Raw unified diff (git diff base...head), max 64 KiB.
-  Read this to understand WHAT changed, not just which files.
+spec.changeContext.diffPatchRef
+  Name of a ConfigMap (in the preview namespace) holding the raw unified diff
+  under key "diff.patch". The diff is `git diff base...head`, max 64 KiB.
+  (The classifier first writes spec.changeContext.diffPatch; the controller moves
+  it into this ConfigMap on the first reconcile and clears the inline field.)
+  Read it to understand WHAT changed, not just which files.
   Examples of things only visible in the patch:
   - A new route added to app.py (even if openapi.yaml not updated)
   - A column removed from a migration file
@@ -41,7 +44,9 @@ spec.changeContext.detectedImpacts
   .apiContract        → bool
   .backend            → bool
   .frontend           → bool
-  .requiresSeedData   → bool
+  .requiresSeedData        → bool
+  .requiresContractTests   → bool
+  .requiresRegressionTests → bool
 ```
 
 ### ReconcileEvents (read by listing with label platform.company.io/preview-name)

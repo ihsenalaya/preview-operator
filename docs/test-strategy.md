@@ -248,10 +248,14 @@ spec:
     name: pr-42-f3a8b1
     namespace: preview-pr-42
   selectedTests:
-    - suite: smoke, name: "*"
-    - suite: migration, name: "*"
-    - suite: contract, name: "*"
-    - suite: regression, name: "*"
+    - suite: smoke
+      name: "*"
+    - suite: migration
+      name: "*"
+    - suite: contract
+      name: "*"
+    - suite: regression
+      name: "*"
 status:
   phase: Running
 ```

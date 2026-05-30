@@ -11,8 +11,8 @@ cannot break production environments or other tenants.
 ## What the agent CAN do
 
 ```
-get/list/watch:  previews, testplans, reconcileevents
-create/update:   testplans, testplans/status
+get/list/watch:        previews, testplans, reconcileevents
+create/update/patch:   testplans, testplans/status
 ```
 
 That is all. Enforced by Kubernetes RBAC, not by code trust or agent "good behavior."
@@ -78,7 +78,7 @@ kubectl auth can-i get previews.platform.company.io \
 
 ## Controller ServiceAccount
 
-The controller (`idp-preview-controller`, managed as `manager-role`) has full
+The controller (Deployment and ServiceAccount `controller-manager`, bound to ClusterRole `manager-role`) has full
 reconcile permissions on all new CRDs (TestPlan, TestRun, ReconcileEvent) plus
 the existing workload permissions (Deployment, Job, Service, Namespace, etc.).
 

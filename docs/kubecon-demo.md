@@ -59,6 +59,7 @@
 | AI enrichment before tests | Tests need seeded data; controller gates test suite on AI completion |
 | Sequential job pipeline | Simpler to reason about, easier to observe |
 | kagent for failure analysis | AI-powered root cause — surfaces the actual error, not just "pod crashed" |
+| FailureReport CRD (cluster-scoped) | Durable, PROV-aligned evidence bundle per failure — survives namespace teardown, drives `fp-diagnose`/`fp-score` |
 
 ---
 
@@ -178,11 +179,35 @@ kubectl get preview pr-42 -o jsonpath='{.status.kagent}' | jq .
 # → AI-generated root cause analysis
 ```
 
-### Step 9 — Cleanup (30 sec)
+### Step 9 — Failure provenance (FailureReport CRD) (1 min)
+
+Every failed `Preview` now produces a cluster-scoped `FailureReport` (shortname
+`fr`) that captures a structured, PROV-aligned evidence bundle and **survives
+namespace teardown**:
+
+```bash
+kubectl get failurereports
+# NAME            PHASE       PREVIEW   PR    SUITE       LEVEL   COMPONENT   AGE
+# pr-42-failure   Persisted   pr-42     42    regression  C5      app         1m
+
+kubectl get fr pr-42-failure -o jsonpath='{.status.diagnosis}' | jq .
+kubectl get fr pr-42-failure -o jsonpath='{.status.evidenceItems[*].type}'
+
+# Offline, deterministic diagnosis from the bundle (no network):
+kubectl get fr pr-42-failure -o json | fp-diagnose --engine rule
+```
+
+`fp-diagnose` and `fp-score` ship inside the operator image and as standalone
+binaries. Evidence depth is controlled by the `EVIDENCE_LEVEL` env var (C1–C5,
+default C5 with the provenance graph). See the
+[1.1.0 release notes](../README.md#release-notes--110).
+
+### Step 10 — Cleanup (30 sec)
 
 ```bash
 kubectl delete preview pr-42
 # → finalizer runs → namespace preview-pr-42 deleted → GitHub: inactive
+# → the FailureReport remains (cluster-scoped) for post-mortem
 ```
 
 ---
@@ -213,7 +238,7 @@ Memory footprint (operator pod): 40–70 MB RSS
 
 3. **Checkpoint size capped at ~950 KB** — ConfigMap data limit. PVC-backed checkpoints needed for large datasets.
 
-4. **kagent trigger Job is ephemeral** — if the operator pod restarts before kagent completes, the analysis is lost. A CRD-backed result store would fix this.
+4. **kagent trigger Job is ephemeral** — if the operator pod restarts before kagent completes, the live in-status analysis is lost. The durable record is now the cluster-scoped `FailureReport` CRD (1.1.0), which persists the evidence bundle and diagnosis across restarts and namespace teardown.
 
 5. **TestPlan CRD is eventually consistent** — the controller requeues every 10s to check TestPlan status. A Watch on TestPlan events would be faster.
 
@@ -247,6 +272,7 @@ Memory footprint (operator pod): 40–70 MB RSS
 - TTL auto-expiry (cluster hygiene)
 - NetworkPolicy namespace isolation
 - Pod Security Standards labels (baseline enforce + restricted warn)
+- Durable failure provenance — cluster-scoped `FailureReport` CRD with a PROV-aligned evidence bundle (shipped in 1.1.0; replaces the former "kagent result store" gap)
 
 ### Would add or change
 1. **GitHub App instead of PAT** — 1-hour install tokens, scoped, auto-rotated
@@ -258,7 +284,7 @@ Memory footprint (operator pod): 40–70 MB RSS
 7. **Structured audit log** — emit audit events for all CR lifecycle transitions
 8. **PVC-backed checkpoints** — remove the 950 KB ConfigMap size limit
 9. **TestPlan Watch** — replace polling with a Watch on TestPlan events for faster test feedback
-10. **kagent result store** — persist kagent analysis in a CRD for durability across operator restarts
+10. ~~**kagent result store** — persist kagent analysis in a CRD for durability across operator restarts~~ — ✅ shipped in 1.1.0 as the `FailureReport` CRD
 
 ---
 
@@ -280,6 +306,7 @@ Memory footprint (operator pod): 40–70 MB RSS
 | Smoke tests | Production-ready | Embedded in operator |
 | Regression tests | Production-ready | Requires `tests/regression.py` in app image |
 | E2E (Playwright) | Production-ready | Requires `tests/e2e.py` in app image |
-| kagent failure analysis | Demo-ready | No persistent result store |
+| kagent failure analysis | Demo-ready | Live root cause in `status.kagent` |
+| FailureReport provenance (1.1.0) | Production-ready | Cluster-scoped CRD; durable evidence bundle + `fp-diagnose`/`fp-score` |
 | Metrics | Not implemented | Prometheus scrape endpoint missing |
 | Image signing | Not implemented | No Cosign verification |

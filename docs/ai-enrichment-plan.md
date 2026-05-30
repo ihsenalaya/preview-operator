@@ -1,5 +1,20 @@
 # Plan d'implémentation — AI Enrichment pour Preview
 
+> **Statut : livré.** Ce document était le plan d'implémentation ; la fonctionnalité
+> est désormais en production. Le code de référence fait foi :
+> - Types CRD : [`api/v1alpha1/preview_types.go`](../api/v1alpha1/preview_types.go) (`AIEnrichmentSpec`, `AIEnrichmentTaskSpec`, `AIEnrichmentStatus`, `SecretKeyRef`)
+> - Client IA : [`internal/ai/client.go`](../internal/ai/client.go)
+> - Logique : [`internal/controller/ai_enrichment.go`](../internal/controller/ai_enrichment.go), câblée dans [`internal/controller/preview_controller.go`](../internal/controller/preview_controller.go) (`PreviewReconciler.AIAPIBaseURL` / `AIHTTPClient`)
+> - Commentaire PR : [`internal/controller/github.go`](../internal/controller/github.go)
+> - Commande Copilot : [`internal/extension/commands.go`](../internal/extension/commands.go)
+>
+> **Écarts entre ce plan et le code livré** (le code prime) :
+> - `AIEnrichmentTaskSpec.Enabled` a pour défaut **`true`** (pas `false`) : quand AI enrichment est activé, seed et tests tournent sauf si on les désactive explicitement.
+> - `AIEnrichmentSpec` a gagné trois champs : `githubTokenSecretRef` (token GitHub dédié pour récupérer le diff, fallback sur `spec.github.tokenSecretRef`), `temperature` (string décimale dans [0,2], défaut `"0.2"`) et `rerunRequested` (déclenche un rerun IA-seul, voir ÉTAPE 12).
+> - `AIEnrichmentStatus` a gagné `rerunOnly` (bool, vrai pendant un rerun IA-seul).
+> - La commande `@preview enrich` est un **alias de `@preview retest-ai`** : elle positionne `spec.aiEnrichment.rerunRequested = true` et laisse le controller orchestrer le replay (DB + régénération + tests), au lieu de remettre le statut à zéro manuellement.
+> - Le commentaire PR utilise des libellés texte (`SUCCESS` / `FAIL` / `RUN` / `SKIP`) et non des émojis (`statusIcon` dans `github.go`).
+
 ## Objectif
 
 Après le déploiement réussi d'un preview environment, générer automatiquement via l'IA :
@@ -134,7 +149,9 @@ type AIEnrichmentSpec struct {
 // AIEnrichmentTaskSpec configures one AI enrichment task (seed or tests).
 type AIEnrichmentTaskSpec struct {
     // Enabled controls whether this task runs.
-    // +kubebuilder:default=false
+    // When omitted, the task runs by default while AI enrichment is enabled.
+    // Explicitly set it to false to disable a task while keeping AI enrichment enabled.
+    // +kubebuilder:default=true
     Enabled bool `json:"enabled,omitempty"`
 
     // Image is the container image used to run the task.
