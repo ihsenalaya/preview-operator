@@ -56,7 +56,7 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 
 ## Table of Contents
 
-0. [Release notes — 1.0.48](#release-notes--1048)
+0. [Release notes — 1.1.0](#release-notes--110)
 1. [Feature Matrix](#1-feature-matrix)
 2. [General Architecture](#2-general-architecture)
    - [Namespace Security — NetworkPolicy & Pod Security Standards](#namespace-security--networkpolicy--pod-security-standards)
@@ -75,13 +75,145 @@ The operator does **not** watch GitHub pull requests. It only reconciles `Previe
 15. [Smart Diagnostics](#15-smart-diagnostics)
 16. [kagent — AI Failure Analysis](#16-kagent--ai-failure-analysis)
 17. [AI Test Strategist — Diff-Driven Test Selection](#17-ai-test-strategist--diff-driven-test-selection)
-18. [Copilot Extension](#18-copilot-extension)
-19. [Complete CR Reference](#19-complete-cr-reference)
-20. [Status Fields Reference](#20-status-fields-reference)
-21. [Helm Values Reference](#21-helm-values-reference)
-22. [Development & Release](#22-development--release)
-23. [Debugging & Troubleshooting](#23-debugging--troubleshooting)
-24. [Security](#24-security)
+18. [Failure Provenance — FailureReport CRD & fp-diagnose / fp-score](#18-failure-provenance--failurereport-crd--fp-diagnose--fp-score)
+19. [Copilot Extension](#19-copilot-extension)
+20. [Complete CR Reference](#20-complete-cr-reference)
+21. [Status Fields Reference](#21-status-fields-reference)
+22. [Helm Values Reference](#22-helm-values-reference)
+23. [Development & Release](#23-development--release)
+24. [Debugging & Troubleshooting](#24-debugging--troubleshooting)
+25. [Security](#25-security)
+
+---
+
+## Release notes — 1.1.0
+
+Version 1.1.0 ships the **failure-provenance** capability: the operator now
+captures a structured, auditable evidence bundle for every failed preview and
+preserves it past namespace teardown. The bundle materialises a W3C
+PROV-aligned graph linking the change context, the preview resources, the
+captured evidence, and the diagnosis. Two new CLIs (`fp-diagnose`,
+`fp-score`) consume the bundle for offline diagnosis and scoring.
+
+### New CRD — `FailureReport` (cluster-scoped, shortname `fr`)
+
+Every failed `Preview` now produces a `FailureReport` in the same cluster.
+Being **cluster-scoped** it survives deletion of the preview namespace —
+the audit trail is no longer lost when the preview is torn down.
+
+```bash
+kubectl get failurereports
+# NAME                PHASE       PREVIEW   PR    SUITE       LEVEL   COMPONENT        AGE
+# pr-42-failure       Persisted   pr-42     42    regression  C5      app              2m
+
+kubectl get fr pr-42-failure -o jsonpath='{.status.diagnosis}' | jq .
+kubectl get fr pr-42-failure -o jsonpath='{.status.evidenceItems[*].type}'
+```
+
+Each report carries:
+- `evidenceItems[]` — typed evidence (`GitDiff`, `ChangedFile`,
+  `KubernetesEvent`, `PodLog`, `JobLog`, `TestResult`, `TraceSpan`,
+  `Metric`, `PreviewCondition`, `ReconcileEvent`). IDs are deterministic
+  → idempotent re-reconciliation.
+- `diagnosis` — probable cause, `component`, `category` (one of `database`,
+  `configuration`, `infrastructure`, `application`, `observability`,
+  `test-reliability`, `unknown`), `confidence`, and `evidenceRefs` that
+  must each point to an existing `evidenceItem.id` (grounding constraint).
+- `provenanceGraph` — W3C PROV nodes/edges (`entity`, `activity`, `agent`)
+  linking the PR, the preview, the evidence, and the diagnosis. Only
+  populated at evidence level C5.
+- `collectionDurationMicros`, `collectionAllocBytes`, `bundleSizeBytes` —
+  in-process collection overhead (sub-millisecond, typically a few KB).
+- `preservedAfterTeardown: true` once the namespace has been deleted.
+
+### Evidence levels (`EVIDENCE_LEVEL` env var)
+
+The collector emits the same `FailureReport` shape at five comparison
+configurations. The operator captures C5 once; downstream tools can
+down-sample to a lower level at diagnosis time.
+
+| Level | Content |
+|-------|---------|
+| `C1` | pod/job logs only |
+| `C2` | logs + Kubernetes events |
+| `C3` | logs + events + test results |
+| `C4` | full evidence bundle (all collectors) |
+| `C5` (default) | full bundle **plus** the provenance graph |
+
+```bash
+# Turn evidence capture off entirely (RQ5 overhead baseline)
+kubectl set env deployment/preview-operator \
+  EVIDENCE_COLLECTION=disabled \
+  -n preview-operator-system
+
+# Set a specific level
+kubectl set env deployment/preview-operator \
+  EVIDENCE_LEVEL=C4 \
+  -n preview-operator-system
+```
+
+### Provisioning deadline
+
+A preview that stays in `Provisioning` for more than **15 minutes** is now
+failed automatically with reason `ProvisioningTimeout`. This guarantees a
+`FailureReport` is produced even for previews that would otherwise
+reconcile forever (image-pull stuck, dependency never ready, etc.).
+
+### New CLIs — `fp-diagnose` and `fp-score`
+
+Both are shipped with the operator image and are also published as
+standalone binaries.
+
+```bash
+# Diagnose offline (deterministic, no network)
+kubectl get fr pr-42-failure -o json | fp-diagnose --engine rule
+
+# Diagnose with an LLM (OpenAI-compatible endpoint)
+fp-diagnose --report report.json --engine llm \
+  --mode grounded --model gpt-4o-mini
+
+# Score a run against the scenarios.yaml ground truth
+fp-score --report report.json --result diag.json --scenario F1 \
+         --run-id F1-C4-003 --cluster-type aks
+fp-score --csv-header                # print the columns and exit
+```
+
+| Engine | Mode | What it does |
+|--------|------|---------------|
+| `rule` (default) | `grounded` | Deterministic offline rules; every cited evidence ID must exist in the bundle |
+| `rule` | `freeform` | Same rules with the grounding constraint disabled (ablation baseline) |
+| `llm` | `grounded` | LLM-backed diagnosis where cited IDs are post-validated |
+| `llm` | `freeform` | LLM-backed diagnosis with no grounding constraint |
+
+### Other 1.1.0 changes
+
+- Operator-captured app-pod logs now fall back to the **previous container
+  instance** when the current pod has crashed — diagnostics no longer come
+  up empty on `CrashLoopBackOff`.
+- Migration-rule diagnoser tightened: token-aware match avoids the
+  over-match defect observed in 1.0.x.
+- AI enrichment retries `429 Too Many Requests` with exponential backoff;
+  AI seed enabled regardless of `changeContext` heuristic when an explicit
+  `seed.enabled: true` is set (continuation of the 1.0.46 fix).
+- DB reconcile conflict path requeues instead of failing — fewer spurious
+  `Failed` previews under contention.
+- New ClusterRole verbs: `failurereports`,
+  `failurereports/status` (`get;list;watch;create;update;patch;delete`).
+
+### Upgrade
+
+```bash
+kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
+kubectl apply -f charts/preview-operator/crds/platform.company.io_failurereports.yaml
+helm upgrade preview-operator ./charts/preview-operator \
+  --namespace preview-operator-system \
+  --set image.tag=1.1.0 --reuse-values
+kubectl -n preview-operator-system rollout status deployment/preview-operator --timeout=120s
+```
+
+> **Apply the new `failurereports` CRD before rolling the operator** —
+> if the deployment starts first it will log `no kind "FailureReport"`
+> errors until the CRD is admitted.
 
 ---
 
@@ -211,6 +343,9 @@ kubectl -n preview-operator-system rollout status deployment/preview-extension -
 | Copilot Extension commands | sidecar server | optional |
 | **NetworkPolicy per namespace** | always on | deny cross-PR ingress; allow ingress-nginx + istio-system + intra-pod |
 | **Pod Security Standards labels** | always on | `enforce: baseline`, `warn: restricted` |
+| **FailureReport CRD** (cluster-scoped, survives teardown) | `EVIDENCE_COLLECTION` env | `enabled` |
+| **Evidence level (C1..C5)** | `EVIDENCE_LEVEL` env | `C5` (full + provenance graph) |
+| **Provisioning deadline backstop** | always on | 15 min → `Failed` with `ProvisioningTimeout` |
 
 ---
 
@@ -564,10 +699,10 @@ has `read:packages`). CRDs are bundled in the chart and applied on first install
 helm registry login ghcr.io -u <github-user>   # PAT with read:packages
 
 helm install preview-operator oci://ghcr.io/ihsenalaya/charts/preview-operator \
-  --version 1.0.48 \
+  --version 1.1.0 \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.48 \
+  --set image.tag=1.1.0 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -585,10 +720,13 @@ Build the image locally and load it into Kind (no registry push needed for local
 ```bash
 # 1. Build
 cd preview-operator
-docker build -t ghcr.io/ihsenalaya/preview-operator:1.0.48 .
+docker build -t ghcr.io/ihsenalaya/preview-operator:1.1.0 .
 
 # 2. Load into Kind
-kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.0.48
+kind load docker-image ghcr.io/ihsenalaya/preview-operator:1.1.0
+
+# Also apply the new FailureReport CRD (added in 1.1.0)
+kubectl apply -f charts/preview-operator/crds/platform.company.io_failurereports.yaml
 
 # 3. Apply CRD manually (Helm does not update CRDs on upgrade)
 kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
@@ -597,7 +735,7 @@ kubectl apply -f charts/preview-operator/crds/platform.company.io_previews.yaml
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.48 \
+  --set image.tag=1.1.0 \
   --set previewDomain=preview.ihsenalaya.xyz \
   --set "ai.apiURL=https://<AOAI_RESOURCE>.openai.azure.com/openai/deployments/gpt-4o-mini"
 
@@ -611,7 +749,7 @@ kubectl get crd previews.platform.company.io
 helm install preview-operator ./charts/preview-operator \
   --namespace preview-operator-system \
   --create-namespace \
-  --set image.tag=1.0.48 \
+  --set image.tag=1.1.0 \
   --set webhook.enabled=false
 
 ```
@@ -2442,7 +2580,269 @@ kubectl get preview pr-27 -o jsonpath='{.status.testPlanResolution}' | jq .
 
 ---
 
-## 18. Copilot Extension
+## 18. Failure Provenance — FailureReport CRD & fp-diagnose / fp-score
+
+The operator captures a typed, addressable evidence bundle for every failed
+preview and persists it as a cluster-scoped `FailureReport`. The report
+survives the teardown of the preview namespace — diagnostics remain available
+even after `kubectl delete preview`. The bundle is structured according to
+the W3C PROV model so a downstream diagnostic step (rule-based or LLM) can
+cite specific evidence IDs.
+
+### Architecture
+
+```
+Preview pr-42 reconciles → fault detected (any setFailedStatus or test failure)
+       │
+       ▼
+captureFailureReport(preview, level)
+   ├── evidence/collectors gather:
+   │     • Git diff + changed files       (EvidenceTypeGitDiff, ChangedFile)
+   │     • Kubernetes events (Warning)    (EvidenceTypeKubernetesEvent)
+   │     • Pod / job stdout + previous instance logs (EvidenceTypePodLog, JobLog)
+   │     • Test results (PASS/FAIL lines) (EvidenceTypeTestResult)
+   │     • OTel trace spans               (EvidenceTypeTraceSpan)
+   │     • Metric scalars                 (EvidenceTypeMetric)
+   │     • PreviewCondition + ReconcileEvent
+   │
+   ├── redact.go strips known secret patterns
+   │
+   ├── evidence/provenance.go builds a W3C PROV graph linking
+   │   PR → preview → namespace → evidence → diagnosis  (C5 only)
+   │
+   └── controller/failurereport.go EnsureFailureReport()
+       create-or-update of FailureReport "<preview-name>-failure"
+       Owner: NOT set (must survive preview teardown)
+       Phase: Pending → Collecting → Captured → Persisted
+              On namespace delete: PreservedAfterTeardown=true
+```
+
+### Evidence levels (`EVIDENCE_LEVEL`)
+
+The collector ships five comparison configurations. The operator captures
+C5 once; lower levels are obtained by filtering the bundle at diagnosis time
+(no operator restart required).
+
+| Level | Evidence types kept | Provenance graph |
+|-------|---------------------|------------------|
+| `C1` | `PodLog`, `JobLog` | — |
+| `C2` | C1 + `KubernetesEvent` | — |
+| `C3` | C2 + `TestResult` | — |
+| `C4` | all collectors | — |
+| **`C5`** (default) | all collectors | yes (`status.provenanceGraph`) |
+
+Set on the operator Deployment:
+
+```bash
+# Turn evidence capture off entirely (RQ5 overhead baseline)
+kubectl set env deployment/preview-operator \
+  EVIDENCE_COLLECTION=disabled \
+  -n preview-operator-system
+
+# Or scope to a lower level
+kubectl set env deployment/preview-operator EVIDENCE_LEVEL=C3 \
+  -n preview-operator-system
+```
+
+> These two env vars are not yet exposed through `values.yaml` — set them
+> with `kubectl set env` (above) or add them to `extraEnv` in your own
+> values fork.
+
+### FailureReport — full shape
+
+```yaml
+apiVersion: platform.company.io/v1alpha1
+kind: FailureReport
+metadata:
+  name: pr-42-failure          # deterministic — re-reconciliation is idempotent
+spec:
+  previewRef:
+    apiVersion: platform.company.io/v1alpha1
+    kind: Preview
+    name: pr-42
+  namespace: preview-pr-42     # may already be deleted
+  prNumber: 42
+  commitSHA: 645d2166f2d1d32c0ef9561e6cf9b56fad519af8
+  failedSuite: regression      # empty when not test-related
+  failedTest: test_order_stock
+status:
+  phase: Persisted             # Pending | Collecting | Captured | Persisted | Failed
+  failureDetectedAt: "2026-05-26T11:14:32Z"
+  diagnosisAvailableAt: "2026-05-26T11:14:33Z"
+  timeToDiagnosisMillis: 1024
+  evidenceLevel: C5
+  collectionDurationMicros: 4823
+  collectionAllocBytes: 213504
+  collectionAllocCount: 1872
+  bundleSizeBytes: 18432
+  evidenceSummary: "Migration job failed; 1 backend pod CrashLoopBackOff; 5 events."
+  preservedAfterTeardown: false        # flips to true after namespace teardown
+  evidenceItems:
+    - id: gitdiff-645d2166-app.py
+      type: GitDiff
+      source: github-pr-files
+      resource: app.py
+      message: "@@ -42,0 +43 @@ def get_products():\n+    @app.route(...)"
+      relevance: high
+      redacted: false
+    - id: joblog-postgres-migrate
+      type: JobLog
+      source: kube-podlogs
+      resource: Job/postgres-migrate
+      message: "psycopg.errors.DuplicateColumn: column 'status' already exists"
+      relevance: high
+    - id: event-svc-backend-imagepull
+      type: KubernetesEvent
+      source: kube-events
+      resource: Pod/svc-backend-67b6c
+      message: "Back-off pulling image \"ghcr.io/.../sha-deadbeef\""
+      timestamp: "2026-05-26T11:13:55Z"
+      relevance: high
+  diagnosis:
+    probableCause: "Migration adds 'status' column already present in checkpoint"
+    component: migration
+    category: database
+    confidence: high
+    evidenceRefs: [joblog-postgres-migrate, gitdiff-645d2166-app.py]
+    recommendations:
+      - "Make the migration idempotent (IF NOT EXISTS)"
+      - "Drop the column in the prior migration before re-adding"
+  provenanceGraph:
+    nodes:
+      - { id: pr-42,      kind: entity,   type: PullRequest }
+      - { id: preview-42, kind: entity,   type: Preview }
+      - { id: collector,  kind: agent,    type: PreviewOperator }
+      - { id: diag-42,    kind: activity, type: Diagnosis }
+    edges:
+      - { from: preview-42, to: pr-42,    relation: wasDerivedFrom }
+      - { from: diag-42,    to: collector, relation: wasAssociatedWith }
+```
+
+### Diagnosis rules — categories supported
+
+| Category | Rule | Detects |
+|----------|------|---------|
+| `database` | `ruleInvalidMigration` | SQL errors in `postgres-migrate` logs (duplicate column, FK violation, syntax) |
+| `database` | `ruleDBReadiness` | Pod waiting on `nc -z postgres` past readiness deadline |
+| `infrastructure` | `ruleImagePull` | `ErrImagePull` / `ImagePullBackOff` events on app or service pods |
+| `configuration` | `ruleMissingConfig` | `CreateContainerConfigError` or env var missing in pod spec |
+| `infrastructure` | `ruleServiceSelector` | Service has 0 endpoints while pods are Ready |
+| `application` | `ruleContractBreak` | Microcks failure parsed in test output |
+| `observability` | (telemetry collectors absent) | OTel auto-instrumentation not effective |
+| `application` | (smoke-tests stderr) | 5xx from `/healthz` or `/api/products` |
+| `test-reliability` | `ruleLatencyTimeout` | Playwright `TimeoutError` / `wait_for` |
+| `unknown` | fallback | No rule hit — fp-diagnose returns empty diagnosis |
+
+Each rule output sets `diagnosis.evidenceRefs` to the IDs that triggered it,
+so the grounding constraint can be validated mechanically.
+
+### `fp-diagnose` — offline diagnostic harness
+
+```bash
+# Print the report's diagnosis using the rule engine (no network)
+kubectl get fr pr-42-failure -o json | fp-diagnose --engine rule
+
+# Use an LLM with grounding (every cited ID must exist in the bundle)
+fp-diagnose --report report.json --engine llm --mode grounded \
+  --model gpt-4o-mini --ai-base-url $AI_API_URL --ai-api-key $AI_API_KEY
+
+# Freeform LLM (ablation — no grounding constraint, RQ4 baseline)
+fp-diagnose --report report.json --engine llm --mode freeform
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--report` | `-` (stdin) | Path to a `FailureReport` JSON |
+| `--engine` | `rule` | `rule` (offline) or `llm` |
+| `--mode` | `grounded` | `grounded` validates `evidenceRefs` against bundle IDs; `freeform` does not |
+| `--model` | `gpt-4o-mini` | LLM model name (engine=llm) |
+| `--ai-base-url` | `$AI_API_URL` | OpenAI-compatible endpoint |
+| `--ai-api-key` | `$AI_API_KEY` / `$OPENAI_API_KEY` | API key |
+
+The rule engine is fully reproducible (no network, no clock dependency).
+Two reports with identical content yield byte-identical diagnoses.
+
+### `fp-score` — scoring against ground truth
+
+`fp-score` reads a `FailureReport` and the diagnosis from `fp-diagnose`,
+looks up the scenario ground truth in `experiments/failure-provenance/scenarios.yaml`,
+and emits one CSV row.
+
+```bash
+fp-score --csv-header        # print the columns once
+fp-score \
+  --report report.json --result diag.json \
+  --scenario F1 --run-id F1-C4-003 --cluster-type aks \
+  --namespace-deleted true --evidence-survived true
+```
+
+Computed mechanically: Top-1/3 RCA correctness, structural hallucination
+rate (any cited ID not in the bundle), type-level evidence recall, time
+to diagnosis (`status.timeToDiagnosisMillis`), persisted artefact size
+(`status.bundleSizeBytes`). Columns requiring human annotation
+(evidence precision, recommendation score) or cluster measurement
+(CPU/memory overhead, teardown survival) are left empty — never
+fabricated.
+
+### Provisioning deadline backstop
+
+A `Preview` that stays in `Provisioning` for more than **15 minutes**
+(from `metadata.creationTimestamp`) is failed with reason
+`ProvisioningTimeout`. The `setFailedStatus` path then runs
+`captureFailureReport` — so even a preview that would otherwise reconcile
+forever (stuck `ImagePullBackOff`, a dependency that never reaches Ready,
+…) produces a `FailureReport` you can inspect after the fact.
+
+```bash
+# Watch a preview's deadline behaviour
+kubectl get preview pr-42 -o jsonpath='{.status.phase}{"\t"}{.metadata.creationTimestamp}'
+# Provisioning   2026-05-26T10:59:18Z      ← will Fail at 11:14:18
+```
+
+The deadline is a hard constant in 1.1.0 (`provisioningDeadline = 15 *
+time.Minute`); make it configurable in a future release if your CI image
+builds are routinely slower.
+
+### RBAC granted to the operator (added in 1.1.0)
+
+```yaml
+- apiGroups: ["platform.company.io"]
+  resources: [failurereports]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: ["platform.company.io"]
+  resources: [failurereports/status]
+  verbs: [get, patch, update]
+```
+
+These verbs are applied by the chart's `clusterrole.yaml`. Apply the
+updated chart before rolling the new operator image (`helm upgrade …
+--reuse-values`).
+
+### List, inspect, delete
+
+```bash
+# All reports cluster-wide
+kubectl get failurereports
+kubectl get fr                   # shortname
+
+# Survivors of a deleted preview
+kubectl get fr -o jsonpath='{.items[?(@.status.preservedAfterTeardown==true)].metadata.name}'
+
+# Inspect one
+kubectl get fr pr-42-failure -o yaml
+kubectl get fr pr-42-failure -o jsonpath='{.status.evidenceItems[*].id}'
+
+# Garbage collect (FailureReports are NOT owned by their Preview)
+kubectl delete fr pr-42-failure
+kubectl delete fr --all          # nuclear option — destroys the audit trail
+```
+
+For the W3C PROV model, the C1..C5 design rationale, and the full scoring
+rubric, see `docs/research/failure-provenance/` in this repository.
+
+---
+
+## 19. Copilot Extension
 
 A companion server (`preview-extension`) that surfaces preview environment management directly inside GitHub Copilot Chat — no `kubectl` access needed for developers.
 
@@ -2514,7 +2914,7 @@ kubectl create secret generic preview-extension-secret \
 
 ---
 
-## 19. Complete CR Reference
+## 20. Complete CR Reference
 
 ### All fields
 
@@ -2670,7 +3070,7 @@ spec:
 
 ---
 
-## 20. Status Fields Reference
+## 21. Status Fields Reference
 
 ```bash
 kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
@@ -2735,7 +3135,7 @@ kubectl get preview pr-42 -o jsonpath='{.status}' | jq .
 
 ---
 
-## 21. Helm Values Reference
+## 22. Helm Values Reference
 
 ```yaml
 replicaCount: 1
@@ -2800,7 +3200,7 @@ affinity: {}
 
 ---
 
-## 22. Development & Release
+## 23. Development & Release
 
 ### Source layout
 
@@ -2896,7 +3296,7 @@ GitHub Actions automatically:
 
 ---
 
-## 23. Debugging & Troubleshooting
+## 24. Debugging & Troubleshooting
 
 ### Infinite reconcile loop (every 2 seconds in controller logs)
 
@@ -3033,7 +3433,7 @@ kubectl get jobs -n preview-pr-42 -w
 
 ---
 
-## 24. Security
+## 25. Security
 
 Every preview namespace is isolated by a **NetworkPolicy** (`preview-isolation`) created automatically by the operator:
 

@@ -1,4 +1,4 @@
-# Plan d'implémentation — AI Enrichment pour Cellenza
+# Plan d'implémentation — AI Enrichment pour Preview
 
 ## Objectif
 
@@ -57,7 +57,7 @@ L'operator doit continuer à produire un diagnostic de base fiable même sans IA
 | Accès réseau direct à la DB preview | ❌ | ✅ |
 | Déclenchement post-migration garanti | ❌ (fragile) | ✅ |
 | Credentials DB injectés automatiquement | ❌ | ✅ |
-| Reset via `@cellenza enrich` | ❌ | ✅ |
+| Reset via `@preview enrich` | ❌ | ✅ |
 | Indépendant du système CI | ❌ | ✅ |
 
 ## Exemple de résultat final
@@ -76,7 +76,7 @@ Commentaire PR après déploiement réussi :
 Commande Copilot pour relancer :
 
 ```
-@cellenza enrich pr-42
+@preview enrich pr-42
 ```
 
 ---
@@ -85,14 +85,14 @@ Commande Copilot pour relancer :
 
 | Fichier | Action |
 |---|---|
-| `api/v1alpha1/cellenza_types.go` | Nouveaux types CRD |
+| `api/v1alpha1/preview_types.go` | Nouveaux types CRD |
 | `api/v1alpha1/zz_generated.deepcopy.go` | Auto-généré (`make generate`) |
 | `config/crd/bases/*.yaml` | Auto-généré (`make manifests`) |
 | `internal/ai/client.go` | **Nouveau** — client IA HTTP |
 | `internal/controller/ai_enrichment.go` | **Nouveau** — logique principale |
-| `internal/controller/cellenza_controller.go` | Branchement étape 10 |
+| `internal/controller/preview_controller.go` | Branchement étape 10 |
 | `internal/controller/github.go` | Section AI dans commentaire PR |
-| `internal/extension/commands.go` | Commande `@cellenza enrich` |
+| `internal/extension/commands.go` | Commande `@preview enrich` |
 | `cmd/main.go` | Env var `AI_API_URL` |
 
 ---
@@ -101,7 +101,7 @@ Commande Copilot pour relancer :
 
 ### ÉTAPE 1 — Nouveaux types dans le CRD
 
-**Fichier :** `api/v1alpha1/cellenza_types.go`
+**Fichier :** `api/v1alpha1/preview_types.go`
 
 Ajouter les structs suivantes :
 
@@ -149,7 +149,7 @@ type SecretKeyRef struct {
     // +kubebuilder:validation:MinLength=1
     Name string `json:"name"`
 
-    // Namespace is the Secret namespace. Defaults to cellenza-operator-system.
+    // Namespace is the Secret namespace. Defaults to preview-operator-system.
     // +optional
     Namespace string `json:"namespace,omitempty"`
 
@@ -190,7 +190,7 @@ type AIEnrichmentStatus struct {
 }
 ```
 
-Ajouter dans `CellenzaSpec` :
+Ajouter dans `PreviewSpec` :
 
 ```go
 // AIEnrichment configures AI-powered seed data and test generation after deployment.
@@ -198,7 +198,7 @@ Ajouter dans `CellenzaSpec` :
 AIEnrichment *AIEnrichmentSpec `json:"aiEnrichment,omitempty"`
 ```
 
-Ajouter dans `CellenzaStatus` :
+Ajouter dans `PreviewStatus` :
 
 ```go
 // AIEnrichment describes the observed AI enrichment state.
@@ -221,7 +221,7 @@ make manifests generate
 ```
 
 Met à jour automatiquement :
-- `config/crd/bases/platform.company.io_cellenzas.yaml`
+- `config/crd/bases/platform.company.io_previews.yaml`
 - `api/v1alpha1/zz_generated.deepcopy.go`
 
 **Ne pas modifier ces fichiers manuellement.**
@@ -384,7 +384,7 @@ const aiSeedJobName         = "ai-seed"
 const aiTestJobName         = "ai-tests"
 const aiSchemaJobName       = "ai-schema-dump"
 
-func (r *CellenzaReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha1.Cellenza, token string) (string, error) {
+func (r *PreviewReconciler) fetchPRDiff(ctx context.Context, c *platformv1alpha1.Preview, token string) (string, error) {
     if !githubEnabled(c) || c.Spec.GitHub.Owner == "" {
         return "", nil
     }
@@ -438,9 +438,9 @@ Séquence :
 **Fichier :** `internal/controller/ai_enrichment.go`
 
 ```go
-func (r *CellenzaReconciler) generateAndStoreAIContent(
+func (r *PreviewReconciler) generateAndStoreAIContent(
     ctx context.Context,
-    c *platformv1alpha1.Cellenza,
+    c *platformv1alpha1.Preview,
     nsName string,
 ) error {
     // 1. Lire la clé API depuis le Secret référencé dans spec.aiEnrichment.apiSecretRef
@@ -471,7 +471,7 @@ Job: ai-seed (dans namespace preview)
   ttlSecondsAfterFinished: 300
 ```
 
-Suit exactement le même pattern que `reconcileDatabaseTask()` dans `cellenza_controller.go`.
+Suit exactement le même pattern que `reconcileDatabaseTask()` dans `preview_controller.go`.
 
 Retourne : `"Skipped"` / `"Running"` / `"Succeeded"` / `"Failed"`
 
@@ -501,7 +501,7 @@ Stocker dans `status.aiEnrichment.testResults`.
 **Fichier :** `internal/controller/ai_enrichment.go`
 
 ```
-reconcileAIEnrichment(ctx, cellenza, nsName)
+reconcileAIEnrichment(ctx, preview, nsName)
   │
   ├── Guard: spec.aiEnrichment == nil || !enabled → return nil (skip)
   ├── Guard: status.aiEnrichment.phase == "Succeeded" → return nil (idempotent)
@@ -531,12 +531,12 @@ reconcileAIEnrichment(ctx, cellenza, nsName)
 
 ### ÉTAPE 10 — Branchement dans le controller principal
 
-**Fichier :** `internal/controller/cellenza_controller.go`
+**Fichier :** `internal/controller/preview_controller.go`
 
 Ajouter le champ dans la struct :
 
 ```go
-type CellenzaReconciler struct {
+type PreviewReconciler struct {
     client.Client
     Scheme           *runtime.Scheme
     GitHubAPIBaseURL string
@@ -549,7 +549,7 @@ type CellenzaReconciler struct {
 Ajouter une fonction helper :
 
 ```go
-func aiEnrichmentEnabled(c *platformv1alpha1.Cellenza) bool {
+func aiEnrichmentEnabled(c *platformv1alpha1.Preview) bool {
     return c.Spec.AIEnrichment != nil && c.Spec.AIEnrichment.Enabled
 }
 ```
@@ -558,8 +558,8 @@ Dans la fonction `Reconcile()`, après la transition vers `Running` (après le `
 
 ```go
 // 10. AI Enrichment — déclenché après Running
-if aiEnrichmentEnabled(cellenza) {
-    if result, err := r.reconcileAIEnrichment(ctx, cellenza, nsName); err != nil || result.RequeueAfter > 0 {
+if aiEnrichmentEnabled(preview) {
+    if result, err := r.reconcileAIEnrichment(ctx, preview, nsName); err != nil || result.RequeueAfter > 0 {
         return result, err
     }
 }
@@ -575,7 +575,7 @@ Dans la fonction qui construit le commentaire de succès (chercher `buildReadyCo
 ajouter une section conditionnelle si `c.Status.AIEnrichment != nil` :
 
 ```go
-func buildAIEnrichmentSection(c *platformv1alpha1.Cellenza) string {
+func buildAIEnrichmentSection(c *platformv1alpha1.Preview) string {
     ai := c.Status.AIEnrichment
     if ai == nil {
         return ""
@@ -598,7 +598,7 @@ func buildAIEnrichmentSection(c *platformv1alpha1.Cellenza) string {
     }
     if ai.Error != "" {
         sb.WriteString(fmt.Sprintf("\n> ⚠️ Erreur : %s\n", ai.Error))
-        sb.WriteString("> Relancer avec `@cellenza enrich pr-N`\n")
+        sb.WriteString("> Relancer avec `@preview enrich pr-N`\n")
     }
     return sb.String()
 }
@@ -619,7 +619,7 @@ func statusIcon(s string) string {
 
 ---
 
-### ÉTAPE 12 — Commande Copilot `@cellenza enrich`
+### ÉTAPE 12 — Commande Copilot `@preview enrich`
 
 **Fichier :** `internal/extension/commands.go`
 
@@ -637,11 +637,11 @@ func cmdEnrich(ctx context.Context, r client.Client, args []string) string {
     // 1. Parser l'argument "pr-42" ou "42"
     name := parsePRName(args)
     if name == "" {
-        return "Usage : `@cellenza enrich pr-<N>`"
+        return "Usage : `@preview enrich pr-<N>`"
     }
 
-    // 2. Fetch le Cellenza
-    c := &platformv1alpha1.Cellenza{}
+    // 2. Fetch le Preview
+    c := &platformv1alpha1.Preview{}
     if err := r.Get(ctx, types.NamespacedName{Name: name}, c); err != nil {
         return fmt.Sprintf("Environnement `%s` introuvable.", name)
     }
@@ -660,14 +660,14 @@ func cmdEnrich(ctx context.Context, r client.Client, args []string) string {
     return fmt.Sprintf(
         "**Enrichissement IA relancé** pour `%s`\n\nL'opérateur va :\n"+
             "1. Relire le diff PR\n2. Régénérer le seed SQL\n3. Rejouer les tests\n\n"+
-            "Suivi : `@cellenza status %s`", name, name)
+            "Suivi : `@preview status %s`", name, name)
 }
 ```
 
-Ajouter dans `@cellenza help` :
+Ajouter dans `@preview help` :
 
 ```
-| `@cellenza enrich pr-42` | Relance la génération IA de seed et de tests |
+| `@preview enrich pr-42` | Relance la génération IA de seed et de tests |
 ```
 
 ---
@@ -688,7 +688,7 @@ if aiAPIURL == "" {
 Passer au reconciler :
 
 ```go
-if err = (&controller.CellenzaReconciler{
+if err = (&controller.PreviewReconciler{
     Client:           mgr.GetClient(),
     Scheme:           mgr.GetScheme(),
     GitHubAPIBaseURL: defaultGitHubAPIBaseURL,
@@ -704,27 +704,27 @@ if err = (&controller.CellenzaReconciler{
 
 ```bash
 kubectl create secret generic ai-api-key \
-  --namespace=cellenza-operator-system \
+  --namespace=preview-operator-system \
   --from-literal=api-key="sk-..."
 ```
 
-**Exemple de manifest Cellenza avec AI Enrichment :**
+**Exemple de manifest Preview avec AI Enrichment :**
 
 ```yaml
 apiVersion: platform.company.io/v1alpha1
-kind: Cellenza
+kind: Preview
 metadata:
   name: pr-42
 spec:
   branch: feature/ma-feature
   prNumber: 42
-  image: ghcr.io/ihsenalaya/cellenza-demo-app:latest
+  image: ghcr.io/ihsenalaya/preview-demo-app:latest
   database:
     enabled: true
   github:
     enabled: true
     owner: ihsenalaya
-    repo: cellenza-operator
+    repo: preview-operator
     commentOnReady: true
     tokenSecretRef:
       name: github-token-pr-42
@@ -756,14 +756,14 @@ make test                 # Tests unitaires + envtest
 ```bash
 # 1. Créer le secret API key
 kubectl create secret generic ai-api-key \
-  --namespace=cellenza-operator-system \
+  --namespace=preview-operator-system \
   --from-literal=api-key="$OPENAI_API_KEY"
 
 # 2. Appliquer le manifest avec aiEnrichment activé
 kubectl apply -f docs/examples/ai-enrichment-demo.yaml
 
 # 3. Suivre le cycle de vie
-kubectl get cellenza pr-42 --watch
+kubectl get preview pr-42 --watch
 
 # 4. Vérifier les Jobs créés dans le namespace preview
 kubectl get jobs -n preview-pr-42
@@ -774,14 +774,14 @@ kubectl logs -n preview-pr-42 job/ai-tests
 # 6. Vérifier le commentaire PR sur GitHub
 
 # 7. Tester la commande Copilot
-# @cellenza enrich pr-42
+# @preview enrich pr-42
 ```
 
 **Vérifications attendues :**
-- `kubectl get cellenza pr-42 -o jsonpath='{.status.aiEnrichment}'` → phase `Succeeded`
+- `kubectl get preview pr-42 -o jsonpath='{.status.aiEnrichment}'` → phase `Succeeded`
 - Jobs `ai-seed` et `ai-tests` en état `Complete`
 - Commentaire PR GitHub avec section `🤖 AI Enrichment`
-- `@cellenza status pr-42` affiche l'état de l'enrichissement
+- `@preview status pr-42` affiche l'état de l'enrichissement
 
 ---
 
