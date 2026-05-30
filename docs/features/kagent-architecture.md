@@ -99,23 +99,23 @@ all overridable via `spec.kagent.*`). Three are live; one is dormant.
 ```mermaid
 sequenceDiagram
     participant C as PreviewReconciler
-    participant J as curl Job (preview ns)
+    participant J as curl Job
     participant A1 as test-strategist-agent
-    participant A2 as troubleshooter / diff-analyzer
+    participant A2 as troubleshooter or diff-analyzer
     participant K as Kubernetes API
 
-    Note over C,A1: Path 1 — test selection (CRD-bus, ephemeral Job)
-    C->>K: create stub TestPlan (Pending)
-    C->>J: create curl Job (no SA token)
-    J->>A1: POST :8080 message/send (fill the TestPlan)
-    A1->>K: read Preview/diff/events, patch TestPlan (via MCP)
+    Note over C,A1: Path 1 - test selection (CRD-bus, ephemeral Job)
+    C->>K: create stub TestPlan, phase Pending
+    C->>J: create curl Job, no SA token
+    J->>A1: POST 8080, message/send - fill the TestPlan
+    A1->>K: read Preview, diff, events; patch TestPlan via MCP
     C->>K: read TestPlan, validate, accept or fallback
 
-    Note over C,A2: Paths 2 & 3 — analysis (direct, synchronous)
-    C->>A2: POST :8080 message/send (context prompt)
-    A2->>K: read logs/events (via MCP)
-    A2-->>C: artifacts[].parts[].text  (troubleshooter)
-    Note right of A2: diff-analyzer posts to GitHub itself;<br/>controller ignores the body
+    Note over C,A2: Paths 2 and 3 - analysis, direct synchronous call
+    C->>A2: POST 8080, message/send - context prompt
+    A2->>K: read logs and events via MCP
+    A2-->>C: analysis text from artifacts parts
+    Note right of A2: diff-analyzer posts to GitHub itself; controller ignores the body
 ```
 
 | Path | When | How it's reached | Sync? | Result lands in |
