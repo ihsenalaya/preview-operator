@@ -124,6 +124,9 @@ kubectl create configmap preview-test-scripts -n preview-operator-system \
 > or by editing the files in your image (contract). The ConfigMap does not cover them.
 
 ## Contract tests (Microcks)
+> For the full mechanics — the two Jobs, Keycloak auth, and the protocol — see the
+> [Microcks Contract Testing deep dive](./microcks-contract-testing.md).
+
 Contract testing has two steps and needs a reachable Microcks instance:
 
 1. **Import** (optional) — if `spec.testSuite.contractTesting.specURL` is set, the

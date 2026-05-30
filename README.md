@@ -1178,6 +1178,7 @@ explain how each one works.
 |-------|----------------|
 | [Test Suites](docs/features/test-suites.md) | Smoke, OpenAPI contract (Microcks), regression, and E2E (Playwright) suites and how they run. |
 | [Authoring Tests](docs/features/authoring-tests.md) | **How to add your own tests** — the `/app/tests/` contract, injected env vars, and command/image overrides. |
+| [Microcks — Contract Testing](docs/features/microcks-contract-testing.md) | **Deep dive:** the import/test Jobs, Keycloak auth, and the OpenAPI contract-testing protocol. |
 | [AI Test Strategist](docs/features/ai-test-strategist.md) | The kagent agent that picks which suites to run from the PR diff, via the `TestPlan` CRD. |
 | [Change Context](docs/features/change-context.md) | The PR diff as a first-class reconciliation input (deterministic gate vs. advisory signals). |
 

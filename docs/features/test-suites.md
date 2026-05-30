@@ -43,6 +43,7 @@ The controller stores the current stage in `status.tests.step` (`saving → smok
 
 ## Relationships with other components
 - [Authoring Tests](./authoring-tests.md) — **how to write and ship the test scripts this pipeline runs.**
+- [Microcks — Contract Testing](./microcks-contract-testing.md) — deep dive on the contract suite (import/test Jobs, Keycloak auth, protocol).
 - [AI Test Strategist](./ai-test-strategist.md) — decides which suites run via the `TestPlan` consumed here.
 - [Database Checkpoints](./database-checkpoints.md) — the save/restore steps that isolate each suite.
 - [GitHub Integration](./github-integration.md) — renders `status.tests` into the PR results comment.
