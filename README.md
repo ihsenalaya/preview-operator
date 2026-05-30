@@ -1190,6 +1190,7 @@ explain how each one works.
 | [Failure Provenance](docs/features/failure-provenance.md) | The `FailureReport` CRD: durable, PROV-aligned evidence bundles plus the `fp-diagnose` / `fp-score` CLIs. |
 | [Customizing AI Prompts](docs/features/ai-prompts.md) | **How to change the AI prompts** — per-PR (`set-prompt`), global (Helm), and per-agent (Agent CR). |
 | [MCP Servers & Agent Tools](docs/features/mcp-servers.md) | The MCP tool servers the kagent agents use and how to grant an agent new tools. |
+| [kagent — Architecture & Internals](docs/features/kagent-architecture.md) | **Deep dive:** agent creation, the A2A protocol, authentication, Azure OpenAI wiring, and every agent. |
 
 ### Integration
 
