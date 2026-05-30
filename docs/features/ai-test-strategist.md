@@ -55,6 +55,8 @@ The agent runs under a bounded ServiceAccount (`kagent-test-strategist`): `get/l
 - [Test Suites](./test-suites.md) — the suites (`smoke`, `contract`, `regression`, `e2e`, …) the plan selects among.
 - [Security](./security.md) — the bounded-RBAC and validation argument that makes the agent safe.
 - [AI Failure Analysis](./ai-failure-analysis.md) — the sibling agent that interprets results after tests run.
+- [MCP Servers & Agent Tools](./mcp-servers.md) — the tools (`k8s_get_resources`, `k8s_apply_manifest`, …) this agent is granted.
+- [Customizing AI Prompts](./ai-prompts.md) — where this agent's `systemMessage` lives and how to change it.
 - Agent contract: [../agent-contract.md](../agent-contract.md) — exact inputs the agent receives and outputs it must produce.
 
 ## Configuration

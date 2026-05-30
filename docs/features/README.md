@@ -23,6 +23,7 @@ every other feature plugs into.
 | Guide | What it covers |
 |-------|----------------|
 | [Test Suites](./test-suites.md) | Smoke, OpenAPI contract (Microcks), regression, and E2E (Playwright) suites and how they run. |
+| [Authoring Tests](./authoring-tests.md) | **How to add your own tests** — the `/app/tests/` contract, env vars, and command/image overrides. |
 | [AI Test Strategist](./ai-test-strategist.md) | The kagent agent that picks which suites to run from the PR diff, via the `TestPlan` CRD. |
 | [Change Context](./change-context.md) | The PR diff as a first-class reconciliation input (deterministic gate vs. advisory signals). |
 
@@ -33,6 +34,9 @@ every other feature plugs into.
 | [AI Enrichment](./ai-enrichment.md) | LLM-generated seed data and targeted tests, run automatically after the preview is ready. |
 | [AI Failure Analysis (kagent)](./ai-failure-analysis.md) | Root-cause analysis on a failed preview, surfaced in `status.kagent` and the PR comment. |
 | [Failure Provenance](./failure-provenance.md) | The `FailureReport` CRD: durable, PROV-aligned evidence bundles plus the `fp-diagnose` / `fp-score` CLIs. |
+| [Customizing AI Prompts](./ai-prompts.md) | **How to change the AI prompts** — per-PR, global, and per-agent. |
+| [MCP Servers & Agent Tools](./mcp-servers.md) | The MCP tool servers the kagent agents use and how to grant new tools. |
+| [kagent — Architecture & Internals](./kagent-architecture.md) | **Deep dive:** agent creation, the A2A protocol, authentication, Azure OpenAI, and every agent. |
 
 ## Integration
 

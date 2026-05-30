@@ -42,6 +42,7 @@ flowchart TD
 The controller stores the current stage in `status.tests.step` (`saving → smoke → import-spec → contract → restore-regression → regression → restore-e2e → e2e`) and creates exactly one Job per step via `checkOrCreateTestJob`. A suite that is disabled or not selected by the accepted `TestPlan` (`policy.IsSuiteSelected`) is marked `Skipped` and the pipeline advances. Contract and import failures are non-blocking — the pipeline continues regardless. When the database is enabled with isolation, a checkpoint is saved up front and restored before regression and before E2E so each suite starts from the same seeded state. Every Job has `ActiveDeadlineSeconds=300` so a hung suite is terminated and reported rather than blocking forever. When all selected suites reach a final state, the controller sets `status.tests.phase`, writes the `TestSuiteReady` condition, captures a `FailureReport` on any failure, posts the results comment to the PR, and (if enabled) triggers kagent.
 
 ## Relationships with other components
+- [Authoring Tests](./authoring-tests.md) — **how to write and ship the test scripts this pipeline runs.**
 - [AI Test Strategist](./ai-test-strategist.md) — decides which suites run via the `TestPlan` consumed here.
 - [Database Checkpoints](./database-checkpoints.md) — the save/restore steps that isolate each suite.
 - [GitHub Integration](./github-integration.md) — renders `status.tests` into the PR results comment.

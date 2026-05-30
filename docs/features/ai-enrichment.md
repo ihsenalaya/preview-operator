@@ -47,6 +47,7 @@ The reconciler runs only when `spec.aiEnrichment.enabled` is true. It first ensu
 - [GitHub Integration](./github-integration.md) — renders the AI Enrichment section in the PR comment and supplies the diff/token fallback.
 - [Test Suites](./test-suites.md) — the standard smoke/regression/e2e suite; an AI-only rerun skips it for that cycle.
 - [Copilot Extension](./copilot-extension.md) — exposes `@preview enrich` / `@preview retest-ai` to trigger a rerun and surfaces AI status in `@preview status`.
+- [Customizing AI Prompts](./ai-prompts.md) — steer the seed/test generation per-PR (`set-prompt`) or globally (Helm), plus the `temperature` knob.
 
 ## Configuration
 
