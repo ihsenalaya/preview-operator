@@ -15,7 +15,8 @@ The default failure signal from a preview is a bare phase transition — `tests.
 - Triggers automatically once per test run when `status.tests.phase` becomes `Failed` (with a 5-minute cooldown and idempotency guards so it fires at most once per failure).
 - Drives the `preview-troubleshooter-agent` (configurable via `spec.kagent.agentName`) over the A2A (Agent-to-Agent) JSON-RPC 2.0 protocol.
 - Gives the agent rich context: the preview name, PR number, branch, namespace, GitHub repo, the test-strategist's `TestPlan` rationale/confidence/skips, and per-suite results (up to 10 output lines per suite).
-- Lets the agent read cluster state read-only (pod logs, events, `Job` status, the `Preview` CR) via its Kubernetes MCP server — it has no write access and cannot touch secrets.
+- Lets the agent read cluster state read-only (pod logs, events, `Job` status, the `Preview` CR) via the Kubernetes MCP server (`kagent-tool-server`) — no write access, no secrets.
+- Lets the agent read **distributed traces** via a second MCP server (`jaeger-mcp-server`: `jaeger_get_services` / `jaeger_get_traces` / `jaeger_get_trace`) so it can find failing requests in Jaeger — see [Observability](./observability.md) and [MCP Servers](./mcp-servers.md).
 - Records progress in `status.kagent` (`phase`, `triggeredAt`, `analysis`, `commentId`).
 - Embeds the resulting analysis into the existing test-results PR comment rather than opening a separate thread.
 

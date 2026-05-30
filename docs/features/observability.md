@@ -37,11 +37,14 @@ flowchart TD
 
 The controller's `telemetryEnv` builds the env vars from the `Preview` spec and namespace, and `telemetryPodAnnotations` builds the inject annotation (defaulting `instrumentationRef` to `"true"` when empty). Both are stamped onto the pod template during `reconcileDeployment` / `reconcileServiceDeployments`. The OpenTelemetry Operator — installed separately — watches for the inject annotation and mutates matching pods to add the language SDK. Spans then flow to the collector and into Jaeger, where they are filtered by the `OTEL_SERVICE_NAME` value.
 
-For failure diagnosis, `TraceSpan` is one of the typed evidence kinds in the `FailureReport` model, and the F8 rule (`ruleLatencyTimeout`) raises an `observability`-category diagnosis when a slow/long-duration trace span coincides with a timeout log. Note: the default evidence collectors gather diff, status, events, logs, and test results from the `Preview` object — they do not currently pull spans back from Jaeger, so `TraceSpan` evidence is a supported vocabulary and rule input rather than an automatically populated source.
+For failure diagnosis, `TraceSpan` is one of the typed evidence kinds in the `FailureReport` model, and the F8 rule (`ruleLatencyTimeout`) raises an `observability`-category diagnosis when a slow/long-duration trace span coincides with a timeout log. Note: the *deterministic* evidence collectors gather diff, status, events, logs, and test results from the `Preview` object — they do not pull spans back from Jaeger, so within the `FailureReport` pipeline `TraceSpan` is a supported vocabulary and rule input rather than an automatically populated source.
+
+Traces **are** consumed live elsewhere, though: the kagent [AI Failure Analysis](./ai-failure-analysis.md) agent queries Jaeger directly through the `jaeger-mcp-server` MCP tools (`jaeger_get_services` / `jaeger_get_traces` / `jaeger_get_trace`) to find failing requests when it diagnoses a failed preview. So this instrumentation is what makes that trace-aware analysis possible.
 
 ## Relationships with other components
 
 - [Failure Provenance](./failure-provenance.md) — consumes `TraceSpan` evidence (F8 latency/timeout rule) to diagnose slow-handler failures.
+- [AI Failure Analysis](./ai-failure-analysis.md) — the kagent troubleshooter reads these Jaeger traces live via [`jaeger-mcp-server`](./mcp-servers.md).
 - [Lifecycle & Provisioning](./lifecycle.md) — telemetry wiring is applied during Deployment reconciliation, before the preview reaches `Running`.
 
 ## Configuration
