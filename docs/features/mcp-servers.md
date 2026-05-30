@@ -77,7 +77,32 @@ The allow‑list is `spec.declarative.tools[].mcpServer.toolNames` in each Agent
 | preview‑troubleshooter | `jaeger-mcp-server` | `jaeger_get_services`, `jaeger_get_traces`, `jaeger_get_trace` | read distributed traces to find failing requests |
 | preview‑diff‑analyzer | `github-mcp-server` | `gh_get_pr_info`, `gh_get_pr_files`, `gh_post_pr_comment`, `gh_update_pr_comment`, `gh_find_pr_comment` | read the PR diff and post/update a comment (no cluster access) |
 
-## How to grant an agent a new tool
+## Required vs. optional MCP servers
+Only one MCP server is load‑bearing; the rest enrich specific agents.
+
+| MCP server | Status | Required for | If absent |
+|------------|--------|--------------|-----------|
+| `kagent-tool-server` | **Required** | the test‑strategist (it `k8s_apply_manifest`s the `TestPlan`) and the troubleshooter (it reads logs/events) | AI test selection can't write a plan and failure analysis has no cluster data — the kagent agents are effectively non‑functional |
+| `jaeger-mcp-server` | **Optional** | trace‑aware failure analysis (the troubleshooter's Jaeger tools) | the troubleshooter still diagnoses from logs/events; it just can't cite traces. Needs [Observability](./observability.md) (OTel + Jaeger) installed |
+| `github-mcp-server` | **Optional** | the diff‑analyzer agent (reads the PR diff and posts the `changeContext` comment) | don't run the diff‑analyzer; nothing else depends on it |
+
+> Whether a server is "required" follows from which agents you enable. If you only
+> use AI failure analysis, you need `kagent-tool-server` (and optionally
+> `jaeger-mcp-server`); if you don't run the diff‑analyzer, `github-mcp-server` is
+> unnecessary.
+
+## Adding MCP servers is config‑only — no operator change
+**Adding a new MCP server (or granting an agent more tools) never requires changing
+the operator's Go code, rebuilding its image, or upgrading its Helm release.** The
+operator has zero references to MCP servers or tool names — it only triggers agents
+by *name* over A2A. Tools live entirely in Kubernetes manifests that the kagent
+platform reconciles. (The one exception is adding a brand‑new agent that the
+*operator itself* must trigger — a new A2A call path in
+[`internal/controller/kagent.go`](../../internal/controller/kagent.go); see
+[kagent Architecture](./kagent-architecture.md). Giving an existing agent more
+tools is never a code change.)
+
+### Grant an agent a tool the server already exposes
 1. Add the tool name to the agent's `toolNames` list and `kubectl apply` the Agent CR:
    ```yaml
    # k8s/kagent/agents/failure-analyst-agent.yaml
@@ -103,8 +128,53 @@ The allow‑list is `spec.declarative.tools[].mcpServer.toolNames` in each Agent
 4. Update the agent's `systemMessage` so it knows when to use the tool (see
    [Customizing AI Prompts](./ai-prompts.md)).
 
-To add a *new* MCP server (e.g. a Postgres‑query tool), define a new `MCPServer` /
-`RemoteMCPServer` it can reach and reference it as another entry under `tools`.
+### Add a brand‑new MCP server (example: Prometheus)
+Say you want the troubleshooter to correlate failures with **metrics**. You add a
+Prometheus MCP server and grant it — no operator change. This mirrors exactly how
+`jaeger-mcp-server` was added in the app repo. *(The names below are illustrative —
+pick an MCP server image that speaks to your Prometheus.)*
+
+1. **Deploy the MCP server** as a `RemoteMCPServer` (plus its Deployment/Service if
+   it's a self‑hosted server), pointed at your Prometheus:
+   ```yaml
+   apiVersion: kagent.dev/v1alpha1
+   kind: RemoteMCPServer
+   metadata:
+     name: prometheus-mcp-server
+     namespace: kagent-system
+   spec:
+     url: "http://prometheus-mcp-server.kagent-system.svc.cluster.local:8811/sse"
+   ```
+2. **Grant it to an agent** — add another entry under the agent's `tools` with the
+   server name and the tools it exposes:
+   ```yaml
+   # idp-preview/k8s/kagent/preview-troubleshooter-agent.yaml
+   tools:
+   - type: McpServer
+     mcpServer: { apiGroup: kagent.dev, kind: RemoteMCPServer, name: kagent-tool-server, toolNames: [ ... ] }
+   - type: McpServer
+     mcpServer: { apiGroup: kagent.dev, kind: RemoteMCPServer, name: jaeger-mcp-server, toolNames: [ ... ] }
+   - type: McpServer                       # ← new
+     mcpServer:
+       apiGroup: kagent.dev
+       kind: RemoteMCPServer
+       name: prometheus-mcp-server
+       toolNames:
+         - prom_query
+         - prom_range_query
+   ```
+3. **RBAC?** Only if the server reaches the Kubernetes API. A Prometheus server
+   talks HTTP to Prometheus, not the API server, so **no `agent_role.yaml` change** —
+   just make sure NetworkPolicy lets the MCP server reach Prometheus.
+4. **Tell the agent to use it** — add a line to the agent's `systemMessage`
+   ("use `prom_query` to check error‑rate and latency metrics"); see
+   [Customizing AI Prompts](./ai-prompts.md).
+5. `kubectl apply` both files — the kagent controller redeploys the agent with the
+   new tool. **The operator is untouched.**
+
+The same recipe works for any data source — a Postgres‑query server, a Loki/logs
+server, an internal API — wrap it as an MCP server and allow‑list its tools on the
+agents that should use it.
 
 ## Relationships with other components
 - [AI Test Strategist](./ai-test-strategist.md) / [AI Failure Analysis](./ai-failure-analysis.md) — the agents that consume these tools.
