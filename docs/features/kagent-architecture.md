@@ -62,7 +62,8 @@ kagent spans three repos/installs. Being explicit avoids confusion:
 | `test-strategist-agent`, `failure-analyst-agent` Agent CRs | **this repo** (`k8s/kagent/agents/`) | `failure-analyst-agent` is legacy/dormant — see [Gotchas](#gotchas) |
 | Scoped `MCPServer` policy CRs (`kube-read-mcp`, `kube-write-testplan-mcp`) | **this repo** (`k8s/kagent/mcp-servers/`) | See [MCP Servers](./mcp-servers.md) |
 | Agent RBAC (SA `kagent-test-strategist` + ClusterRole) | **this repo** (`config/rbac/agent_*.yaml`) | Read CRs + write TestPlans |
-| `preview-troubleshooter-agent`, `preview-diff-analyzer` Agent CRs + read‑only RBAC | **app repo** (`idp-preview`) | The agents the controller actually calls for analysis |
+| `preview-troubleshooter-agent`, `preview-diff-analyzer` Agent CRs + read‑only RBAC (SA `kagent-troubleshooter`) | **app repo** (`idp-preview`) | The agents the controller actually calls for analysis |
+| Custom RemoteMCPServers `jaeger-mcp-server` (traces) and `github-mcp-server` (PR ops) | **app repo** (`idp-preview`) | Built + deployed by the app repo; see [MCP Servers](./mcp-servers.md) |
 | Azure OpenAI key, GitHub token | **provided at install** | Never stored in any repo |
 
 ## The four agents
@@ -81,14 +82,15 @@ all overridable via `spec.kagent.*`). Three are live; one is dormant.
 - **CR:** **external** (app repo). Default name `spec.kagent.agentName` = `preview-troubleshooter-agent`.
 - **Trigger:** `status.tests.phase=Failed`. Reached by a **direct, synchronous** A2A call from the controller (`callKagentAgent`).
 - **Per‑call context** (`buildAnalysisPrompt`): preview name, PR #, branch, namespace, repo; the test‑strategist's `rationale`/`confidence`/`mustRun`/`canSkip`; and per‑suite results (smoke/migration/contract/regression/e2e) with pass/fail counts and up to 10 output lines each.
-- **Tools (read‑only):** `k8s_get_pod_logs`, `k8s_get_resources`, `k8s_get_events`, `k8s_describe_resource`, `k8s_get_resource_yaml`. Never reads Secrets, never writes.
+- **Tools (read‑only, two MCP servers):** from `kagent-tool-server` — `k8s_get_pod_logs`, `k8s_get_resources`, `k8s_get_events`, `k8s_describe_resource`, `k8s_get_resource_yaml`, `k8s_get_available_api_resources`; **and from `jaeger-mcp-server`** — `jaeger_get_services`, `jaeger_get_traces`, `jaeger_get_trace`. So it correlates Kubernetes state **and distributed traces** (service name format `idp-preview-pr-<N>`). Never reads Secrets, never writes. See [Observability](./observability.md).
 - **Output:** returns **markdown text**; the controller stores it in `status.kagent.analysis` and folds it into the existing test‑results PR comment.
 
 ### 3. `preview-diff-analyzer` — comments on the PR diff
 - **CR:** **external** (app repo). Default name `spec.kagent.diffAnalyzerAgentName` = `preview-diff-analyzer`.
 - **Trigger:** the preview reaching `phase=Running` (requires `spec.github` set). Direct synchronous A2A call.
-- **Per‑call context:** minimal — *"Analyze the diff for PR #N in repo owner/repo and post a structured analysis comment on the PR."* The agent fetches the diff from GitHub itself.
-- **Output:** the agent posts its comment **directly to GitHub**. The controller does **not** read the response body — it marks `status.diffAnalysis.phase = Succeeded` on any non‑error HTTP reply (fire‑and‑forget).
+- **Per‑call context:** minimal — *"Analyze the diff for PR #N in repo owner/repo and post a structured analysis comment on the PR."*
+- **Tools (`github-mcp-server` only, no cluster access):** `gh_get_pr_info`, `gh_get_pr_files`, `gh_post_pr_comment`, `gh_update_pr_comment`, `gh_find_pr_comment` — it reads the changed files from GitHub, classifies their impact, and posts a `changeContext` summary comment.
+- **Output:** the agent posts its comment **directly to GitHub** via the GitHub MCP server. The controller does **not** read the response body — it marks `status.diffAnalysis.phase = Succeeded` on any non‑error HTTP reply (fire‑and‑forget).
 
 ### 4. `failure-analyst-agent` — **dormant / legacy**
 - **CR:** in this repo — [`k8s/kagent/agents/failure-analyst-agent.yaml`](../../k8s/kagent/agents/failure-analyst-agent.yaml), well‑formed, read‑only tools, a good failure‑analysis prompt.
