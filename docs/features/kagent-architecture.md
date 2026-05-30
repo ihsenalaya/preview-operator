@@ -108,14 +108,14 @@ sequenceDiagram
     C->>K: create stub TestPlan, phase Pending
     C->>J: create curl Job, no SA token
     J->>A1: POST 8080, message/send - fill the TestPlan
-    A1->>K: read Preview, diff, events; patch TestPlan via MCP
+    A1->>K: read Preview, diff, events, then patch TestPlan via MCP
     C->>K: read TestPlan, validate, accept or fallback
 
     Note over C,A2: Paths 2 and 3 - analysis, direct synchronous call
     C->>A2: POST 8080, message/send - context prompt
     A2->>K: read logs and events via MCP
     A2-->>C: analysis text from artifacts parts
-    Note right of A2: diff-analyzer posts to GitHub itself; controller ignores the body
+    Note right of A2: diff-analyzer posts to GitHub itself, controller ignores the body
 ```
 
 | Path | When | How it's reached | Sync? | Result lands in |
