@@ -135,15 +135,19 @@ Prometheus MCP server and grant it — no operator change. This mirrors exactly 
 pick an MCP server image that speaks to your Prometheus.)*
 
 1. **Deploy the MCP server** as a `RemoteMCPServer` (plus its Deployment/Service if
-   it's a self‑hosted server), pointed at your Prometheus:
+   it's a self‑hosted server), pointed at your Prometheus. A complete, deployable
+   manifest is in [`docs/examples/prometheus-mcp-server.yaml`](../examples/prometheus-mcp-server.yaml);
+   the `RemoteMCPServer` itself is just:
    ```yaml
-   apiVersion: kagent.dev/v1alpha1
+   apiVersion: kagent.dev/v1alpha2
    kind: RemoteMCPServer
    metadata:
      name: prometheus-mcp-server
      namespace: kagent-system
    spec:
+     description: "Prometheus metrics MCP server for kagent failure analysis."
      url: "http://prometheus-mcp-server.kagent-system.svc.cluster.local:8811/sse"
+     protocol: SSE
    ```
 2. **Grant it to an agent** — add another entry under the agent's `tools` with the
    server name and the tools it exposes:
@@ -194,6 +198,7 @@ agents that should use it.
 | kagent version | install | **0.9.2 required** (0.9.4 broke A2A sessions); all agents live in `kagent-system` |
 
 ## Reference
+- Worked example — add a Prometheus MCP server: [`../examples/prometheus-mcp-server.yaml`](../examples/prometheus-mcp-server.yaml)
 - Operator scoped policy CRs: [`../../k8s/kagent/mcp-servers/`](../../k8s/kagent/mcp-servers/)
 - Operator agent + RBAC: [`../../k8s/kagent/agents/test-strategist-agent.yaml`](../../k8s/kagent/agents/test-strategist-agent.yaml), [`../../config/rbac/agent_role.yaml`](../../config/rbac/agent_role.yaml)
 - App‑repo agents & custom MCP servers (`idp-preview/k8s/kagent/`): `preview-troubleshooter-agent.yaml`, `agents/preview-diff-analyzer.yaml`, `jaeger-mcp-server.yaml`, `github-mcp-server.yaml`, `rbac-readonly.yaml`

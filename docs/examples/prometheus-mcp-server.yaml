@@ -1,0 +1,109 @@
+# Example: add a Prometheus MCP server so kagent agents can query metrics.
+#
+# This is a worked, deployable example for docs/features/mcp-servers.md. It mirrors
+# how the project's real jaeger-mcp-server is structured: a Deployment + Service that
+# run an MCP server speaking to a backend (here Prometheus), plus a RemoteMCPServer
+# CR that registers it with kagent.
+#
+# You must supply an MCP-server container image that exposes Prometheus as MCP tools
+# (build your own, like the project's jaeger/github MCP servers, or use a community
+# Prometheus MCP server). The image and tool names below are placeholders — adjust
+# them to whatever your image actually exposes.
+#
+# Apply, then grant the tools to an agent (see "Add a brand-new MCP server" in
+# docs/features/mcp-servers.md):
+#   kubectl apply -f docs/examples/prometheus-mcp-server.yaml
+#   # then add a tools[] entry referencing `prometheus-mcp-server` to the agent CR
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-mcp-server
+  namespace: kagent-system
+  labels:
+    app: prometheus-mcp-server
+    app.kubernetes.io/part-of: preview-platform
+    app.kubernetes.io/component: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-mcp-server
+  template:
+    metadata:
+      labels:
+        app: prometheus-mcp-server
+    spec:
+      # imagePullSecrets:
+      #   - name: ghcr-pull-secret        # only if the image is in a private registry
+      containers:
+        - name: prometheus-mcp-server
+          image: ghcr.io/YOUR-ORG/prometheus-mcp-server:latest   # ← replace with a real image
+          ports:
+            - containerPort: 8811
+          env:
+            # Point at your in-cluster Prometheus (adjust namespace/service/port)
+            - name: PROMETHEUS_URL
+              value: http://prometheus-server.monitoring.svc.cluster.local:9090
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-mcp-server
+  namespace: kagent-system
+  labels:
+    app: prometheus-mcp-server
+    app.kubernetes.io/part-of: preview-platform
+    app.kubernetes.io/component: kagent
+spec:
+  selector:
+    app: prometheus-mcp-server
+  ports:
+    - port: 8811
+      targetPort: 8811
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: prometheus-mcp-server
+  namespace: kagent-system
+  labels:
+    app.kubernetes.io/part-of: preview-platform
+    app.kubernetes.io/component: kagent
+spec:
+  description: "Prometheus metrics MCP server — exposes PromQL queries as tools for kagent failure analysis."
+  url: "http://prometheus-mcp-server.kagent-system.svc.cluster.local:8811/sse"
+  protocol: SSE
+---
+# Step 2 — grant the new tools to an agent (snippet to merge into the Agent CR).
+# Example: let the troubleshooter correlate failures with metrics.
+#
+#   # idp-preview/k8s/kagent/preview-troubleshooter-agent.yaml
+#   spec:
+#     declarative:
+#       tools:
+#         - type: McpServer
+#           mcpServer:                       # existing — Kubernetes tools
+#             apiGroup: kagent.dev
+#             kind: RemoteMCPServer
+#             name: kagent-tool-server
+#             toolNames: [k8s_get_pod_logs, k8s_get_events, ...]
+#         - type: McpServer                  # NEW — Prometheus tools
+#           mcpServer:
+#             apiGroup: kagent.dev
+#             kind: RemoteMCPServer
+#             name: prometheus-mcp-server
+#             toolNames:
+#               - prom_query
+#               - prom_range_query
+#
+# Then add a line to the agent's systemMessage, e.g.
+#   "Use prom_query to check error-rate and latency metrics for the failing service."
+# No operator code change, no image rebuild — kubectl apply and kagent redeploys the agent.
