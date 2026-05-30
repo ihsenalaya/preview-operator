@@ -1,11 +1,1 @@
 configuration,llm,mode,top1,bundle,n,cell,pareto
-C1,A,freeform,0.015909090909090907,844.6045454545455,440,C1/A/freeform,False
-C1,A,grounded,0.03,743.252,500,C1/A/grounded,False
-C2,A,freeform,0.07272727272727272,844.6045454545455,440,C2/A/freeform,False
-C2,A,grounded,0.056,743.252,500,C2/A/grounded,False
-C3,A,freeform,0.18863636363636363,844.6045454545455,440,C3/A/freeform,False
-C3,A,grounded,0.168,743.252,500,C3/A/grounded,False
-C4,A,freeform,0.17954545454545454,844.6045454545455,440,C4/A/freeform,False
-C4,A,grounded,0.212,743.252,500,C4/A/grounded,True
-C5,A,freeform,0.17727272727272728,844.6045454545455,440,C5/A/freeform,False
-C5,A,grounded,0.196,743.252,500,C5/A/grounded,False

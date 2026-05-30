@@ -1,32 +1,32 @@
 # CD diagrams — Friedman + Nemenyi post-hoc
 
-Generated 2026-05-25T18:04:37.408750Z.
+Generated 2026-05-30T14:46:10.064326Z.
 
 ## LLM=A
 
-Friedman ranks across 10 scenarios over 5 configurations. Critical Difference (Nemenyi, α=0.05) = 1.929.
+Friedman ranks across 50 scenario×subject cells over 5 configurations. Critical Difference (Nemenyi, α=0.05) = 0.863.
 
 | C | avg rank |
 |---|---|
-| C4 | 2.450 |
-| C5 | 2.800 |
-| C3 | 2.850 |
-| C2 | 3.200 |
-| C1 | 3.700 |
+| C4 | 2.730 |
+| C3 | 2.810 |
+| C5 | 2.810 |
+| C2 | 3.270 |
+| C1 | 3.380 |
 
 Figure: `cd_llm_a.png`
 
 ## LLM=B
 
-Friedman ranks across 10 scenarios over 5 configurations. Critical Difference (Nemenyi, α=0.05) = 1.929.
+Friedman ranks across 50 scenario×subject cells over 5 configurations. Critical Difference (Nemenyi, α=0.05) = 0.863.
 
 | C | avg rank |
 |---|---|
-| C4 | 2.250 |
-| C5 | 2.250 |
-| C3 | 3.300 |
-| C2 | 3.450 |
-| C1 | 3.750 |
+| C4 | 2.720 |
+| C5 | 2.830 |
+| C3 | 2.930 |
+| C2 | 3.200 |
+| C1 | 3.320 |
 
 Figure: `cd_llm_b.png`
 

@@ -9,7 +9,9 @@ with random intercepts for scenario and run, on the binary `top1_correct`
 outcome across (scenario × C × LLM × rep). The configuration:LLM
 interaction term is the cross-LLM consistency reading for RQ4 (L7).
 
-Source: results-augmented.csv (1500 rows, S1).
+Source: 35-unified-rescore/per-subject-results.csv (10000 LLM rows, S1--S5).
+(The legacy results-matrix/ S1 CSVs were consolidated into the unified
+rescore file; this script reads that file directly.)
 
 Output:
   docs/research/failure-provenance/analysis-output/21-lmm/lmm_top1.txt
@@ -26,19 +28,26 @@ from statsmodels.regression.mixed_linear_model import MixedLM
 import datetime as dt
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CSV = ROOT / "results-matrix" / "results-augmented.csv"
+UNIFIED = (ROOT.parent.parent /
+           "docs/research/failure-provenance/analysis-output/"
+           "35-unified-rescore/per-subject-results.csv")
 OUT = ROOT.parent.parent / "docs/research/failure-provenance/analysis-output/21-lmm"
 OUT.mkdir(parents=True, exist_ok=True)
 
 
 def main() -> int:
-    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-    from _loader import load_unified
-    df = load_unified()
-    # Keep only LLM engine rows (drop rule), so the LLM × C interaction is meaningful.
-    df = df[df["engine"] == "llm"].copy()
+    df = pd.read_csv(UNIFIED)
+    # Keep only LLM engine rows (drop rule), so the LLM × C interaction is
+    # meaningful. engine_mode is one of: rule-grounded, llm-grounded,
+    # llm-freeform, llm-b-grounded, llm-b-freeform.
+    em = df["engine_mode"].astype(str)
+    df = df[em.str.startswith("llm")].copy()
+    df["llm"] = df["engine_mode"].apply(
+        lambda e: "B" if str(e).startswith("llm-b-") else "A")
+    df["correct"] = df["top1_aligned"].astype(int)
     df["configuration"] = df["configuration"].astype(str)
-    df["scenario"] = df["scenario"].astype(str)
+    df["scenario"] = df["scenario_id"].astype(str)
+    df["rep"] = df["rep"].astype(str)
     df["run_id"] = (df["scenario"] + "-" + df["rep"])
     print(f"rows: {len(df)}; LLM-A: {(df['llm']=='A').sum()}, LLM-B: {(df['llm']=='B').sum()}")
     print(f"correct rate overall: {df['correct'].mean():.3f}")

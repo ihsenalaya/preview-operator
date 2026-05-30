@@ -96,22 +96,24 @@ def main() -> int:
         smd.write(f"Generated {dt.datetime.utcnow().isoformat()}Z.\n\n")
         for llm in sorted(df["llm"].unique()):
             sub = df[df["llm"] == llm]
-            # Per-(scenario × C) mean accuracy
-            tab = sub.groupby(["scenario", "configuration"])["correct"].mean().unstack("configuration")
+            # Per-(scenario × subject × C) mean accuracy: each (scenario,
+            # subject) pair is a separate ranking unit, per the Demsar
+            # multi-dataset protocol on a five-subject study.
+            tab = sub.groupby(["scenario", "subject", "configuration"])["correct"].mean().unstack("configuration")
             tab = tab.fillna(0.0)
             if tab.shape[1] < 3:
                 smd.write(f"## LLM={llm}: not enough configurations ({tab.shape[1]}), skipped\n\n")
                 continue
-            # Rank within each scenario (higher = better → lower rank number)
+            # Rank within each (scenario × subject) cell (higher = better → lower rank)
             ranks = tab.rank(axis=1, ascending=False, method="average")
             avg_ranks = ranks.mean(axis=0).to_dict()
             n_scenarios = tab.shape[0]
             k = len(avg_ranks)
             cd = nemenyi_cd(k, n_scenarios)
             png = OUT / f"cd_llm_{llm.lower()}.png"
-            cd_diagram(avg_ranks, cd, f"LLM-{llm} — avg rank across {n_scenarios} scenarios (Nemenyi CD={cd:.2f}, α=0.05)", png)
+            cd_diagram(avg_ranks, cd, f"LLM-{llm} — avg rank across {n_scenarios} scenario×subject cells (Nemenyi CD={cd:.2f}, α=0.05)", png)
             smd.write(f"## LLM={llm}\n\n")
-            smd.write(f"Friedman ranks across {n_scenarios} scenarios over "
+            smd.write(f"Friedman ranks across {n_scenarios} scenario×subject cells over "
                       f"{k} configurations. Critical Difference (Nemenyi, "
                       f"α=0.05) = {cd:.3f}.\n\n")
             smd.write("| C | avg rank |\n|---|---|\n")

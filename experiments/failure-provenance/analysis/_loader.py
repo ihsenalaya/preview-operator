@@ -104,4 +104,37 @@ def load_unified() -> pd.DataFrame:
                 "bundle_size_bytes": 0,
                 "hallucination_rate": 0.0,
             })
+    # 4) Fallback: if the raw results-matrix/ S1 CSVs are gone, recover S1
+    # from the canonical unified rescore so S1 is never silently dropped.
+    if not any(r["subject"] == "s1-flask-catalog" for r in rows):
+        uni = (ROOT.parent.parent /
+               "docs/research/failure-provenance/analysis-output/"
+               "35-unified-rescore/per-subject-results.csv")
+        if uni.is_file():
+            df = pd.read_csv(uni)
+            df = df[df["subject_id"].astype(str) == "s1-flask-catalog"]
+            for _, r in df.iterrows():
+                em = str(r.get("engine_mode", ""))
+                if em.startswith("llm-b-"):
+                    engine, mode, llm = "llm", em[len("llm-b-"):], "B"
+                elif em.startswith("llm-"):
+                    engine, mode, llm = "llm", em[len("llm-"):], "A"
+                elif em.startswith("rule-"):
+                    engine, mode, llm = "rule", em[len("rule-"):], "rule"
+                else:
+                    continue
+                rows.append({
+                    "subject": "s1-flask-catalog",
+                    "scenario": str(r.get("scenario_id", "")),
+                    "rep": str(r.get("rep", "")),
+                    "configuration": str(r.get("configuration", "")),
+                    "engine": engine,
+                    "mode": mode,
+                    "llm": llm,
+                    "correct": int(r.get("top1_aligned", 0) or 0),
+                    "aligned": int(r.get("top1_aligned", 0) or 0),
+                    "evidence_recall": 0.0,
+                    "bundle_size_bytes": 0,
+                    "hallucination_rate": 0.0,
+                })
     return pd.DataFrame(rows)

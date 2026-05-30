@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.5.18)  24 MAY 2026 10:51
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.5.18)  30 MAY 2026 16:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1000,13 +1000,13 @@ Package: flushend 2021/10/04 v4.0 Balancing columns in twocolumn mode
 \atColsEnd=\toks56
 \oldbreak@skip=\dimen321
 )
-Package hyperref Info: Option `pdfdisplaydoctitle' set `true' on input line 92.
+Package hyperref Info: Option `pdfdisplaydoctitle' set `true' on input line 95.
 
 \c@theorem=\count340
 
 Excluding comment 'screenonly' Include comment 'printonly'
 Include comment 'anonsuppress'
-LaTeX Font Info:    Trying to load font information for T1+lmr on input line 92
+LaTeX Font Info:    Trying to load font information for T1+lmr on input line 95
 .
  (/usr/share/texmf/tex/latex/lm/t1lmr.fd
 File: t1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
@@ -1019,76 +1019,76 @@ File: l3backend-pdftex.def 2022-01-12 L3 backend support: PDF output (pdfTeX)
 (./article.aux)
 \openout1 = `article.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 92.
-LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
 LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 9
-2.
+5.
  (/usr/share/texmf/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )<<ot1.cmap>>
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 9
-2.
+5.
 
 (/usr/share/texmf/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )<<oml.cmap>>
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-92.
+95.
 
 (/usr/share/texmf/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )<<oms.cmap>>
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-92.
+95.
 
 (/usr/share/texmf/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 92.
+(Font)              <7> on input line 95.
 <<omx.cmap>>
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 92.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 92.
+(Font)              <5> on input line 95.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 95.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 92.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 95.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Info: Redefining \microtypecontext on input line 92.
-Package microtype Info: Applying patch `item' on input line 92.
-Package microtype Info: Applying patch `toc' on input line 92.
-Package microtype Info: Applying patch `eqnum' on input line 92.
-Package microtype Info: Applying patch `footnote' on input line 92.
+LaTeX Info: Redefining \microtypecontext on input line 95.
+Package microtype Info: Applying patch `item' on input line 95.
+Package microtype Info: Applying patch `toc' on input line 95.
+Package microtype Info: Applying patch `eqnum' on input line 95.
+Package microtype Info: Applying patch `footnote' on input line 95.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
 Package microtype Info: Automatic font expansion enabled (level 2),
 (microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
 Package microtype Info: Using default expansion set `alltext-nott'.
-LaTeX Info: Redefining \showhyphens on input line 92.
+LaTeX Info: Redefining \showhyphens on input line 95.
 Package microtype Info: No adjustment of tracking.
 Package microtype Info: No adjustment of interword spacing.
 Package microtype Info: No adjustment of character kerning.
@@ -1097,7 +1097,7 @@ Package microtype Info: No adjustment of character kerning.
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
-Package hyperref Info: Link coloring OFF on input line 92.
+Package hyperref Info: Link coloring OFF on input line 95.
 
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
@@ -1107,9 +1107,9 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
 \c@section@level=\count342
 )
-LaTeX Info: Redefining \ref on input line 92.
-LaTeX Info: Redefining \pageref on input line 92.
-LaTeX Info: Redefining \nameref on input line 92.
+LaTeX Info: Redefining \ref on input line 95.
+LaTeX Info: Redefining \pageref on input line 95.
+LaTeX Info: Redefining \nameref on input line 95.
 
 (./article.out) (./article.out)
 \@outlinefile=\write5
@@ -1155,7 +1155,7 @@ e
 * \oddsidemargin=-18.26999pt
 * \evensidemargin=-18.26999pt
 * \topmargin=-15.26999pt
-* \headheight=13.0pt
+* \headheight=16.2pt
 * \headsep=14.0pt
 * \topskip=10.0pt
 * \footskip=12.0pt
@@ -1177,9 +1177,9 @@ Package caption Info: float package is loaded.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
 \c@lstlisting=\count349
-Class acmart Info: Setting authorsperrow to 2 on input line 111.
+Class acmart Info: Setting authorsperrow to 2 on input line 114.
 LaTeX Font Info:    Trying to load font information for T1+lmss on input line 1
-55.
+64.
 (/usr/share/texmf/tex/latex/lm/t1lmss.fd
 File: t1lmss.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
@@ -1192,7 +1192,7 @@ Package microtype Info: Loading generic protrusion settings for font family
 Class acmart Warning: No city present for an affiliation.
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 155.
+(Font)              <10> on input line 164.
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
@@ -1202,12 +1202,12 @@ File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 
 Class acmart Warning: No city present for an affiliation.
 
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\\' on input line 155.
-
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <9> on input line 164.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <6> on input line 164.
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
-73.
+64.
 (/usr/share/texmf/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
@@ -1216,750 +1216,405 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 
-Underfull \vbox (badness 3312) has occurred while \output is active []
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\\' on input line 164.
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [1.1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
 ]
-<figures//architecture_redesigned.png, id=229, 1678.27pt x 944.52875pt>
+Underfull \vbox (badness 3323) has occurred while \output is active []
+
+<figures//architecture_redesigned.png, id=262, 1678.27pt x 944.52875pt>
 File: figures//architecture_redesigned.png Graphic file (type png)
 <use figures//architecture_redesigned.png>
 Package pdftex.def Info: figures//architecture_redesigned.png  used on input li
-ne 332.
+ne 346.
 (pdftex.def)             Requested size: 506.295pt x 284.93175pt.
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <8> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 345.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 359.
 
+Underfull \vbox (badness 1616) has occurred while \output is active []
 
-Class acmart Warning: A possible image without description on input line 347.
-
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 367.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 367.
-
-Underfull \hbox (badness 6063) in paragraph at lines 358--368
+ [2.2]
+Underfull \hbox (badness 6063) in paragraph at lines 373--383
  []\T1/lmr/m/it/9 (+20) What the op-er-a-tor cap-tures, with times-tamps.[] \T1
 /lmr/m/n/9 (+20) On
  []
 
 
-Underfull \hbox (badness 6348) in paragraph at lines 369--375
+Underfull \hbox (badness 6348) in paragraph at lines 384--390
  []\T1/lmr/m/it/9 (+20) What is oth-er-wise lost.[] \T1/lmr/m/n/9 (+20) Af-ter 
 tear-down ($\OMS/lmsy/m/n/9 ^^X \OT1/lmr/m/n/9 (+20) 30 []$
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 369--375
+Underfull \hbox (badness 10000) in paragraph at lines 384--390
 \T1/lmr/m/n/9 (+20) af-ter the fail-ure), the names-pace is gone; the
  []
 
 
-Underfull \hbox (badness 7433) in paragraph at lines 369--375
+Underfull \hbox (badness 7433) in paragraph at lines 384--390
 \T1/lmtt/m/n/9 Preview.status.diagnostics \T1/lmr/m/n/9 (+20) snap-shot is over
 -writ-ten
  []
 
-[2.2]
-Underfull \hbox (badness 10000) in paragraph at lines 390--395
+
+Underfull \vbox (badness 3460) has occurred while \output is active []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 405--410
 \T1/lmr/m/n/9 (+20) An ev-i-dence \T1/lmr/m/it/9 (+20) item \T1/lmr/m/n/9 (+20)
  is a tu-ple
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 390--395
+Underfull \hbox (badness 10000) in paragraph at lines 405--410
 \OT1/lmr/m/n/9 (+20) ([]\OML/lmm/m/it/9 ; []; []; []; []; []\OT1/lmr/m/n/9 (+20
 ) )$ \T1/lmr/m/n/9 (+20) ---
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 420--423
+[3.3 <./figures//architecture_redesigned.png (PNG copy)>]
+Underfull \hbox (badness 10000) in paragraph at lines 435--438
 []\T1/lmr/bx/n/9 (+20) Edges\T1/lmr/m/n/9 (+20) : \T1/lmtt/m/n/9 wasDerivedFrom
  \T1/lmr/m/n/9 (+20) (PR$\OMS/lmsy/m/n/9 !$\T1/lmr/m/n/9 (+20) Preview), \T1/lm
 tt/m/n/9 used
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 420--423
+Underfull \hbox (badness 10000) in paragraph at lines 435--438
 \T1/lmr/m/n/9 (+20) (\T1/lmtt/m/n/9 EvidenceCollection$\OMS/lmsy/m/n/9 !$\T1/lm
 r/m/n/9 (+20) Preview), \T1/lmtt/m/n/9 wasGeneratedBy
  []
 
-<figures//provenance_graph_redesigned.png, id=284, 1453.43pt x 1090.0725pt>
+<figures//provenance_graph_redesigned.png, id=326, 1453.43pt x 1090.0725pt>
 File: figures//provenance_graph_redesigned.png Graphic file (type png)
 <use figures//provenance_graph_redesigned.png>
 Package pdftex.def Info: figures//provenance_graph_redesigned.png  used on inpu
-t line 427.
+t line 442.
 (pdftex.def)             Requested size: 241.14749pt x 180.85219pt.
-
-Class acmart Warning: A possible image without description on input line 436.
-
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 438.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 454.
 
-Underfull \vbox (badness 4492) has occurred while \output is active []
+Underfull \hbox (badness 1112) in paragraph at lines 523--532
+\T1/lmtt/m/n/9 diag-C\T1/lmtt/m/it/9 N\T1/lmtt/m/n/9 -llm-grounded[-llmb].json\
+T1/lmr/m/n/9 (+20) . The ex-act sys-tem
+ []
 
-
-
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
-
-[3.3 <./figures//architecture_redesigned.png (PNG copy)>]
 
 Package enumitem Warning: Negative labelwidth. This does not make much
-(enumitem)                sense, on input line 466.
+(enumitem)                sense, on input line 541.
 
-
-Underfull \vbox (badness 4072) has occurred while \output is active []
-
-
-Underfull \hbox (badness 6876) in paragraph at lines 486--490
-[]\T1/lmr/bx/n/9 (+20) Applications. \T1/lmr/m/n/9 (+20) S1 = \T1/lmtt/m/n/9 id
-p-preview \T1/lmr/m/n/9 (+20) (Flask/Python,
- []
-
-
-Underfull \hbox (badness 2735) in paragraph at lines 486--490
-\T1/lmr/m/n/9 (+20) ref-er-ence); multi-app S2--S5 = \T1/lmtt/m/n/9 listmonk \T
-1/lmr/m/n/9 (+20) (Go/Chi),
- []
-
-
-Underfull \hbox (badness 3271) in paragraph at lines 502--504
+[4.4 <./figures//provenance_graph_redesigned.png (PNG copy)>]
+Underfull \hbox (badness 3271) in paragraph at lines 581--583
 []\T1/lmr/bx/n/9 (+20) Diagnostic en-gines. \T1/lmtt/m/n/9 rule\T1/lmr/m/n/9 (+
 20) -grounded, \T1/lmtt/m/n/9 llm\T1/lmr/m/n/9 (+20) -grounded
  []
 
 
-Underfull \hbox (badness 2119) in paragraph at lines 504--507
+Underfull \hbox (badness 2119) in paragraph at lines 583--586
 []\T1/lmr/bx/n/9 (+20) Replication. \T1/lmr/m/n/9 (+20) 10 rep-e-ti-tions per c
 ell on the AKS
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [4.4 <./figures//provenance_graph_redesigned.png (PNG copy)>]
-Underfull \hbox (badness 1043) in paragraph at lines 546--560
- []\T1/lmr/m/it/9 (+20) Per-scenario aligned top-1.[] \T1/lmr/m/n/9 (+20) Ta-bl
-e []1[] re-ports the per-
- []
-
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 566.
+(Font)              <8> on input line 652.
 
-Overfull \hbox (85.28748pt too wide) in paragraph at lines 610--620
- [] 
+Underfull \vbox (badness 2970) has occurred while \output is active []
+
+ [5.5]
+[6.6]
+<figures//ladder-pooled.png, id=404, 614.295pt x 289.08pt>
+File: figures//ladder-pooled.png Graphic file (type png)
+<use figures//ladder-pooled.png>
+Package pdftex.def Info: figures//ladder-pooled.png  used on input line 850.
+(pdftex.def)             Requested size: 241.14749pt x 113.48178pt.
+
+Underfull \hbox (badness 4205) in paragraph at lines 932--937
+[]\T1/lmr/m/n/9 (+20) These resid-ual hard cells are not ran-dom noise;
  []
 
 
-Underfull \hbox (badness 2846) in paragraph at lines 622--634
-\T1/lmr/bx/n/9 (+20) Reading. \T1/lmr/m/n/9 (+20) The L1$\OMS/lmsy/m/n/9 !$\T1/
-lmr/m/n/9 (+20) L2 jump (logs $\OMS/lmsy/m/n/9 !$ \T1/lmr/m/n/9 (+20) raw kubec
-tl)
+Underfull \hbox (badness 10000) in paragraph at lines 932--937
+\T1/lmr/m/n/9 (+20) cross-subject read-ing of the 15 qual-i-ta-tive case-
  []
 
 
-Underfull \hbox (badness 5022) in paragraph at lines 622--634
-\T1/lmr/m/n/9 (+20) grounded $\OT1/lmr/m/n/9 (+20) +48$\T1/lmr/m/n/9 (+20) pp, 
-llm-grounded $\OT1/lmr/m/n/9 (+20) +40$\T1/lmr/m/n/9 (+20) pp, llm-freeform
- []
-
-
-Underfull \hbox (badness 5203) in paragraph at lines 622--634
-\OT1/lmr/m/n/9 (+20) +32$\T1/lmr/m/n/9 (+20) pp. The L3$\OMS/lmsy/m/n/9 !$\T1/l
-mr/m/n/9 (+20) L4 jump (adding the prove-nance
- []
-
-
-Underfull \hbox (badness 5036) in paragraph at lines 622--634
-\T1/lmr/m/n/9 (+20) dependent ($\OT1/lmr/m/n/9 (+20) +0$\T1/lmr/m/n/9 (+20) pp 
-on rule, $\OT1/lmr/m/n/9 (+20) +4$\T1/lmr/m/n/9 (+20) pp on llm-grounded,
- []
-
-
-Underfull \hbox (badness 2334) in paragraph at lines 622--634
-\OMS/lmsy/m/n/9 ^^@\OT1/lmr/m/n/9 (+20) 3$\T1/lmr/m/n/9 (+20) pp on llm-freefor
-m), con-sis-tent with an \T1/lmr/m/it/9 (+20) evidence-
- []
-
-
-Overfull \hbox (1.05942pt too wide) in paragraph at lines 622--634
-\T1/lmtt/m/n/9 analysis-output/30-evidence-ladder/ladder-S1.csv,md\T1/lmr/m/n/9
- (-20) ;
- []
-
-<figures//ladder-S1.png, id=317, 534.798pt x 267.399pt>
-File: figures//ladder-S1.png Graphic file (type png)
-<use figures//ladder-S1.png>
-Package pdftex.def Info: figures//ladder-S1.png  used on input line 637.
-(pdftex.def)             Requested size: 241.14749pt x 120.57324pt.
-
-Class acmart Warning: A possible image without description on input line 643.
-
-
-Overfull \hbox (81.38426pt too wide) in paragraph at lines 652--666
-\T1/lmtt/m/n/9 analysis-output/21b-glmm-logit/{glmm_vb_summary.txt,odds_ratios.
-csv}\T1/lmr/m/n/9 (-20) ;
- []
-
-
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
-
-[5.5 <./figures//ladder-S1.png>]
-Overfull \hbox (79.17987pt too wide) in paragraph at lines 754--765
- [][] 
- []
-
-File: figures//ladder-S1.png Graphic file (type png)
-<use figures//ladder-S1.png>
-Package pdftex.def Info: figures//ladder-S1.png  used on input line 784.
-(pdftex.def)             Requested size: 241.14749pt x 120.57324pt.
-
-Class acmart Warning: A possible image without description on input line 790.
-
-<figures//engine-pooled-bars.png, id=348, 569.9694pt x 354.123pt>
-File: figures//engine-pooled-bars.png Graphic file (type png)
-<use figures//engine-pooled-bars.png>
-Package pdftex.def Info: figures//engine-pooled-bars.png  used on input line 80
-4.
-(pdftex.def)             Requested size: 241.14749pt x 149.82755pt.
-
-Class acmart Warning: A possible image without description on input line 808.
-
-<figures//forest-per-scenario.png, id=351, 714.9912pt x 570.4512pt>
-File: figures//forest-per-scenario.png Graphic file (type png)
-<use figures//forest-per-scenario.png>
-Package pdftex.def Info: figures//forest-per-scenario.png  used on input line 8
-20.
-(pdftex.def)             Requested size: 241.14749pt x 192.39275pt.
-
-Class acmart Warning: A possible image without description on input line 824.
-
-<figures//c5-minus-c1-forest.png, id=353, 714.9912pt x 570.4512pt>
-File: figures//c5-minus-c1-forest.png Graphic file (type png)
-<use figures//c5-minus-c1-forest.png>
-Package pdftex.def Info: figures//c5-minus-c1-forest.png  used on input line 83
-5.
-(pdftex.def)             Requested size: 241.14749pt x 192.39275pt.
-
-Class acmart Warning: A possible image without description on input line 840.
-
-
-Underfull \vbox (badness 1067) has occurred while \output is active []
-
- [6.6]
-<figures//cd_llm_a.png, id=384, 498.663pt x 173.448pt>
-File: figures//cd_llm_a.png Graphic file (type png)
-<use figures//cd_llm_a.png>
-Package pdftex.def Info: figures//cd_llm_a.png  used on input line 853.
-(pdftex.def)             Requested size: 241.14749pt x 83.87604pt.
-
-
-Class acmart Warning: A possible image without description on input line 858.
-
-<figures//cd_llm_b.png, id=385, 498.663pt x 173.448pt>
-File: figures//cd_llm_b.png Graphic file (type png)
-<use figures//cd_llm_b.png>
-Package pdftex.def Info: figures//cd_llm_b.png  used on input line 862.
-(pdftex.def)             Requested size: 241.14749pt x 83.87604pt.
-
-Underfull \hbox (badness 5417) in paragraph at lines 866--866
-[]\T1/lmr/bx/n/8 (+20) Figure 9: |Critical-difference di-a-gram for LLM-B
- []
-
-
-Class acmart Warning: A possible image without description on input line 868.
-
-<figures//pareto.png, id=387, 505.89pt x 361.35pt>
-File: figures//pareto.png Graphic file (type png)
-<use figures//pareto.png>
-Package pdftex.def Info: figures//pareto.png  used on input line 878.
-(pdftex.def)             Requested size: 241.14749pt x 172.24954pt.
-
-Class acmart Warning: A possible image without description on input line 882.
-
-
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
-
-[7.7 <./figures//engine-pooled-bars.png> <./figures//forest-per-scenario.png> <
-./figures//c5-minus-c1-forest.png> <./figures//cd_llm_a.png> <./figures//cd_llm
-_b.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 918--927
+Underfull \hbox (badness 10000) in paragraph at lines 962--971
  []\T1/lmr/m/it/9 (+20) Family C-c: symptom-blaming on multi-fault
  []
 
 
-Underfull \hbox (badness 4492) in paragraph at lines 918--927
+Underfull \hbox (badness 4492) in paragraph at lines 962--971
 \T1/lmr/m/it/9 (+20) (F9).[] \T1/lmr/m/n/9 (+20) The in-jected fault cor-rupts 
 the seed-data file
  []
 
-
-Underfull \hbox (badness 1226) in paragraph at lines 928--937
-\T1/lmr/m/n/9 (+20) cap-tures the ev-i-dence the di-ag-noser would need (the
- []
+[7.7 <./figures//ladder-pooled.png>]
+Underfull \vbox (badness 7030) has occurred while \output is active []
 
 
-Overfull \hbox (19.45064pt too wide) in paragraph at lines 928--937
-\T1/lmtt/m/n/9 analysis-output/31-failure-analysis/failure-analysis.md\T1/lmr/m
-/n/9 (-20) .
- []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-[8.8 <./figures//pareto.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 1037--1049
+ [8.8]
+Underfull \hbox (badness 10000) in paragraph at lines 1081--1098
 []\T1/lmr/m/n/9 (+20) Source: \T1/lmtt/m/n/9 analysis-output/33-cohen-kappa-fin
 al/\T1/lmr/m/n/9 (+20) ;
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1053--1060
+Underfull \hbox (badness 10000) in paragraph at lines 1102--1109
 \T1/lmtt/m/n/9 collectionDurationMicros\T1/lmr/m/n/9 (+20) , \T1/lmtt/m/n/9 col
 lectionAllocBytes\T1/lmr/m/n/9 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1053--1060
+Underfull \hbox (badness 10000) in paragraph at lines 1102--1109
 \T1/lmtt/m/n/9 collectionAllocCount\T1/lmr/m/n/9 (+20) , \T1/lmtt/m/n/9 bundleS
 izeBytes\T1/lmr/m/n/9 (+20) , plus
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1053--1060
+Underfull \hbox (badness 10000) in paragraph at lines 1102--1109
 \T1/lmtt/m/n/9 persistDurationMicros \T1/lmr/m/n/9 (+20) via the wrap-per aroun
 d
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1061--1071
+Underfull \hbox (badness 10000) in paragraph at lines 1110--1120
 []\T1/lmr/bx/n/9 (+20) Measured me-di-ans \T1/lmr/m/n/9 (+20) across 173 in-str
 u-mented
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1061--1071
+Underfull \hbox (badness 10000) in paragraph at lines 1110--1120
 \T1/lmr/m/n/9 (+20) cap-tures: \T1/lmtt/m/n/9 collectionDurationMicros $\OMS/lm
 sy/m/n/9 ^^Y \OT1/lmr/m/n/9 (+20) 1 []$\T1/lmr/m/n/9 (+20) ;
  []
 
 
-Underfull \hbox (badness 2173) in paragraph at lines 1061--1071
+Underfull \hbox (badness 2173) in paragraph at lines 1110--1120
 \T1/lmr/m/n/9 (+20) in \T1/lmtt/m/n/9 analysis-output/01-descriptive/\T1/lmr/m/
 n/9 (+20) ). These ab-so-lute
  []
 
-
-Package tabularx Warning: X Columns too narrow (table too wide)
-(tabularx)                 on input line 1103.
-
-
-Overfull \hbox (5.78944pt too wide) in paragraph at lines 1103--1103
-[]|\T1/lmr/bx/n/6 (-20) Use
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1103--1103
-\T1/lmr/bx/n/6 (+20) in
- []
-
-
-Overfull \hbox (5.93494pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/bx/n/6 (-20) this
- []
-
-
-Overfull \hbox (2.50143pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/bx/n/6 (-20) pa-
- []
-
-
-Overfull \hbox (4.49643pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/bx/n/6 (-20) per| 
- []
-
-
-Overfull \hbox (13.32683pt too wide) in paragraph at lines 1103--1103
-[]|\T1/lmr/m/n/6 (-20) Upper-
- []
-
-
-Overfull \hbox (12.352pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) bound
- []
-
-
-Overfull \hbox (2.17294pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ref-
- []
-
-
-Overfull \hbox (6.27763pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ence
- []
-
-
-Overfull \hbox (1.25113pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) be-
- []
-
-
-Overfull \hbox (9.52795pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) cause
- []
-
-
-Overfull \hbox (2.68457pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) the
- []
-
-
-Overfull \hbox (8.28139pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) snap-
- []
-
-
-Overfull \hbox (5.72957pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) shot
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (+20) is
- []
-
-
-Overfull \hbox (20.52477pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) operator-
- []
-
-
-Overfull \hbox (18.36435pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) curated.| 
- []
-
-
-Overfull \hbox (30.38063pt too wide) in paragraph at lines 1103--1103
-[]|\T1/lmr/m/n/6 (-20) Practitioner
- []
-
-
-Overfull \hbox (4.80919pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) live-
- []
-
-
-Overfull \hbox (21.27141pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) diagnosis
- []
-
-
-Overfull \hbox (2.17294pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ref-
- []
-
-
-Overfull \hbox (7.29042pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ence,
- []
-
-
-Overfull \hbox (2.86038pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) not
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (+20) a
- []
-
-
-Overfull \hbox (6.40309pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) sym-
- []
-
-
-Overfull \hbox (5.79356pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) met-
- []
-
-
-Overfull \hbox (7.33267pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) post-
- []
-
-
-Overfull \hbox (21.59991pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) teardown
- []
-
-
-Overfull \hbox (7.51921pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) base-
- []
-
-
-Overfull \hbox (6.05966pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) line.| 
- []
-
-
-Overfull \hbox (30.38063pt too wide) in paragraph at lines 1103--1103
-[]|\T1/lmr/m/n/6 (-20) Practitioner
- []
-
-
-Overfull \hbox (8.24335pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) agen-
- []
-
-
-Overfull \hbox (2.17294pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ref-
- []
-
-
-Overfull \hbox (6.27763pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ence
- []
-
-
-Overfull \hbox (6.39471pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) with
- []
-
-
-Overfull \hbox (2.17267pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) dif-
- []
-
-
-Overfull \hbox (2.17294pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) fer-
- []
-
-
-Overfull \hbox (2.2848pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ent
- []
-
-
-Overfull \hbox (4.82945pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) cess
- []
-
-
-Overfull \hbox (10.56807pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) sump-
- []
-
-
-Overfull \hbox (10.07243pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) tions.| 
- []
-
-
-Overfull \hbox (18.19653pt too wide) in paragraph at lines 1103--1103
-[]|\T1/lmr/m/n/6 (-20) Primary
- []
-
-
-Overfull \hbox (3.12592pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) tar-
- []
-
-
-Overfull \hbox (2.0982pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) get
- []
-
-
-Overfull \hbox (14.47728pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) regime:
- []
-
-
-Overfull \hbox (18.4024pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) reusable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (+20) ti-
- []
-
-
-Overfull \hbox (4.3575pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) fact
- []
-
-
-Overfull \hbox (1.39476pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) ter
- []
-
-
-Overfull \hbox (13.39922pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) names-
- []
-
-
-Overfull \hbox (6.65877pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) pace
- []
-
-
-Overfull \hbox (6.33766pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) dele-
- []
-
-
-Overfull \hbox (7.20325pt too wide) in paragraph at lines 1103--1103
-\T1/lmr/m/n/6 (-20) tion.| 
- []
-
-
-Overfull \hbox (43.74425pt too wide) in alignment at lines 1103--1103
-[][][][] 
- []
-
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <9> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1113.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1184.
 
-Underfull \hbox (badness 1571) in paragraph at lines 1113--1123
-\T1/lmr/m/n/9 (+20) voke \T1/lmtt/m/n/9 collect-results.sh \T1/lmr/m/n/9 (+20) 
-be-fore tear-down (anal-y-sis:
+Underfull \hbox (badness 10000) in paragraph at lines 1194--1201
+[]\T1/lmr/bx/n/9 (+20) Upper bound (operator-curated kubectl-
+ []
+
+[9.9]
+Underfull \hbox (badness 10000) in paragraph at lines 1223--1252
+[]\T1/lmr/m/n/9 (+20) To close the regime asym-me-try, we ad-di-tion-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1223--1252
+\T1/lmr/m/n/9 (+20) ally im-ple-mented a \T1/lmr/m/it/9 (+20) post-teardown re-
+play \T1/lmr/m/n/9 (+20) vari-ant
+ []
+
+
+Underfull \hbox (badness 5316) in paragraph at lines 1223--1252
+\T1/lmr/m/n/9 (+20) (\T1/lmtt/m/n/9 analysis/k8sgpt-replay.py\T1/lmr/m/n/9 (+20
+) ). For each cap-ture, the
+ []
+
+
+Underfull \hbox (badness 1308) in paragraph at lines 1223--1252
+\T1/lmr/m/n/9 (+20) names-pace on a real Ku-ber-netes API server (\T1/lmtt/m/n/
+9 status
+ []
+
+
+Underfull \hbox (badness 1038) in paragraph at lines 1223--1252
+\T1/lmr/m/n/9 (+20) aligned scor-ing in $results -[] b2 -[] post -[] teardown .
+ csv$ via
+ []
+
+
+Underfull \hbox (badness 2237) in paragraph at lines 1253--1258
+\T1/lmr/m/n/9 (+20) the in-cluster \T1/lmtt/m/n/9 kagent-system \T1/lmr/m/n/9 (
++20) agent. Agent out-put is
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1259--1279
+[]\T1/lmr/m/n/9 (+20) The Ka-gent post-teardown re-play vari-ant
+ []
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+<figures//engine-pooled-bars-s1s5.png, id=489, 534.3162pt x 295.3434pt>
+File: figures//engine-pooled-bars-s1s5.png Graphic file (type png)
+<use figures//engine-pooled-bars-s1s5.png>
+Package pdftex.def Info: figures//engine-pooled-bars-s1s5.png  used on input li
+ne 1335.
+(pdftex.def)             Requested size: 241.14749pt x 133.29086pt.
+<figures//engine-by-subject-heatmap-s1s5.png, id=490, 569.9694pt x 223.5552pt>
+File: figures//engine-by-subject-heatmap-s1s5.png Graphic file (type png)
+<use figures//engine-by-subject-heatmap-s1s5.png>
+Package pdftex.def Info: figures//engine-by-subject-heatmap-s1s5.png  used on i
+nput line 1352.
+(pdftex.def)             Requested size: 241.14749pt x 94.585pt.
+
+Underfull \hbox (badness 2903) in paragraph at lines 1362--1380
+\T1/lmr/m/n/9 (+20) on \T1/lmtt/m/n/9 gpt-4o-mini \T1/lmr/m/n/9 (+20) ($\OT1/lm
+r/m/n/9 (+20) 19\OML/lmm/m/it/9 :\OT1/lmr/m/n/9 (+20) 40 %$ \T1/lmr/m/n/9 (+20)
+ vs $\OT1/lmr/m/n/9 (+20) 19\OML/lmm/m/it/9 :\OT1/lmr/m/n/9 (+20) 68 %$\T1/lmr/
+m/n/9 (+20) ) and lower on
  []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
-
-
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
-
-[9.9]
-Underfull \hbox (badness 10000) in paragraph at lines 1123--1129
-[]\T1/lmr/bx/n/9 (+20) Upper bound (operator-curated kubectl-
- []
-
-
-Underfull \hbox (badness 1184) in paragraph at lines 1155--1160
-\T1/lmr/m/n/9 (+20) in \T1/lmtt/m/n/9 result.artifacts[].parts[].text\T1/lmr/m/
-n/9 (+20) ; the post-hoc re-
- []
-
-
-Underfull \vbox (badness 3701) has occurred while \output is active []
-
-
-Underfull \hbox (badness 1509) in paragraph at lines 1182--1192
-\T1/lmr/m/n/9 (+20) across S2--S5, LLM-A grounded: $[]$ aligned top-1
- []
-
-
-Underfull \hbox (badness 2027) in paragraph at lines 1182--1192
-\T1/lmr/m/n/9 (+20) (311/2000, 95% Wil-son CI [14.0%, 17.2%]); LLM-B
- []
-
-
-Underfull \hbox (badness 1845) in paragraph at lines 1182--1192
-\T1/lmr/m/n/9 (+20) in-di-cates that the harder symptom-vs-cause sce-nar-ios
- []
-
-
-Underfull \hbox (badness 2452) in paragraph at lines 1208--1220
+ [10.10]
+Underfull \hbox (badness 2452) in paragraph at lines 1396--1408
  []\T1/lmr/m/it/9 (+20) Internal va-lid-ity.[] \T1/lmr/m/n/9 (+20) Five en-gi-n
 eer-ing de-fects were dis-
  []
 
 
-Underfull \hbox (badness 5022) in paragraph at lines 1208--1220
+Underfull \hbox (badness 5022) in paragraph at lines 1396--1408
 \T1/lmr/m/n/9 (+20) cov-ered and closed dur-ing the live cam-paign (see
  []
 
 
-Underfull \hbox (badness 1184) in paragraph at lines 1208--1220
+Underfull \hbox (badness 1184) in paragraph at lines 1396--1408
 \T1/lmr/m/n/9 (+20) er-a-tor's rec-on-ciler, re-designed at meta-level (\T1/lmt
 t/m/n/9 ca5a88a\T1/lmr/m/n/9 (+20) );
  []
 
-[10.10]
-Underfull \hbox (badness 1590) in paragraph at lines 1273--1294
-\T1/lmr/m/n/9 (+20) (i) \T1/lmr/m/it/9 (+20) Fair post-teardown K8sGPT / Ka-gen
-t com-para-tor\T1/lmr/m/n/9 (+20) :
+
+Underfull \hbox (badness 1270) in paragraph at lines 1424--1437
+\T1/lmr/m/n/9 (+20) teardown lad-der (L1$\OMS/lmsy/m/n/9 !$\T1/lmr/m/n/9 (+20) 
+L4, Ta-ble []2[] and Fig-ure []3[]) is
  []
 
 
-Underfull \hbox (badness 1019) in paragraph at lines 1273--1294
-\T1/lmr/m/n/9 (+20) the script \T1/lmtt/m/n/9 analysis/28-k8sgpt-post-teardown.
-py \T1/lmr/m/n/9 (+20) feeds
+Underfull \vbox (badness 1292) has occurred while \output is active []
+
+ [11.11 <./figures//engine-pooled-bars-s1s5.png> <./figures//engine-by-subject-
+heatmap-s1s5.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 1473--1504
+\T1/lmr/m/n/9 (+20) (i) \T1/lmr/m/it/9 (+20) Scal-ing the fair post-teardown co
+m-para-tor
  []
 
 
-Underfull \hbox (badness 2050) in paragraph at lines 1273--1294
-\T1/lmr/m/n/9 (+20) the op-er-a-tor's di-ag-noser; the cells will pop-u-late th
-e
+Underfull \hbox (badness 10000) in paragraph at lines 1473--1504
+\T1/lmr/m/it/9 (+20) to more reps and more LLM-tool com-bi-na-tions\T1/lmr/m/n/
+9 (+20) :
  []
 
 
-Underfull \hbox (badness 1917) in paragraph at lines 1273--1294
-\T1/lmr/m/it/9 (+20) B2a-PT \T1/lmr/m/n/9 (+20) col-umn of Ta-ble []2[]. (ii) \
-T1/lmr/m/it/9 (+20) Fair multi-app B0\T1/lmr/m/n/9 (+20) :
+Underfull \hbox (badness 10000) in paragraph at lines 1473--1504
+\T1/lmr/m/n/9 (+20) the re-play har-ness (\T1/lmtt/m/n/9 analysis/k8sgpt-replay
+.py\T1/lmr/m/n/9 (+20) ,
  []
 
 
-Underfull \hbox (badness 2253) in paragraph at lines 1273--1294
-\T1/lmtt/m/n/9 analysis/29-b0-multiapp-fair.py \T1/lmr/m/n/9 (+20) re-runs B0 o
-n raw
+Underfull \hbox (badness 1205) in paragraph at lines 1473--1504
+\T1/lmr/m/n/9 (+20) di-ag-noser; Fam-ily C-b (vo-cab-u-lary mis-match on F10)
  []
 
 
-Underfull \hbox (badness 2213) in paragraph at lines 1344--1351
+Underfull \hbox (badness 1067) in paragraph at lines 1473--1504
+\T1/lmr/m/n/9 (+20) the Co-hen's $\OML/lmm/m/it/9 ^^T$ \T1/lmr/m/n/9 (+20) agre
+e-ment ta-ble. (vi) Add trace-aware
+ []
+
+
+Underfull \hbox (badness 2213) in paragraph at lines 1554--1561
  []\T1/lmr/m/it/9 (+20) Fault in-jec-tion and chaos en-gi-neer-ing.[] \T1/lmr/m
 /n/9 (+20) Basiri et al.
  []
 
 
-Underfull \hbox (badness 5077) in paragraph at lines 1344--1351
+Underfull \hbox (badness 5077) in paragraph at lines 1554--1561
 \T1/lmr/m/n/9 (+20) for-malised the chaos-engineering hy-poth-e-sis [[]]; Lit-
  []
 
+[12.12]
+Underfull \hbox (badness 10000) in paragraph at lines 1677--1692
+| \T1/lmtt/m/it/8 "component": "the component most likely
+ []
 
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
 
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
+Underfull \hbox (badness 10000) in paragraph at lines 1677--1692
+| \T1/lmtt/m/it/8 "evidenceRefs": ["<evidence id>",
+ []
 
-[11.11] (./article.bbl
+
+Underfull \hbox (badness 10000) in paragraph at lines 1677--1692
+| \T1/lmtt/m/it/8 "recommendations": ["actionable step",
+ []
+
+[13.13]
+Underfull \hbox (badness 10000) in paragraph at lines 1701--1709
+| \T1/lmtt/m/it/8 "component": "the component most likely
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1701--1709
+| \T1/lmtt/m/it/8 "recommendations": ["actionable step",
+ []
+
+
+Underfull \hbox (badness 1377) in paragraph at lines 1735--1743
+[]\T1/lmr/m/n/9 (+20) In \T1/lmr/m/it/9 (+20) free-form \T1/lmr/m/n/9 (+20) mod
+e each ev-i-dence stanza omits the
+ []
+
+
+Underfull \hbox (badness 1418) in paragraph at lines 1735--1743
+\T1/lmtt/m/n/9 [\T1/lmtt/m/it/9 itemID\T1/lmtt/m/n/9 ] \T1/lmr/m/n/9 (+20) pre-
+fix and the \T1/lmtt/m/n/9 type=/resource=/relevance=
+ []
+
+
+Underfull \hbox (badness 5985) in paragraph at lines 1755--1759
+[]\T1/lmr/bx/n/9 (+20) Maximum bun-dle size shipped\T1/lmr/m/n/9 (+20) : bounde
+d by
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1762--1770
+ []\T1/lmr/m/it/9 (+20) Model iden-ti-fiers (pinned).[] \T1/lmr/m/n/9 (+20) LLM
+-A:
+ []
+
+
+Underfull \hbox (badness 3039) in paragraph at lines 1762--1770
+\T1/lmr/m/n/9 (+20) LLM-B: \T1/lmtt/m/n/9 cohere-command-a \T1/lmr/m/n/9 (+20) 
+served through Azure AI
+ []
+
+
+Underfull \hbox (badness 7486) in paragraph at lines 1762--1770
+\T1/lmtt/m/n/9 provider=<endpoint>; called_at=<UTC-ISO8601> \T1/lmr/m/n/9 (+20)
+ string
+ []
+
+
+Underfull \hbox (badness 1394) in paragraph at lines 1771--1782
+\T1/lmr/m/n/9 (+20) nor-malises \T1/lmtt/m/n/9 confidence \T1/lmr/m/n/9 (+20) o
+nto \T1/lmtt/m/n/9 low|medium|high\T1/lmr/m/n/9 (+20) , dedu-pli-
+ []
+
+(./article.bbl
 LaTeX Info: Redefining \tempurl on input line 66.
 LaTeX Info: Redefining \tempurl on input line 81.
 LaTeX Info: Redefining \tempurl on input line 99.
 LaTeX Info: Redefining \tempurl on input line 119.
 LaTeX Info: Redefining \tempurl on input line 147.
+ [14.14]
 LaTeX Info: Redefining \tempurl on input line 167.
 LaTeX Info: Redefining \tempurl on input line 199.
 LaTeX Info: Redefining \tempurl on input line 218.
@@ -1970,7 +1625,6 @@ LaTeX Info: Redefining \tempurl on input line 294.
 LaTeX Info: Redefining \tempurl on input line 311.
 LaTeX Info: Redefining \tempurl on input line 331.
 LaTeX Info: Redefining \tempurl on input line 350.
- [12.12]
 LaTeX Info: Redefining \tempurl on input line 369.
 LaTeX Info: Redefining \tempurl on input line 386.
 LaTeX Info: Redefining \tempurl on input line 404.
@@ -1985,6 +1639,7 @@ LaTeX Info: Redefining \tempurl on input line 563.
 LaTeX Info: Redefining \tempurl on input line 576.
 LaTeX Info: Redefining \tempurl on input line 594.
 LaTeX Info: Redefining \tempurl on input line 611.
+ [15.15]
 LaTeX Info: Redefining \tempurl on input line 631.
 LaTeX Info: Redefining \tempurl on input line 653.
 LaTeX Info: Redefining \tempurl on input line 670.
@@ -1994,16 +1649,6 @@ LaTeX Info: Redefining \tempurl on input line 728.
 LaTeX Info: Redefining \tempurl on input line 749.
 LaTeX Info: Redefining \tempurl on input line 766.
 LaTeX Info: Redefining \tempurl on input line 785.
-
-
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
-
-[13.13]
 LaTeX Info: Redefining \tempurl on input line 804.
 LaTeX Info: Redefining \tempurl on input line 821.
 LaTeX Info: Redefining \tempurl on input line 837.
@@ -2030,6 +1675,7 @@ Underfull \hbox (badness 1655) in paragraph at lines 1037--1052
  []
 
 LaTeX Info: Redefining \tempurl on input line 1067.
+[16.16]
 LaTeX Info: Redefining \tempurl on input line 1083.
 LaTeX Info: Redefining \tempurl on input line 1102.
 LaTeX Info: Redefining \tempurl on input line 1124.
@@ -2040,7 +1686,6 @@ LaTeX Info: Redefining \tempurl on input line 1192.
 LaTeX Info: Redefining \tempurl on input line 1209.
 LaTeX Info: Redefining \tempurl on input line 1225.
 LaTeX Info: Redefining \tempurl on input line 1244.
-[14.14]
 LaTeX Info: Redefining \tempurl on input line 1262.
 LaTeX Info: Redefining \tempurl on input line 1281.
 LaTeX Info: Redefining \tempurl on input line 1301.
@@ -2054,42 +1699,35 @@ LaTeX Info: Redefining \tempurl on input line 1432.
 LaTeX Info: Redefining \tempurl on input line 1451.
 LaTeX Info: Redefining \tempurl on input line 1471.
 LaTeX Info: Redefining \tempurl on input line 1486.
+
+Underfull \vbox (badness 2285) has occurred while \output is active []
+
+ [17.17]
 LaTeX Info: Redefining \tempurl on input line 1505.
 LaTeX Info: Redefining \tempurl on input line 1527.
 LaTeX Info: Redefining \tempurl on input line 1546.
-) (/usr/share/texlive/texmf-dist/tex/generic/stringenc/se-pdfdoc.def
+)
+(/usr/share/texlive/texmf-dist/tex/generic/stringenc/se-pdfdoc.def
 File: se-pdfdoc.def 2019/11/29 v1.12 stringenc: PDFDocEncoding
 )
 (/usr/share/texlive/texmf-dist/tex/generic/stringenc/se-utf8.def
 File: se-utf8.def 2019/11/29 v1.12 stringenc: UTF-8
 )
-
-Class acmart Warning: Some images may lack descriptions.
-
-
-Package balance Warning: You have called \balance in second column
-(balance)                Columns might not be balanced.
+Overfull \vbox (1.3611pt too high) has occurred while \output is active []
 
 
-Package fancyhdr Warning: \headheight is too small (13.0pt): 
-(fancyhdr)                Make it at least 16.16109pt, for example:
-(fancyhdr)                \setlength{\headheight}{16.16109pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-3.16109pt}.
-
-[15.15] (./article.aux)
+[18.18] (./article.aux)
 Package rerunfilecheck Info: File `article.out' has not changed.
-(rerunfilecheck)             Checksum: 3AC17799F368274F2284FFE24DD6ABD9;6287.
+(rerunfilecheck)             Checksum: E58809B6D65C8AA93D74BFF6C4D642E8;8226.
  ) 
 Here is how much of TeX's memory you used:
- 31508 strings out of 480247
- 579516 string characters out of 5896151
- 977030 words of memory out of 5000000
- 47983 multiletter control sequences out of 15000+600000
- 592715 words of font info for 302 fonts, out of 8000000 for 9000
+ 31854 strings out of 480247
+ 582414 string characters out of 5896151
+ 994964 words of memory out of 5000000
+ 48242 multiletter control sequences out of 15000+600000
+ 605235 words of font info for 336 fonts, out of 8000000 for 9000
  175 hyphenation exceptions out of 8191
- 84i,11n,131p,1004b,694s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 84i,12n,131p,1004b,1072s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dv
 ips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/s
 hare/texmf/fonts/enc/dvips/lm/lm-rm.enc}</usr/share/texmf/fonts/type1/public/lm
@@ -2103,17 +1741,17 @@ re/texmf/fonts/type1/public/lm/lmr12.pfb></usr/share/texmf/fonts/type1/public/l
 m/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texmf/f
 onts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmr9.pfb>
 </usr/share/texmf/fonts/type1/public/lm/lmri7.pfb></usr/share/texmf/fonts/type1
-/public/lm/lmri9.pfb></usr/share/texmf/fonts/type1/public/lm/lmss8.pfb></usr/sh
-are/texmf/fonts/type1/public/lm/lmssbx10.pfb></usr/share/texmf/fonts/type1/publ
-ic/lm/lmsy6.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/t
-exmf/fonts/type1/public/lm/lmsy9.pfb></usr/share/texmf/fonts/type1/public/lm/lm
-tk10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt8.pfb></usr/share/texmf/fo
-nts/type1/public/lm/lmtt9.pfb></usr/share/texmf/fonts/type1/public/lm/lmtti10.p
-fb>
-Output written on article.pdf (15 pages, 3109441 bytes).
+/public/lm/lmri8.pfb></usr/share/texmf/fonts/type1/public/lm/lmri9.pfb></usr/sh
+are/texmf/fonts/type1/public/lm/lmss8.pfb></usr/share/texmf/fonts/type1/public/
+lm/lmssbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy6.pfb></usr/share/t
+exmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fonts/type1/public/lm/lm
+sy9.pfb></usr/share/texmf/fonts/type1/public/lm/lmtk10.pfb></usr/share/texmf/fo
+nts/type1/public/lm/lmtt8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt9.pfb
+></usr/share/texmf/fonts/type1/public/lm/lmtti10.pfb>
+Output written on article.pdf (18 pages, 2954522 bytes).
 PDF statistics:
- 880 PDF objects out of 1000 (max. 8388607)
- 806 compressed objects within 9 object streams
- 205 named destinations out of 1000 (max. 500000)
- 64858 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 962 PDF objects out of 1000 (max. 8388607)
+ 888 compressed objects within 9 object streams
+ 232 named destinations out of 1000 (max. 500000)
+ 70014 words of extra memory for PDF output out of 74296 (max. 10000000)
 

@@ -1,23 +1,23 @@
                     Mixed Linear Model Regression Results
 =============================================================================
-Model:                    MixedLM        Dependent Variable:        correct  
-No. Observations:         9400           Method:                    REML     
-No. Groups:               10             Scale:                     0.0613   
-Min. group size:          880            Log-Likelihood:            -276.4379
-Max. group size:          1000           Converged:                 Yes      
-Mean group size:          940.0                                              
+Model:                    MixedLM         Dependent Variable:         correct
+No. Observations:         10000           Method:                     REML   
+No. Groups:               10              Scale:                      0.0825 
+Min. group size:          1000            Log-Likelihood:             inf    
+Max. group size:          1000            Converged:                  Yes    
+Mean group size:          1000.0                                             
 -----------------------------------------------------------------------------
                                    Coef.  Std.Err.   z    P>|z| [0.025 0.975]
 -----------------------------------------------------------------------------
-Intercept                           0.026    0.038  0.689 0.491 -0.049  0.101
-C(configuration)[T.C2]              0.040    0.011  3.539 0.000  0.018  0.063
-C(configuration)[T.C3]              0.154    0.011 13.503 0.000  0.132  0.177
-C(configuration)[T.C4]              0.173    0.011 15.180 0.000  0.151  0.196
-C(configuration)[T.C5]              0.164    0.011 14.341 0.000  0.141  0.186
-C(llm)[T.B]                        -0.023    0.011 -2.049 0.040 -0.046 -0.001
-C(configuration)[T.C2]:C(llm)[T.B] -0.024    0.016 -1.515 0.130 -0.056  0.007
-C(configuration)[T.C3]:C(llm)[T.B] -0.121    0.016 -7.507 0.000 -0.153 -0.090
-C(configuration)[T.C4]:C(llm)[T.B] -0.095    0.016 -5.861 0.000 -0.126 -0.063
-C(configuration)[T.C5]:C(llm)[T.B] -0.081    0.016 -5.005 0.000 -0.113 -0.049
-Group Var                           0.014    0.027                           
+Intercept                           0.013                                    
+C(configuration)[T.C2]              0.066    0.013  5.138 0.000  0.041  0.091
+C(configuration)[T.C3]              0.214    0.013 16.660 0.000  0.189  0.239
+C(configuration)[T.C4]              0.245    0.013 19.073 0.000  0.220  0.270
+C(configuration)[T.C5]              0.237    0.013 18.451 0.000  0.212  0.262
+C(llm)[T.B]                        -0.035    0.013 -2.725 0.006 -0.060 -0.010
+C(configuration)[T.C2]:C(llm)[T.B] -0.037    0.018 -2.037 0.042 -0.073 -0.001
+C(configuration)[T.C3]:C(llm)[T.B] -0.153    0.018 -8.422 0.000 -0.189 -0.117
+C(configuration)[T.C4]:C(llm)[T.B] -0.150    0.018 -8.257 0.000 -0.186 -0.114
+C(configuration)[T.C5]:C(llm)[T.B] -0.143    0.018 -7.872 0.000 -0.179 -0.107
+Group Var                           0.000                                    
 =============================================================================
