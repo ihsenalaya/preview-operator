@@ -1166,6 +1166,7 @@ explain how each one works.
 | Guide | What it covers |
 |-------|----------------|
 | [Lifecycle & Provisioning](docs/features/lifecycle.md) | The core reconcile loop: one namespace per PR, phases, resource tiers, approval gate, TTL, the 15-min provisioning deadline. |
+| [Database Management](docs/features/database-management.md) | **Scenarios + where to put your files** — schema/migrations, seed, AI seed, isolation, reset. |
 | [Ephemeral PostgreSQL](docs/features/ephemeral-postgres.md) | Per-preview throwaway database: migrations, static seed, injected credentials, on-demand reset. |
 | [Database Checkpoints](docs/features/database-checkpoints.md) | Save/restore a deterministic DB state so each test suite starts from the same seed. |
 | [Networking & Exposure](docs/features/networking-exposure.md) | Services, Ingress / Istio routing, the public preview URL, path-based multi-service routing. |
