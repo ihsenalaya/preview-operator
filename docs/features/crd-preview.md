@@ -408,22 +408,49 @@ kubectl delete ns preview-pr-42
 
 ---
 
-## Relationships
+## Ownership & Relationships
+
+### CRD Ownership
+
+**Preview OWNS:**
+- ✅ **TestPlan** — created in preview namespace, deleted with Preview
+- ✅ **TestRun** — created in preview namespace, deleted with Preview
+- ✅ **ReconcileEvent** — created in preview namespace, deleted with Preview
+
+**Preview REFERENCES (but does NOT own):**
+- 🔗 **FailureReport** — cluster-scoped, not garbage-collected with Preview
+
+### Kubernetes Resources Owned by Preview
 
 ```
-Preview (1)
-  ├─ owns → Namespace (1)
-  ├─ owns → Deployment (1 per service)
-  ├─ owns → Service (1 per service)
-  ├─ owns → ConfigMap (for database checkpoints, AI artifacts)
-  ├─ owns → Secret (database credentials)
-  ├─ owns → Job (migration, seed, smoke, regression, E2E, AI jobs)
-  ├─ owns → Ingress or VirtualService (1)
+Preview (cluster-scoped)
+  │
+  ├─ owns → Namespace (preview-pr-<N>)
+  │          ├─ owns → Deployment (svc-backend, svc-frontend)
+  │          ├─ owns → Service (backend, frontend, postgres)
+  │          ├─ owns → ConfigMap (checkpoints, AI artifacts)
+  │          ├─ owns → Secret (DB credentials)
+  │          ├─ owns → Job (migrations, seeds, tests)
+  │          ├─ owns → Ingress or VirtualService
+  │          ├─ owns → NetworkPolicy
+  │          ├─ owns → ResourceQuota
+  │          ├─ owns → TestPlan
+  │          ├─ owns → TestRun
+  │          └─ owns → ReconcileEvent
+  │
   ├─ references → GitHub Deployment (via API, not in-cluster)
-  ├─ references → TestPlan (when strategy.mode=Auto)
-  ├─ references → TestRun (for test results tracking)
-  └─ references → ReconcileEvent (for agent historical signal)
+  └─ references → FailureReport (cluster-scoped, not owned)
 ```
+
+### Cleanup Behavior
+
+When **Preview is deleted**:
+- ✅ Finalizer ensures cleanup
+- ✅ All owned resources deleted (cascading delete)
+  - Namespace → triggers deletion of all resources inside
+  - TestPlan, TestRun, ReconcileEvent → deleted
+  - GitHub Deployment → marked inactive (via API call)
+- ❌ FailureReport NOT deleted (cluster-scoped, separate lifecycle)
 
 ---
 

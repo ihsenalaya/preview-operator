@@ -240,19 +240,60 @@ kubectl get reconcileevent -A \
 
 ---
 
-## Relationships
+## Ownership & Relationships
+
+### Ownership Chain
 
 ```
-ReconcileEvent (N) ◄─── Preview (1)
-  ├─ references → Preview (previewRef)
+Preview (cluster-scoped)
   │
-  └─ read by ← test-strategist-agent (optional)
-       (queries recent events to detect patterns like flaky tests)
+  └─ OWNS ──────→ ReconcileEvent (namespaced, append-only)
+                  ├─ REFERENCES ──→ Preview (previewRef)
+                  ├─ WRITTEN BY ──→ preview-operator (controller)
+                  └─ READ BY ──────→ test-strategist-agent (flakiness detection)
 ```
 
-- **Multiple ReconcileEvents** per Preview (one per significant state transition)
-- **No ownership**: ReconcileEvents are not garbage-collected with the Preview
-- **Separate TTL**: Events are cleaned up after 7 days by default
+**Preview OWNS ReconcileEvent:**
+- ReconcileEvent lives in preview namespace (preview-pr-<N>)
+- Append-only log: never modified, only appended
+- When Preview is deleted → ReconcileEvents automatically deleted
+- **BUT** separate TTL expires old events after 7 days
+  (so events may be deleted before Preview is deleted)
+
+**test-strategist-agent reads ReconcileEvents:**
+- Queries recent events to detect test flakiness
+- Uses historical patterns to adjust confidence score
+- "This test failed 3 times in last 10 runs" → reduce confidence
+
+### Complete Relationship Map
+
+```
+Preview (1)
+  │
+  ├─ OWNS ──→ TestPlan
+  ├─ OWNS ──→ TestRun
+  ├─ OWNS ──→ ReconcileEvent (append-only log)
+  │           │
+  │           ├─ WRITTEN BY: preview-operator
+  │           │  • Provisioned → TestStarted → TestFinished → Ready/Error
+  │           │
+  │           └─ READ BY: test-strategist-agent
+  │               • Detects flaky tests
+  │               • Adjusts confidence based on history
+  │
+  └─ REFERENCES → FailureReport (cluster-scoped, not owned)
+```
+
+### TTL & Cleanup
+
+```
+ReconcileEvent lifecycle:
+  1. Created: spec.occurredAt (when event happens)
+  2. Lives: in preview namespace (owned by Preview)
+  3. Cleaned: after TTL (default 7 days) OR when Preview deleted
+  4. Result: if Preview deleted first → event deleted
+            if TTL expires first → event deleted before Preview deleted
+```
 
 ---
 

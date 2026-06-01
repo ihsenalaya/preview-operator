@@ -324,18 +324,45 @@ kubectl patch testplan pr-42-abc123 -n preview-pr-42 --type=merge \
 
 ---
 
-## Relationships
+## Ownership & Relationships
+
+### Ownership Chain
 
 ```
-TestPlan (N) ◄─── Preview (1)
-  ├─ references → Preview (previewRef)
+Preview (cluster-scoped) 
   │
-  └─ references ← TestRun (testPlanRef)
+  └─ OWNS ──→ TestPlan (namespaced)
+              │
+              └─ REFERENCED BY ──→ TestRun (created after acceptance)
 ```
 
-- **One Preview** can have multiple TestPlans (one per reconcile cycle or manual override)
-- **TestRun** references which TestPlan it followed
-- **ReconcileEvent** may record agent success/failure for historical signal
+**Preview OWNS TestPlan:**
+- TestPlan lives in preview namespace (preview-pr-<N>)
+- When Preview is deleted → TestPlan automatically deleted
+- Finalizer ensures cleanup
+
+**TestRun references TestPlan:**
+- TestRun.spec.testPlanRef points to the accepted TestPlan
+- When TestPlan deleted → TestRun can become orphaned
+  (but TestRun also owned by Preview, so both deleted together)
+
+### Complete Relationship Map
+
+```
+Preview (1)
+  │
+  ├─ OWNS ──────→ TestPlan (N per PR)
+  │               ├─ REFERENCED BY ──→ TestRun
+  │               └─ READ BY ──────→ test-strategist-agent (job)
+  │
+  ├─ OWNS ──────→ TestRun (N per test cycle)
+  │               └─ REFERENCES ──→ TestPlan
+  │
+  ├─ OWNS ──────→ ReconcileEvent (N, append-only)
+  │               └─ READ BY ──────→ test-strategist-agent (historical signal)
+  │
+  └─ REFERENCES ──→ FailureReport (cluster-scoped, not owned)
+```
 
 ---
 

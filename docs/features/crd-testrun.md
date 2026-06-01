@@ -215,20 +215,45 @@ kubectl get testrun pr-42-run-abc123 -n preview-pr-42 \
 
 ---
 
-## Relationships
+## Ownership & Relationships
+
+### Ownership Chain
 
 ```
-TestRun (1) ◄─── Preview (1)
-  ├─ references → Preview (previewRef)
-  ├─ references → TestPlan (testPlanRef)
+Preview (cluster-scoped)
   │
-  └─ tracked by ← Controller reconcile loop
-       (appends results as Jobs complete)
+  └─ OWNS ──────→ TestRun (namespaced)
+                  ├─ REFERENCES ──→ Preview (previewRef)
+                  ├─ REFERENCES ──→ TestPlan (testPlanRef, may be deleted)
+                  └─ WRITTEN BY ──→ preview-operator (controller)
 ```
 
-- **One TestRun** per Preview per test execution cycle
-- **Multiple TestRuns** accumulate in the namespace (historical record)
-- **Controller is the only writer** (appends results, updates phase)
+**Preview OWNS TestRun:**
+- TestRun lives in preview namespace (preview-pr-<N>)
+- When Preview is deleted → TestRun automatically deleted
+- Multiple TestRuns accumulate in namespace (historical record)
+- All cleaned up together when Preview finalizer runs
+
+**TestRun references TestPlan:**
+- TestRun.spec.testPlanRef points to the accepted TestPlan
+- Both owned by same Preview → deleted together
+- TestRun is immutable (read-only for analysis after completion)
+
+### Complete Relationship Map
+
+```
+Preview (1)
+  │
+  ├─ OWNS ──→ TestPlan (decision)
+  │
+  ├─ OWNS ──→ TestRun (results)  ◄── REFERENCES TestPlan
+  │           ├─ Contains: test results (immutable)
+  │           ├─ Appended by: preview-operator
+  │           └─ Read by: failure-analyst-agent (for diagnostics)
+  │
+  └─ OWNS ──→ ReconcileEvent (audit log)
+              └─ Appended by: preview-operator
+```
 
 ---
 

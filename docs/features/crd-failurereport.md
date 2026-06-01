@@ -330,24 +330,71 @@ kubectl get failurereport pr-42-failure-abc123 -n preview-pr-42 -o yaml > failur
 
 ---
 
-## Relationships
+## Ownership & Relationships
+
+### Ownership Chain
 
 ```
-FailureReport (1) ◄─── Preview (1)
-  ├─ references → Preview (previewRef)
+Preview (cluster-scoped)
   │
-  ├─ references → Pod (in evidence items)
-  ├─ references → Job (in evidence items)
-  ├─ references → Event (in evidence items)
-  ├─ references → Span (Jaeger)
+  ├─ OWNS ──────→ TestPlan, TestRun, ReconcileEvent (namespaced)
   │
-  └─ referenced by ← failure-analyst-agent (optional)
-       (reads evidence, produces diagnoses)
+  └─ REFERENCES ──→ FailureReport (cluster-scoped, NOT OWNED)
+                    ├─ CREATED BY: preview-operator
+                    ├─ WRITTEN BY: failure-analyst-agent (diagnoses)
+                    └─ READ BY: failure-analyst-agent (evidence)
 ```
 
-- **One FailureReport** per failed Preview
-- **Multiple evidence items** accumulated during collection
-- **Multiple diagnoses** appended as agents analyze
+**⚠️ IMPORTANT: Preview does NOT OWN FailureReport**
+
+**Why?**
+- FailureReport is **cluster-scoped** (not namespaced)
+- Kubernetes ownership chain only works within same scope
+- Cluster-scoped resources cannot be owned by namespaced parents
+
+**Implications:**
+- When Preview is deleted → FailureReport is NOT deleted
+- FailureReport persists for cross-PR analysis
+- Separate cleanup needed (manual or TTL-based)
+
+### Complete Relationship Map
+
+```
+Preview (1, cluster-scoped)
+  │
+  ├─ OWNS (namespace-scoped):
+  │   ├─ Namespace
+  │   ├─ TestPlan (decision)
+  │   ├─ TestRun (results)
+  │   └─ ReconcileEvent (audit log)
+  │
+  └─ REFERENCES (but does NOT own):
+      ├─ FailureReport (cluster-scoped)
+      │   ├─ CREATED BY: preview-operator
+      │   ├─ Contains: evidence items (pod logs, events, traces)
+      │   ├─ WRITTEN BY: failure-analyst-agent
+      │   │   └─ Appends: diagnoses[] (grounded in evidence)
+      │   └─ SURVIVES: Preview deletion
+      │
+      └─ GitHub Deployment (external, API-only)
+```
+
+### Cleanup Behavior
+
+```
+When Preview is deleted:
+  ✅ Finalizer runs
+  ✅ Delete namespace → all namespaced resources deleted
+     ├─ Deletes: TestPlan, TestRun, ReconcileEvent
+     ├─ Deletes: Deployments, Services, ConfigMaps, Secrets, Jobs
+     └─ Deletes: NetworkPolicy, ResourceQuota
+  ❌ FailureReport NOT deleted (cluster-scoped, not owned)
+
+FailureReport cleanup options:
+  1. Manual: kubectl delete failurereport <name>
+  2. TTL: expire old reports after 30 days (configurable)
+  3. Policy: keep for N days per failure category
+```
 
 ---
 
