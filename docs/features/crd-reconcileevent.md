@@ -2,6 +2,10 @@
 
 The **ReconcileEvent** Custom Resource is an append-only audit log written by the controller each time something material happens to a Preview. Events record state transitions, test starts/completions, and errors, forming a deterministic timeline that agents can query for historical signal.
 
+## Scope
+
+🔒 **Namespaced** — ReconcileEvent CRs are created in the same namespace as the Preview they belong to (`preview-pr-<N>`). Events accumulate and are cleaned up after a TTL (default 7 days).
+
 ---
 
 ## What it's for

@@ -2,6 +2,10 @@
 
 The **FailureReport** Custom Resource is a W3C PROV-aligned evidence bundle that captures why a Preview failed. It includes collected evidence items (logs, events, traces) and one or more probable cause diagnoses grounded in that evidence.
 
+## Scope
+
+🌍 **Cluster-scoped** — FailureReport CRs exist at the cluster level, enabling cross-namespace failure analysis and pattern detection across all Previews.
+
 ---
 
 ## What it's for

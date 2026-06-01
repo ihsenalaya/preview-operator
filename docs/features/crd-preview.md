@@ -2,6 +2,10 @@
 
 The **Preview** Custom Resource Definition (CRD) is the central abstraction of the platform. Every pull request is represented as one Preview CR, which the operator reconciles continuously until the preview is terminated.
 
+## Scope
+
+🌍 **Cluster-scoped** — Preview CRs exist at the cluster level, not within a namespace. However, each Preview creates and manages its own namespace (`preview-pr-<N>`) for isolation.
+
 ---
 
 ## What it's for

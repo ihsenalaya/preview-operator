@@ -2,6 +2,10 @@
 
 The **TestRun** Custom Resource tracks the execution of a test suite within a Preview. It is created after a TestPlan is accepted, and records the results of each test Job as they complete.
 
+## Scope
+
+🔒 **Namespaced** — TestRun CRs are created in the same namespace as the Preview they belong to (`preview-pr-<N>`). Multiple TestRuns accumulate in the namespace for historical analysis.
+
 ---
 
 ## What it's for
