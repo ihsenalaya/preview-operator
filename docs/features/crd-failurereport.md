@@ -6,6 +6,64 @@ The **FailureReport** Custom Resource is a W3C PROV-aligned evidence bundle that
 
 🌍 **Cluster-scoped** — FailureReport CRs exist at the cluster level, enabling cross-namespace failure analysis and pattern detection across all Previews.
 
+## How Ownership Works (In Code)
+
+### Why FailureReport Cannot Be Owned by Preview
+
+**CRD Definition:**
+
+```go
+// In api/v1alpha1/failurereport_types.go
+// +kubebuilder:resource:scope=Cluster,shortName=fr
+// ↑ Cluster-scoped (NOT namespaced)
+
+type FailureReport struct {
+  metav1.TypeMeta   `json:",inline"`
+  metav1.ObjectMeta `json:"metadata,omitempty"`
+  Spec   FailureReportSpec   `json:"spec,omitempty"`
+  Status FailureReportStatus `json:"status,omitempty"`
+}
+```
+
+**The Problem:**
+
+```
+Preview (Cluster-scoped)
+  └─ tries to own FailureReport (Cluster-scoped)
+     ❌ Kubernetes rule violation!
+
+Kubernetes ownership rules:
+  ✅ ownerReferences must be same scope
+  ✅ parent in namespace → children in same namespace
+  ❌ parent Preview → child in different scope = INVALID
+```
+
+**Controller creates FailureReport:**
+
+```go
+// Controller does NOT add ownerReferences for FailureReport
+// because it cannot (different scope)
+
+failureReport := &v1alpha1.FailureReport{
+  ObjectMeta: metav1.ObjectMeta{
+    Name: "pr-42-failure-" + uuid,
+    // ❌ NO ownerReferences (would be invalid)
+  },
+  Spec: v1alpha1.FailureReportSpec{
+    PreviewRef: corev1.ObjectReference{
+      Name: "pr-42",      // ← just a reference, not ownership
+      Kind: "Preview",
+    },
+    // ...
+  },
+}
+```
+
+**Result:**
+- FailureReport survives when Preview is deleted
+- Must be cleaned up separately (TTL, policy, or manual)
+- Enables cross-PR failure analysis
+
 ---
 
 ## What it's for

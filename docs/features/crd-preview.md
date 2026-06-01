@@ -408,6 +408,61 @@ kubectl delete ns preview-pr-42
 
 ---
 
+## How Ownership Works (In Code)
+
+### Kubernetes Ownership Mechanism
+
+Ownership is **defined in the CRD code** via `ownerReferences`:
+
+```go
+// In api/v1alpha1/preview_types.go
+// +kubebuilder:resource:scope=Cluster,shortName=prev
+type Preview struct {
+  metav1.TypeMeta   `json:",inline"`
+  metav1.ObjectMeta `json:"metadata,omitempty"`
+  Spec   PreviewSpec   `json:"spec,omitempty"`
+  Status PreviewStatus `json:"status,omitempty"`
+}
+```
+
+When controller **creates a child CRD** (e.g., TestPlan), it adds `ownerReferences`:
+
+```yaml
+# In the created TestPlan CR
+apiVersion: platform.company.io/v1alpha1
+kind: TestPlan
+metadata:
+  name: pr-42-abc123
+  namespace: preview-pr-42
+  ownerReferences:                    # ← Kubernetes sees this
+  - apiVersion: platform.company.io/v1alpha1
+    kind: Preview
+    name: pr-42                       # ← points to parent
+    uid: abc123def456...              # ← unique identifier
+    controller: true                  # ← Kubernetes will cascade delete
+```
+
+**Kubernetes automatically:**
+1. Sees the `ownerReferences`
+2. When Preview is deleted → deletes all children (TestPlan, TestRun, ReconcileEvent)
+3. Respects finalizers for cleanup ordering
+
+### Scope Constraint
+
+**Why FailureReport is NOT owned:**
+
+```
+Kubernetes rule: ownerReferences only work same-scope
+  ✅ Cluster-scoped can own Cluster-scoped
+  ✅ Namespaced can own Namespaced
+  ❌ Cluster-scoped CANNOT own Namespaced
+  ❌ Namespaced CANNOT own Cluster-scoped (Preview case)
+```
+
+FailureReport is cluster-scoped, Preview is cluster-scoped, but FailureReport is created in a **different namespace context** (not in preview-pr-N). So ownership chain breaks.
+
+---
+
 ## Ownership & Relationships
 
 ### CRD Ownership
