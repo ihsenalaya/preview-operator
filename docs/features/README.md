@@ -47,8 +47,20 @@ every other feature plugs into.
 | [GitHub Integration](./github-integration.md) | Deployment statuses and PR comments (results table + AI sections). |
 | [Copilot Extension](./copilot-extension.md) | `@preview` ChatOps commands driven from GitHub Copilot Chat. |
 
+## Custom Resources (CRDs)
+
+The Preview Operator defines five Custom Resource Types. Each is documented comprehensively:
+
+| CRD | Shortname | What it represents |
+|-----|-----------|-------------------|
+| [Preview](./crd-preview.md) | `prev` | The core abstraction: a preview environment request with full lifecycle (Pending → Provisioning → Running → Terminating) |
+| [TestPlan](./crd-testplan.md) | `tp` | Intelligent test selection: agent-generated or manual decision on which test suites to run (mustRun / shouldRun / canSkip) |
+| [TestRun](./crd-testrun.md) | `tr` | Test execution tracking: persists outcomes of each test Job as they complete; immutable audit trail |
+| [FailureReport](./crd-failurereport.md) | — | Durable failure evidence bundle (W3C PROV-aligned): collected evidence items + diagnoses grounded in that evidence |
+| [ReconcileEvent](./crd-reconcileevent.md) | `re` | Controller lifecycle audit log (append-only): records state transitions, test starts/completions, and errors for agent pattern detection |
+
 ---
 
 For installation, the full reconcile sequence, and troubleshooting, see the
-[main README](../../README.md). The demo walkthrough lives in
-[../kubecon-demo.md](../kubecon-demo.md).
+[main README](https://github.com/ihsenalaya/preview-operator/blob/main/README.md). The demo walkthrough lives in
+[../kubecon-demo.md](https://github.com/ihsenalaya/preview-operator/blob/main/docs/kubecon-demo.md).
